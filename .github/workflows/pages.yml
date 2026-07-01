@@ -39,7 +39,9 @@ jobs:
         run: |
           mkdir -p _site
           # Only the public web assets ship — not the chezmoi source tree.
-          cp index.html install .nojekyll _site/
+          # og.png is the pre-rendered social card (see scripts/og), committed so
+          # deploys stay fast — no Node/Takumi build runs here.
+          cp index.html install .nojekyll og.png _site/
           sha="${GITHUB_SHA::7}"
           # Replace the placeholder with the 7-char SHA of the commit being deployed.
           sed -i "s/__COMMIT_SHA__/${sha}/g" _site/index.html
