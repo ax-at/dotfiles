@@ -65,7 +65,14 @@ setup() {
 # ---- npm_install_if_missing (30-mise) -------------------------------------
 
 @test "npm_install_if_missing: installs when check fails" {
-  npm_install_if_missing "vercel" "vercel --version"   # vercel not stubbed -> check fails
+  # isolate() only PREPENDS $MOCKBIN, so a real globally-installed `vercel`
+  # (e.g. mise's ~/.local/share/mise/installs/node/.../bin/vercel) still resolves
+  # and would make the check SUCCEED, skipping the install. Narrow PATH so the
+  # CLI is genuinely absent; $MOCKBIN stays first so the `mise` stub still records.
+  local saved_path="$PATH"
+  PATH="$MOCKBIN:/usr/bin:/bin"
+  npm_install_if_missing "vercel" "vercel --version"   # vercel absent -> check fails
+  PATH="$saved_path"
   grep -q 'mise exec node -- npm install -g vercel' "$CALLS_LOG"
 }
 
