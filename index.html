@@ -10,11 +10,26 @@
 <!-- Inline SVG favicon (no build step, no Jekyll): a ❯ prompt + cursor on a Catppuccin tile. -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzE4MTgyNSIvPjxwYXRoIGQ9Ik0xMCAxMC41IDE1LjUgMTYgMTAgMjEuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODliNGZhIiBzdHJva2Utd2lkdGg9IjIuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHJlY3QgeD0iMTYuOCIgeT0iMTkuNiIgd2lkdGg9IjYuNiIgaGVpZ2h0PSIyLjQiIHJ4PSIxLjIiIGZpbGw9IiNhNmUzYTEiLz48L3N2Zz4=" />
 
-<!-- Open Graph -->
+<!-- Open Graph — the og.png social card is pre-rendered by scripts/og and shipped
+     next to this file (GitHub Pages is static, so it can't be generated per-request).
+     Absolute URLs are required: scrapers (Discord/Slack/iMessage) don't resolve
+     relative image paths. -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="ax-at/dotfiles" />
+<meta property="og:site_name" content="ax-at/dotfiles" />
+<meta property="og:title" content="ax-at/dotfiles — one command sets up your dev machine" />
 <meta property="og:description" content="One command sets up your entire dev machine. Declarative, idempotent, safe to re-run." />
 <meta property="og:url" content="https://ax-at.github.io/dotfiles/" />
+<meta property="og:image" content="https://ax-at.github.io/dotfiles/og.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="ax-at/dotfiles — one command sets up your entire dev machine" />
+
+<!-- Twitter / X large-image card (also honored by several other unfurlers) -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="ax-at/dotfiles — one command sets up your dev machine" />
+<meta name="twitter:description" content="One command sets up your entire dev machine. Declarative, idempotent, safe to re-run." />
+<meta name="twitter:image" content="https://ax-at.github.io/dotfiles/og.png" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -101,12 +116,14 @@
     white-space: nowrap;
   }
   .brand .mark { flex: none; display: block; border-radius: 6px; }
+  .brand .name { display: inline-flex; align-items: baseline; }
+  .brand .slash { color: var(--faint); margin: 0 6px; }
   .brand b { color: var(--text); font-weight: 500; }
 
   .nav {
     display: inline-flex;
     align-items: center;
-    gap: 22px;
+    gap: 14px;
     font-family: var(--mono);
     font-size: .82rem;
   }
@@ -116,8 +133,11 @@
     transition: color .18s var(--ease);
   }
   .nav a:hover { color: var(--text); }
-  .nav a::before { content: "· "; color: var(--faint); }
-  .nav a:first-child::before { content: ""; }
+  .nav .sep { color: var(--faint); user-select: none; }
+
+  /* GitHub icon link (inherits .nav a muted→text hover) */
+  .gh { display: inline-flex; align-items: center; }
+  .gh svg { width: 18px; height: 18px; display: block; }
 
   /* ---------- stage ---------- */
   main { flex: 1 0 auto; display: flex; align-items: center; }
@@ -386,13 +406,13 @@
     padding-top: 18px;
   }
   footer .reconcile b { color: var(--muted); font-weight: 500; }
-  .deployed { display: inline-flex; align-items: center; gap: 8px; color: var(--faint); }
-  .deployed .k { color: var(--faint); }
-  .deployed .sha { color: var(--muted); }
-  .deployed .live {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px 1px rgba(166, 227, 161, .5);
+  /* Just the commit hash — dissolved into the background, a hair darker than the
+     footer text, but still legible. No label, no dot. */
+  .deployed { display: inline-flex; align-items: center; }
+  .deployed .sha {
+    color: var(--line-2);
+    font-size: .66rem;
+    letter-spacing: .03em;
   }
 
   /* ---------- entrance (pure CSS; works with JS off) ---------- */
@@ -426,8 +446,20 @@
     h1 { letter-spacing: -.03em; }
     h1 .cmd { white-space: normal; }
   }
+  /* The header comment is the widest line in the manifest and forces a horizontal
+     scrollbar wherever the manifest column is narrow — both on small full-width
+     screens (≤480px) and in the two-column grid before it has room (861–1000px).
+     861px is the complement of the 860px grid switch above; 480px is the small
+     breakpoint reused below. In those ranges wrap it onto two `# ` lines. */
+  @media (max-width: 480px), (min-width: 861px) and (max-width: 1000px) {
+    /* hang the continuation under the first line's text, clearing the line-number
+       gutter (2ch number + 20px margin) so both `#` lines align */
+    .code .cont { display: block; padding-left: calc(2ch + 20px); }
+    .code .cont::before { content: "# "; }
+    .code .sp { display: none; }
+  }
   @media (max-width: 480px) {
-    .nav { gap: 16px; }
+    .nav { gap: 12px; }
     /* keep the three stats on one line on small screens */
     .stat { gap: 5px 8px; font-size: .72rem; }
     .stat span { gap: 5px; }
@@ -453,11 +485,14 @@
           <path d="M10 10.5 15.5 16 10 21.5" fill="none" stroke="#89b4fa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
           <rect x="16.8" y="19.6" width="6.6" height="2.4" rx="1.2" fill="#a6e3a1" />
         </svg>
-        ax-at&nbsp;/&nbsp;<b>dotfiles</b>
+        <span class="name">ax-at<span class="slash">/</span><b>dotfiles</b></span>
       </span>
       <nav class="nav" aria-label="Primary">
         <a href="https://github.com/ax-at/dotfiles#readme">README</a>
-        <a href="https://github.com/ax-at/dotfiles">source</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a class="gh" href="https://github.com/ax-at/dotfiles" aria-label="ax-at/dotfiles on GitHub">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
       </nav>
     </div>
   </header>
@@ -489,14 +524,13 @@
             <span class="flag">source of truth</span>
           </div>
 
-          <pre class="code" aria-hidden="true"><span class="row"><span class="c"># one opinionated machine, declared as data</span></span><span class="row"><span class="sec">[modules]</span></span><span class="row"><span class="key">core          </span> <span class="eq">=</span> <span class="t" style="--i:0">true</span></span><span class="row"><span class="key">fonts         </span> <span class="eq">=</span> <span class="t" style="--i:1">true</span></span><span class="row"><span class="key">editors       </span> <span class="eq">=</span> <span class="t" style="--i:2">true</span></span><span class="row"><span class="key">web           </span> <span class="eq">=</span> <span class="t" style="--i:3">true</span></span><span class="row"><span class="key">databases     </span> <span class="eq">=</span> <span class="t" style="--i:4">true</span></span><span class="row"><span class="key">cloud         </span> <span class="eq">=</span> <span class="t" style="--i:5">true</span></span><span class="row"><span class="key">react-native  </span> <span class="eq">=</span> <span class="t" style="--i:6">true</span></span><span class="row"><span class="key">ai-tools      </span> <span class="eq">=</span> <span class="t" style="--i:7">true</span></span><span class="row"><span class="key">productivity  </span> <span class="eq">=</span> <span class="t" style="--i:8">true</span></span><span class="row"><span class="key">linux-feel    </span> <span class="eq">=</span> <span class="t" style="--i:9">true</span></span><span class="row"><span class="key">macos-defaults</span> <span class="eq">=</span> <span class="t" style="--i:10">true</span></span></pre>
+          <pre class="code" aria-hidden="true"><span class="row"><span class="c"># one opinionated machine,<span class="sp"> </span><span class="cont">declared as data</span></span></span><span class="row"><span class="sec">[modules]</span></span><span class="row"><span class="key">core          </span> <span class="eq">=</span> <span class="t" style="--i:0">true</span></span><span class="row"><span class="key">fonts         </span> <span class="eq">=</span> <span class="t" style="--i:1">true</span></span><span class="row"><span class="key">editors       </span> <span class="eq">=</span> <span class="t" style="--i:2">true</span></span><span class="row"><span class="key">web           </span> <span class="eq">=</span> <span class="t" style="--i:3">true</span></span><span class="row"><span class="key">databases     </span> <span class="eq">=</span> <span class="t" style="--i:4">true</span></span><span class="row"><span class="key">cloud         </span> <span class="eq">=</span> <span class="t" style="--i:5">true</span></span><span class="row"><span class="key">react-native  </span> <span class="eq">=</span> <span class="t" style="--i:6">true</span></span><span class="row"><span class="key">ai-tools      </span> <span class="eq">=</span> <span class="t" style="--i:7">true</span></span><span class="row"><span class="key">productivity  </span> <span class="eq">=</span> <span class="t" style="--i:8">true</span></span><span class="row"><span class="key">linux-feel    </span> <span class="eq">=</span> <span class="t" style="--i:9">true</span></span><span class="row"><span class="key">macos-defaults</span> <span class="eq">=</span> <span class="t" style="--i:10">true</span></span></pre>
 
           <div class="foot">
             <p>Every tool here is a deliberate choice, declared in one file.
                <b>Batteries included — the decisions are already made.</b></p>
             <div class="stat">
               <span><b>80</b>&nbsp;packages</span>
-              <span><b>70</b>&nbsp;enabled</span>
               <span><b>11</b>&nbsp;modules</span>
             </div>
           </div>
@@ -529,8 +563,7 @@
     <div class="wrap">
       <span class="reconcile">one <b>apply</b> reconciles your machine to the manifest</span>
       <span class="deployed" title="Short SHA of the commit currently deployed to GitHub Pages">
-        <span class="live" aria-hidden="true"></span>
-        <span class="k">deployed</span>&nbsp;·&nbsp;<span class="sha">__COMMIT_SHA__</span>
+        <span class="sha">__COMMIT_SHA__</span>
       </span>
     </div>
   </footer>
