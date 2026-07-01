@@ -13,3 +13,6 @@ java = "zulu-17"      # Azul Zulu 17 — Expo/Android recommended JDK
 not_found_auto_install = false
 # Trust this config without prompting.
 idiomatic_version_file_enable_tools = ["node", "ruby"]
+# Use precompiled Ruby binaries (faster installs, no source toolchain needed).
+# Becomes mise's default in 2026.8.0; set explicitly to lock behavior + silence warning.
+ruby.compile = false
