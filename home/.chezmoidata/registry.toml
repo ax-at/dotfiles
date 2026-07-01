@@ -21,16 +21,16 @@
 # ============================================================================
 
 [modules]
-core           = true
-fonts          = true
-editors        = true
-web            = true
-databases      = true
-cloud          = true
-react-native   = true
-ai-tools       = true
-productivity   = true
-linux-feel     = true
+core = true
+fonts = true
+editors = true
+web = true
+databases = true
+cloud = true
+react-native = true
+ai-tools = true
+productivity = true
+linux-feel = true
 macos-defaults = true
 
 # ----------------------------------------------------------------- core ----
@@ -310,6 +310,18 @@ enabled = true
 platforms = ["macos", "linux"]
 macos = { method = "brew", pkg = "shfmt" }
 linux = { method = "brew", pkg = "shfmt" }
+
+[[packages]]
+name = "oxfmt"
+module = "core"
+desc = "Formatter for JS/JSON/YAML/HTML/CSS/Markdown (used by make lint; TOML is taplo's)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/oxc-project/oxc"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "oxfmt" }
+linux = { method = "brew", pkg = "oxfmt" }
 
 [[packages]]
 name = "taplo"

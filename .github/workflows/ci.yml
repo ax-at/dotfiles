@@ -49,7 +49,7 @@ jobs:
             --source "$PWD/home" --destination "$dest" \
             --config test/fixtures/full.toml --config-format toml --no-tty
 
-  # ---- Lint: shellcheck + shfmt on the plain shell scripts.
+  # ---- Lint: shellcheck + shfmt (shell), taplo (toml), oxfmt (everything else).
   lint:
     runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-latest' }}
     steps:
@@ -58,7 +58,7 @@ jobs:
         if: runner.os == 'Linux'
         run: '[ -d /home/linuxbrew/.linuxbrew/bin ] && echo /home/linuxbrew/.linuxbrew/bin >> "$GITHUB_PATH" || true'
       - name: Install linters
-        run: brew install shellcheck shfmt actionlint
+        run: brew install shellcheck shfmt actionlint taplo oxfmt
       - name: make lint
         run: make lint
 

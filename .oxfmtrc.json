@@ -1,0 +1,4 @@
+{
+  "$schema": "https://oxc.rs/schemas/oxfmtrc.json",
+  "ignorePatterns": ["**/*.tmpl", "**/*.toml", "TOOLS.md"]
+}

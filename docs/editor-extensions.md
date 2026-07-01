@@ -39,33 +39,33 @@ yzhang.markdown-all-in-one
 
 ## Essential additions (clear tool gap)
 
-| Extension ID | Serves (TOOLS.md) |
-|---|---|
-| `ms-azuretools.vscode-docker` | OrbStack / Docker — Dockerfile + compose, container view |
-| `amazonwebservices.aws-toolkit-vscode` | awscli — profiles, Lambda, S3, CloudWatch logs |
-| `mtxr.sqltools` | libpq/psql + mysql-client — in-editor SQL client (needs drivers below) |
-| `mtxr.sqltools-driver-pg` | Postgres driver for SQLTools |
-| `mtxr.sqltools-driver-mysql` | MySQL driver for SQLTools |
-| `github.vscode-pull-request-github` | gh — review/create PRs & issues in-editor |
-| `christian-kohler.path-intellisense` | path autocomplete (complements npm-intellisense) |
-| `mikestead.dotenv` | `.env` syntax highlight (Expo/EAS/Vercel projects) |
+| Extension ID                           | Serves (TOOLS.md)                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `ms-azuretools.vscode-docker`          | OrbStack / Docker — Dockerfile + compose, container view               |
+| `amazonwebservices.aws-toolkit-vscode` | awscli — profiles, Lambda, S3, CloudWatch logs                         |
+| `mtxr.sqltools`                        | libpq/psql + mysql-client — in-editor SQL client (needs drivers below) |
+| `mtxr.sqltools-driver-pg`              | Postgres driver for SQLTools                                           |
+| `mtxr.sqltools-driver-mysql`           | MySQL driver for SQLTools                                              |
+| `github.vscode-pull-request-github`    | gh — review/create PRs & issues in-editor                              |
+| `christian-kohler.path-intellisense`   | path autocomplete (complements npm-intellisense)                       |
+| `mikestead.dotenv`                     | `.env` syntax highlight (Expo/EAS/Vercel projects)                     |
 
 ## Recommended (strong DX, RN/TS-focused)
 
-| Extension ID | Serves |
-|---|---|
-| `dsznajder.es7-react-js-snippets` | RN/React snippets |
-| `wix.vscode-import-cost` | inline import bundle cost — useful for RN |
-| `orta.vscode-jest` | Jest is RN's default test runner |
-| `streetsidesoftware.code-spell-checker` | typo catcher for code + docs |
+| Extension ID                            | Serves                                    |
+| --------------------------------------- | ----------------------------------------- |
+| `dsznajder.es7-react-js-snippets`       | RN/React snippets                         |
+| `wix.vscode-import-cost`                | inline import bundle cost — useful for RN |
+| `orta.vscode-jest`                      | Jest is RN's default test runner          |
+| `streetsidesoftware.code-spell-checker` | typo catcher for code + docs              |
 
 ## Optional (polish)
 
-| Extension ID | Note |
-|---|---|
-| `pkief.material-icon-theme` | file icons; pairs with Nerd Font |
-| `naumovs.color-highlight` | inline color swatches (Tailwind/RN styling) |
-| `gruntfuggly.todo-tree` | surfaces TODO/FIXME |
+| Extension ID                | Note                                        |
+| --------------------------- | ------------------------------------------- |
+| `pkief.material-icon-theme` | file icons; pairs with Nerd Font            |
+| `naumovs.color-highlight`   | inline color swatches (Tailwind/RN styling) |
+| `gruntfuggly.todo-tree`     | surfaces TODO/FIXME                         |
 
 ## ⚠️ Cursor caveat (must verify before wiring into the shared script)
 

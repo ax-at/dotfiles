@@ -21,13 +21,16 @@ It installs [chezmoi](https://www.chezmoi.io) if it's missing (a self-contained 
 <summary>What that one line runs</summary>
 
 The URL serves [`install`](./install), which:
+
 1. installs chezmoi to `~/.local/bin` via `get.chezmoi.io` (only if not already present), then
 2. runs `chezmoi init --apply ax-at` — chezmoi's **built-in git** clones `https://github.com/ax-at/dotfiles.git` (no system git needed) and applies everything.
 
 Prefer to skip the wrapper? Run `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply ax-at` directly, or — with Homebrew + git already installed — `brew install chezmoi && chezmoi init --apply ax-at`.
+
 </details>
 
 chezmoi will then:
+
 1. install **Rosetta 2** (Apple Silicon) + **Homebrew** (which pulls in the Xcode Command Line Tools),
 2. `brew bundle` every enabled package from the registry,
 3. install runtimes via **mise** (Node LTS, pnpm, Ruby, Zulu-17 JDK) + npm CLIs,
@@ -39,7 +42,7 @@ You'll be **prompted once** for your git identity (work + personal) and a few mo
 
 > 💡 If the Command Line Tools GUI dialog ever blocks the run, finish it and re-run `chezmoi apply`.
 
-> ℹ️ **How to tell it worked.** chezmoi is silent on success — there's no completion banner. A normal shell prompt with no `Error:` line means it finished; confirm with `echo $?` (`0` = success, non-zero = it aborted). A few steps continue on *non-fatal* errors instead of aborting, so scan the log for stray `HTTP`/`error`/`failed` lines. The known one: registering the SSH **signing** key needs `gh`'s `admin:ssh_signing_key` scope — if it's missing you'll see a `404` there, but the run still completes and everything else is applied.
+> ℹ️ **How to tell it worked.** chezmoi is silent on success — there's no completion banner. A normal shell prompt with no `Error:` line means it finished; confirm with `echo $?` (`0` = success, non-zero = it aborted). A few steps continue on _non-fatal_ errors instead of aborting, so scan the log for stray `HTTP`/`error`/`failed` lines. The known one: registering the SSH **signing** key needs `gh`'s `admin:ssh_signing_key` scope — if it's missing you'll see a `404` there, but the run still completes and everything else is applied.
 
 ---
 
@@ -103,7 +106,7 @@ Tracked here because Apple/vendor flows require a human:
 - [ ] **Android Studio** first-run: install the SDK + an emulator (AVD). `ANDROID_HOME` is already exported in `.zshrc`.
 - [ ] `pass-cli login` (see Secrets).
 - [ ] Grant **Karabiner-Elements** and **LinearMouse** their permissions (Input Monitoring / Accessibility) when prompted.
-- [ ] **Karabiner**: open it → Complex Modifications → enable the imported *Windows-style* rules, and add **Ghostty's bundle id** to the terminal-exclusion list (use Karabiner's EventViewer to find it).
+- [ ] **Karabiner**: open it → Complex Modifications → enable the imported _Windows-style_ rules, and add **Ghostty's bundle id** to the terminal-exclusion list (use Karabiner's EventViewer to find it).
 - [ ] **VS Code / Cursor**: turn **off** the built-in Settings Sync (chezmoi manages `settings.json`).
 - [ ] **Log out / back in** so fast key-repeat + modifier changes fully apply.
 
@@ -170,15 +173,16 @@ dotfiles/
 ```
 
 ### Provisioning order (`.chezmoiscripts/`)
-| Script | Does |
-|--------|------|
-| `run_once_before_10-prerequisites` | Rosetta + Homebrew (+ CLT) |
-| `run_onchange_after_20-packages` | generate Brewfile from registry → `brew bundle` |
-| `run_onchange_after_30-mise` | runtimes + npm-global CLIs |
-| `run_onchange_after_40-ai-tools` | official `script` installers |
-| `run_onchange_after_50-editor-extensions` | VS Code + Cursor extensions |
-| `run_once_after_60-ssh-github` | SSH key + `gh` auth + signing key |
-| `run_onchange_after_70-macos-defaults` | dev defaults + Ubuntu-feel tweaks |
+
+| Script                                    | Does                                            |
+| ----------------------------------------- | ----------------------------------------------- |
+| `run_once_before_10-prerequisites`        | Rosetta + Homebrew (+ CLT)                      |
+| `run_onchange_after_20-packages`          | generate Brewfile from registry → `brew bundle` |
+| `run_onchange_after_30-mise`              | runtimes + npm-global CLIs                      |
+| `run_onchange_after_40-ai-tools`          | official `script` installers                    |
+| `run_onchange_after_50-editor-extensions` | VS Code + Cursor extensions                     |
+| `run_once_after_60-ssh-github`            | SSH key + `gh` auth + signing key               |
+| `run_onchange_after_70-macos-defaults`    | dev defaults + Ubuntu-feel tweaks               |
 
 ---
 
