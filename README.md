@@ -155,7 +155,10 @@ dotfiles/
 ├── README.md                 # this guide
 ├── TOOLS.md                  # generated tool catalog
 ├── .chezmoiroot              # → "home" (keeps repo meta out of $HOME)
-├── scripts/gen-tools.sh      # regenerates TOOLS.md from the registry
+├── scripts/                  # maintenance helpers (wired to `make` targets)
+│   ├── gen-tools.sh          #   regenerate TOOLS.md from the registry
+│   ├── gen-ghostty-themes.sh #   snapshot Ghostty's built-in themes for tests
+│   └── check-plugins-live.sh #   validate zsh plugin refs against live GitHub
 ├── .github/workflows/ci.yml  # template lint + TOOLS.md freshness + shellcheck
 └── home/                     # ← chezmoi source root
     ├── .chezmoi.toml.tmpl    # init prompts (identity + module toggles)
