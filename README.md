@@ -1,6 +1,6 @@
 # dotfiles
 
-One-command setup for a Mac (and, later, Linux) development machine — web (React/Next/Vite) and native (React Native/Expo). [chezmoi](https://www.chezmoi.io) is the single orchestrator: it installs everything, applies configs, and is safe to re-run on a fresh **or** existing machine.
+One-command setup for a **highly opinionated** Mac (and, later, Linux) development machine — web (React/Next/Vite) and native (React Native/Expo). It ships a curated stack with the **decisions already made**; [chezmoi](https://www.chezmoi.io) is the single orchestrator that installs everything, applies configs, and is safe to re-run on a fresh **or** existing machine.
 
 - **What gets installed:** see [TOOLS.md](./TOOLS.md) (auto-generated from the registry).
 - **Source of truth:** [`home/.chezmoidata/registry.toml`](./home/.chezmoidata/registry.toml) — one block per tool, toggle with `enabled = true/false`.

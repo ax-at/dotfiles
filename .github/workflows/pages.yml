@@ -1,0 +1,54 @@
+name: pages
+
+# Publishes the GitHub Pages site: the homepage (index.html) and the bootstrap
+# `install` script served at ax-at.github.io/dotfiles/install.
+#
+# Runs on EVERY push to main (not path-filtered) on purpose: the homepage prints
+# the deployed short SHA as a cache-verification badge, so the published hash must
+# always equal the current main HEAD — even for commits that don't touch the site.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source = "GitHub
+# Actions" (switches Pages off "deploy from a branch" so this workflow owns it).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege for the official Pages deploy.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One live deploy at a time; let an in-flight run finish (don't cancel a deploy).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-latest' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site + stamp the deployed commit
+        run: |
+          mkdir -p _site
+          # Only the public web assets ship — not the chezmoi source tree.
+          cp index.html install .nojekyll _site/
+          sha="${GITHUB_SHA::7}"
+          # Replace the placeholder with the 7-char SHA of the commit being deployed.
+          sed -i "s/__COMMIT_SHA__/${sha}/g" _site/index.html
+          echo "Stamped homepage with ${sha}"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
