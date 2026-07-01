@@ -22,9 +22,15 @@ ssh-add "$KEY" 2>/dev/null || true
 {{ end -}}
 
 if command -v gh >/dev/null 2>&1; then
+  # gh's default login grants admin:public_key (auth keys) but NOT
+  # admin:ssh_signing_key (commit-signing keys), so `gh ssh-key add --type
+  # signing` 404s unless we request that scope explicitly.
   if ! gh auth status >/dev/null 2>&1; then
     echo "==> [gh] login (interactive)"
-    gh auth login --git-protocol ssh --web || true
+    gh auth login --git-protocol ssh --web --scopes admin:ssh_signing_key || true
+  elif ! gh auth status 2>&1 | grep -q admin:ssh_signing_key; then
+    echo "==> [gh] refreshing token for signing-key scope (interactive)"
+    gh auth refresh -h github.com -s admin:ssh_signing_key || true
   fi
   echo "==> [gh] registering key for auth + signing (ignore 'already exists')"
   gh ssh-key add "$KEY.pub" --title "$(hostname)-auth"    --type authentication || true
