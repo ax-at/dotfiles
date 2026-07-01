@@ -1,8 +1,8 @@
 {
   "name": "dotfiles-og",
   "private": true,
-  "type": "module",
   "description": "Build-time generator for the GitHub Pages OpenGraph social card (og.png).",
+  "type": "module",
   "scripts": {
     "gen": "node gen-og.mjs"
   },
