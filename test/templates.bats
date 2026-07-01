@@ -152,6 +152,16 @@ setup() {
   fi
 }
 
+# Regression guard for the "pass-cli / claude not installed" class of bug: the
+# script-method installers drop their binaries in ~/.local/bin, so that dir MUST
+# be on PATH or a fresh shell can't see them even though they're installed. One
+# unconditional line covers every such CLI (pass-cli, claude, and future ones).
+@test "zprofile: ~/.local/bin is on PATH for script-installed CLIs (pass-cli, claude)" {
+  run render "$SRC_DIR/dot_zprofile.tmpl" full.toml
+  assert_success
+  assert_output --partial 'export PATH="$HOME/.local/bin:$PATH"'
+}
+
 # ---- editor settings: shared partial renders valid JSON -------------------
 # Code + Cursor are one-line wrappers around the .chezmoitemplates partial, so
 # a broken partial (bad include, trailing comma) would ship to both editors
