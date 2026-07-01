@@ -1,13 +1,41 @@
 # antidote plugin bundle. Order matters: OMZ libs/plugins first, then the
-# zsh-users plugins (syntax-highlighting must be last).
+# zsh-users plugins (fzf-tab + syntax-highlighting must be near/at the end).
+#
+# NOTE: fzf, zoxide, starship and mise are init'd directly in .zshrc, so the
+# OMZ fzf plugin is intentionally omitted (it double-binds keys). Runtime
+# managers (nvm/fnm/pyenv) are omitted because mise owns runtimes.
 
-# Oh My Zsh directory helpers (`take`, `md`, ...) and git aliases.
+# Oh My Zsh directory helpers & git aliases
 ohmyzsh/ohmyzsh path:lib/directories.zsh
 ohmyzsh/ohmyzsh path:plugins/git
 
-# Completions + UX.
+# Core development workflow
+ohmyzsh/ohmyzsh path:plugins/gh
+ohmyzsh/ohmyzsh path:plugins/npm
+ohmyzsh/ohmyzsh path:plugins/pnpm
+ohmyzsh/ohmyzsh path:plugins/sudo
+ohmyzsh/ohmyzsh path:plugins/command-not-found
+
+# Containers & cloud
+ohmyzsh/ohmyzsh path:plugins/docker
+ohmyzsh/ohmyzsh path:plugins/docker-compose
+ohmyzsh/ohmyzsh path:plugins/aws
+
+# Productivity & terminal
+ohmyzsh/ohmyzsh path:plugins/history-substring-search
+ohmyzsh/ohmyzsh path:plugins/tmux
+ohmyzsh/ohmyzsh path:plugins/macos
+
+# File, database, and UI enhancements
+ohmyzsh/ohmyzsh path:plugins/extract
+ohmyzsh/ohmyzsh path:plugins/postgres
+ohmyzsh/ohmyzsh path:plugins/mysql
+ohmyzsh/ohmyzsh path:plugins/colored-man-pages
+ohmyzsh/ohmyzsh path:plugins/copypath
+
+# Completions + UX (must be last; fzf-tab & autopair before syntax-highlighting)
 zsh-users/zsh-completions
 zsh-users/zsh-autosuggestions
-
-# Must be loaded last.
+Aloxaf/fzf-tab
+hlissner/zsh-autopair
 zsh-users/zsh-syntax-highlighting

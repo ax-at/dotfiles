@@ -18,6 +18,22 @@ if [ -f "$ANTIDOTE_DIR" ]; then
   antidote load "${ZDOTDIR:-$HOME}/.zsh_plugins.txt"
 fi
 
+# ---- Keybindings -----------------------------------------------------------
+# history-substring-search: up/down arrows filter history by the typed prefix.
+# Guarded on the widget existing (plugin loaded) so we never clobber the
+# defaults if the plugin is missing. Up/down aren't otherwise claimed here —
+# fzf binds ^R/^T/^[c, autosuggestions accepts with the right arrow. We bind
+# both normal (^[[A/B) and application-mode (^[OA/B) sequences plus the terminfo
+# entries so it works across terminals (Ghostty, tmux, SSH).
+if (( ${+widgets[history-substring-search-up]} )); then
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[OA' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+  bindkey '^[OB' history-substring-search-down
+  [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
+  [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
+fi
+
 # ---- Tooling init ----------------------------------------------------------
 command -v mise     >/dev/null 2>&1 && eval "$(mise activate zsh)"
 command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
