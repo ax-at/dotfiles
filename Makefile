@@ -20,6 +20,7 @@ BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
 test:
 	@./test/lib/bootstrap.sh
+	# </dev/null is defense-in-depth: tests never need stdin, so deny it a TTY.
 	@CHEZMOI_BIN=$(CHEZMOI_BIN) $(BATS) test/ </dev/null
 
 lint:

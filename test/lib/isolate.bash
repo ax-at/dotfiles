@@ -34,15 +34,16 @@ isolate() {
   [[ "$PATH" == "$MOCKBIN:"* ]] || fail "MOCKBIN not first on PATH"
 }
 
-# make_stub NAME [<<< custom body]
-# Creates an executable that records "NAME <args>" to CALLS_LOG, runs any
-# custom body passed on stdin, then exits 0.
+# make_stub NAME [BODY]
+# Creates an executable that records "NAME <args>" to CALLS_LOG, runs the
+# optional BODY snippet, then exits 0. BODY is an ARGUMENT (never read from
+# stdin) so a bodyless stub can't block on an inherited stdin/TTY.
 make_stub() {
-  local name="$1" path="$MOCKBIN/$1"
+  local name="$1" body="${2:-}" path="$MOCKBIN/$1"
   {
     printf '%s\n' '#!/usr/bin/env bash'
     printf '%s\n' "printf '%s %s\\n' \"$name\" \"\$*\" >> \"\$CALLS_LOG\""
-    cat # optional extra body from stdin (empty if none)
+    [ -n "$body" ] && printf '%s\n' "$body"
     printf '%s\n' 'exit 0'
   } >"$path"
   chmod +x "$path"
@@ -51,12 +52,10 @@ make_stub() {
 # An editor stub (code/cursor): records calls, and on --list-extensions prints
 # the newline-separated list in CODE_INSTALLED_EXTS (default: none installed).
 make_editor_stub() {
-  local name="$1"
-  make_stub "$name" <<'BODY'
-case "${1:-}" in
-  --list-extensions) printf '%s\n' ${CODE_INSTALLED_EXTS:-} ;;
-esac
-BODY
+  # Single quotes are intentional: the body is written verbatim into the stub
+  # and CODE_INSTALLED_EXTS is expanded when the stub runs, not now.
+  # shellcheck disable=SC2016
+  make_stub "$1" 'case "${1:-}" in --list-extensions) printf "%s\n" ${CODE_INSTALLED_EXTS:-} ;; esac'
 }
 
 # remove_stub NAME — simulate a binary that is NOT on PATH.
