@@ -557,7 +557,7 @@ desc = "Apple simulator utilities (used by Detox/RN tooling)"
 cost = "free"
 license = "MIT"
 repo = "https://github.com/wix/AppleSimulatorUtils"
-enabled = true
+enabled = false
 platforms = ["macos"]
 macos = { method = "brew", pkg = "wix/brew/applesimutils" }
 
