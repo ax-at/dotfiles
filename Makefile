@@ -3,6 +3,7 @@
 #   make test FILE=templates     run only test/templates.bats
 #   make test FILTER=oxc         run only tests whose name matches the regex
 #   make lint                    shellcheck + shfmt on the plain shell scripts
+#   make check-plugins           validate zsh plugin refs against live GitHub (network)
 #   make update-golden           regenerate the committed TOOLS.md from the registry
 #
 # On a machine provisioned by this repo, chezmoi + bats are already on PATH
@@ -22,11 +23,12 @@ FILTER ?=
 # test/rendered_shellcheck.bats since raw templates aren't valid shell).
 SHELL_FILES := install \
                scripts/gen-tools.sh \
+               scripts/check-plugins-live.sh \
                test/lib/bootstrap.sh \
                test/lib/check-crossrefs.sh
 BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
-.PHONY: test lint update-golden
+.PHONY: test lint check-plugins update-golden
 
 test:
 	@./test/lib/bootstrap.sh
@@ -38,6 +40,9 @@ lint:
 	@shellcheck --shell=bash $(BASH_LIBS)
 	@shfmt -d -i 2 -ci $(SHELL_FILES) $(BASH_LIBS)
 	@actionlint
+
+check-plugins:
+	@./scripts/check-plugins-live.sh
 
 update-golden:
 	@./scripts/gen-tools.sh

@@ -125,7 +125,7 @@ After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatic
 
 ## 🧪 Testing (contributors)
 
-A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It runs **fully offline** — no installs, no machine changes — so it's safe to run anywhere. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
+A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It's **offline-first** — no installs, no machine changes. The one network-aware check (zsh plugin validation) **prefers live GitHub** when it's reachable and **falls back to a pinned snapshot** otherwise, so the suite stays green — and never flakes — anywhere. Run it against live GitHub on demand with `make check-plugins`. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
 
 ```sh
 make test                    # whole suite
