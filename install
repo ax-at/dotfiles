@@ -6,8 +6,13 @@
 #
 # One command to set up a fresh Mac (later: Linux). Installs chezmoi if
 # missing, then hands off to `chezmoi init --apply` which does the rest
-# (Homebrew, packages, runtimes, dotfiles, macOS defaults). Idempotent and
-# safe to re-run.
+# (Homebrew, packages, runtimes, dotfiles, macOS defaults).
+#
+# Idempotent AND self-updating: on a fresh machine this clones + applies; on a
+# machine that's already set up it first pulls the latest commits into the
+# chezmoi source dir, then re-applies. (`chezmoi init` alone only clones when
+# the source dir is absent — it never pulls an existing one — so re-running it
+# would silently keep applying the stale, already-cloned snapshot.)
 # ---------------------------------------------------------------------------
 set -eu
 
@@ -35,9 +40,24 @@ else
   chezmoi_bin="${bin_dir}/chezmoi"
 fi
 
+# If the source repo is already cloned, pull the latest commits first —
+# `chezmoi init` won't do this for us (it only clones when the dir is absent).
+# We autostash + rebase so the pull survives any stray local edits, matching
+# what `chezmoi update` does under the hood.
+src_dir="$("${chezmoi_bin}" source-path 2>/dev/null || true)"
+if [ -n "${src_dir}" ] && [ -d "${src_dir}" ] &&
+  git -C "${src_dir}" rev-parse --git-dir >/dev/null 2>&1; then
+  info "Source directory already present → pulling latest changes…"
+  "${chezmoi_bin}" git -- pull --autostash --rebase ||
+    die "git pull in the chezmoi source dir failed — resolve conflicts in ${src_dir}, then re-run."
+fi
+
 info "Running: chezmoi init --apply ${GITHUB_USER}"
-info "You'll be prompted once for your git identity and a few module toggles."
+info "On the first run you'll be prompted once for your git identity and a few"
+info "module toggles; on later runs those answers are remembered."
 
 # exec replaces this shell so chezmoi inherits the terminal (its interactive
 # prompts need a real stdin — which the `sh -c \"\$(curl …)\"` form preserves).
+# `init --apply` clones if absent, (re)generates the config (prompting only for
+# keys not already answered), then applies the now up-to-date source state.
 exec "${chezmoi_bin}" init --apply "${GITHUB_USER}"
