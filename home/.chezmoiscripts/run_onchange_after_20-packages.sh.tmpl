@@ -31,5 +31,8 @@ BREWFILE_EOF
 
 echo "==> [packages] brew bundle:"
 cat "$BREWFILE"
-brew bundle --file="$BREWFILE"
+# --verbose: stream each formula/cask's download + install output live instead
+# of buffering it, so `chezmoi apply` shows real progress rather than a single
+# static "Fetching ..." line while large casks download.
+brew bundle --verbose --file="$BREWFILE"
 echo "==> [packages] done"
