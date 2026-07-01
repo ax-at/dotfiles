@@ -1,0 +1,6 @@
+# Hunk config (managed by chezmoi).  https://github.com/modem-dev/hunk
+#
+# Theme kept in sync with Ghostty (see home/dot_config/ghostty/config.tmpl,
+# which sets `theme = "Catppuccin Mocha"`). `catppuccin-mocha` is a built-in
+# hunk theme id, so no custom [custom_theme] block is needed.
+theme = "catppuccin-mocha"

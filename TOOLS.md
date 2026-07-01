@@ -8,6 +8,7 @@
 | | Tool | Description | Cost | License | Source |
 |---|------|-------------|------|---------|--------|
 | ✅ | **git** | Distributed version control system | free | GPL-2.0 | [repo](https://github.com/git/git) |
+| ✅ | **hunk** | Interactive TUI diff/review viewer (git diff replacement) | free | MIT | [repo](https://github.com/modem-dev/hunk) |
 | ✅ | **gh** | GitHub CLI | free | MIT | [repo](https://github.com/cli/cli) |
 | ✅ | **chezmoi** | Dotfiles manager that orchestrates this whole setup | free | MIT | [repo](https://github.com/twpayne/chezmoi) |
 | ✅ | **mise** | Polyglot runtime manager (node, ruby, java, pnpm, ...) | free | MIT | [repo](https://github.com/jdx/mise) |
