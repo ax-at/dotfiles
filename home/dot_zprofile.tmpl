@@ -11,3 +11,11 @@ fi
 # Linuxbrew.
 [ -x /home/linuxbrew/.linuxbrew/bin/brew ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 {{ end -}}
+
+# User-local binaries (~/.local/bin). Script-method installers drop CLIs here —
+# notably the Proton Pass CLI (pass-cli), which chezmoi pulls secrets through.
+# Those installers append their own PATH line to the shell rc, but chezmoi owns
+# these files and overwrites that on every apply, so we set the PATH here. Without
+# it a fresh shell can't find pass-cli and `proton-pass-doctor` reports it "not
+# installed" even though it is. $HOME resolves at runtime — nothing hardcoded.
+export PATH="$HOME/.local/bin:$PATH"

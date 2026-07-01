@@ -119,7 +119,9 @@ setup() {
   run render "$SRC_DIR/dot_config/ghostty/config.tmpl" full.toml
   assert_success
   assert_output --partial 'font-family = "JetBrainsMono Nerd Font"'
-  assert_output --partial 'theme = "catppuccin-mocha"'
+  # Exact built-in name; validity (that it actually resolves) is covered by
+  # test/ghostty_theme.bats.
+  assert_output --partial 'theme = "Catppuccin Mocha"'
   if [ "$OS" = "darwin" ]; then
     assert_output --partial 'macos-option-as-alt = true'
   else
@@ -150,6 +152,16 @@ setup() {
     assert_output --partial '/home/linuxbrew/.linuxbrew/bin/brew'
     refute_output --partial '/opt/homebrew'
   fi
+}
+
+# Regression guard for the "pass-cli / claude not installed" class of bug: the
+# script-method installers drop their binaries in ~/.local/bin, so that dir MUST
+# be on PATH or a fresh shell can't see them even though they're installed. One
+# unconditional line covers every such CLI (pass-cli, claude, and future ones).
+@test "zprofile: ~/.local/bin is on PATH for script-installed CLIs (pass-cli, claude)" {
+  run render "$SRC_DIR/dot_zprofile.tmpl" full.toml
+  assert_success
+  assert_output --partial 'export PATH="$HOME/.local/bin:$PATH"'
 }
 
 # ---- editor settings: shared partial renders valid JSON -------------------
@@ -184,7 +196,14 @@ setup() {
 }
 
 @test "config template: init prompts map to module data" {
-  run "$CHEZMOI_BIN" execute-template --init --no-tty --source "$SRC_DIR" \
+  # Isolate HOME + XDG so chezmoi can't read a real ~/.config/chezmoi/chezmoi.toml:
+  # promptStringOnce/promptBoolOnce prefer already-persisted values over the
+  # --prompt* overrides, so on a provisioned machine the dev's identity and
+  # module toggles would leak into this render and fail the assertions below.
+  local h="$BATS_TEST_TMPDIR/init-home"
+  mkdir -p "$h"
+  run env HOME="$h" XDG_CONFIG_HOME="$h/.config" XDG_DATA_HOME="$h/.local/share" \
+    "$CHEZMOI_BIN" execute-template --init --no-tty --source "$SRC_DIR" \
     --promptString "Git name for WORK repos=CI" \
     --promptString "Git email for WORK repos (e.g. you@company.com)=ci@example.com" \
     --promptString "Git name for PERSONAL repos=CI" \

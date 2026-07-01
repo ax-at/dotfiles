@@ -12,7 +12,6 @@ ohmyzsh/ohmyzsh path:plugins/git
 # Core development workflow
 ohmyzsh/ohmyzsh path:plugins/gh
 ohmyzsh/ohmyzsh path:plugins/npm
-ohmyzsh/ohmyzsh path:plugins/pnpm
 ohmyzsh/ohmyzsh path:plugins/sudo
 ohmyzsh/ohmyzsh path:plugins/command-not-found
 
@@ -29,7 +28,6 @@ ohmyzsh/ohmyzsh path:plugins/macos
 # File, database, and UI enhancements
 ohmyzsh/ohmyzsh path:plugins/extract
 ohmyzsh/ohmyzsh path:plugins/postgres
-ohmyzsh/ohmyzsh path:plugins/mysql
 ohmyzsh/ohmyzsh path:plugins/colored-man-pages
 ohmyzsh/ohmyzsh path:plugins/copypath
 

@@ -39,6 +39,8 @@ You'll be **prompted once** for your git identity (work + personal) and a few mo
 
 > 💡 If the Command Line Tools GUI dialog ever blocks the run, finish it and re-run `chezmoi apply`.
 
+> ℹ️ **How to tell it worked.** chezmoi is silent on success — there's no completion banner. A normal shell prompt with no `Error:` line means it finished; confirm with `echo $?` (`0` = success, non-zero = it aborted). A few steps continue on *non-fatal* errors instead of aborting, so scan the log for stray `HTTP`/`error`/`failed` lines. The known one: registering the SSH **signing** key needs `gh`'s `admin:ssh_signing_key` scope — if it's missing you'll see a `404` there, but the run still completes and everything else is applied.
+
 ---
 
 ## 🩺 Existing machine (non-destructive) — do this first
@@ -123,7 +125,7 @@ After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatic
 
 ## 🧪 Testing (contributors)
 
-A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It runs **fully offline** — no installs, no machine changes — so it's safe to run anywhere. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
+A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It's **offline-first** — no installs, no machine changes. The one network-aware check (zsh plugin validation) **prefers live GitHub** when it's reachable and **falls back to a pinned snapshot** otherwise, so the suite stays green — and never flakes — anywhere. Run it against live GitHub on demand with `make check-plugins`. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
 
 ```sh
 make test                    # whole suite
@@ -153,7 +155,10 @@ dotfiles/
 ├── README.md                 # this guide
 ├── TOOLS.md                  # generated tool catalog
 ├── .chezmoiroot              # → "home" (keeps repo meta out of $HOME)
-├── scripts/gen-tools.sh      # regenerates TOOLS.md from the registry
+├── scripts/                  # maintenance helpers (wired to `make` targets)
+│   ├── gen-tools.sh          #   regenerate TOOLS.md from the registry
+│   ├── gen-ghostty-themes.sh #   snapshot Ghostty's built-in themes for tests
+│   └── check-plugins-live.sh #   validate zsh plugin refs against live GitHub
 ├── .github/workflows/ci.yml  # template lint + TOOLS.md freshness + shellcheck
 └── home/                     # ← chezmoi source root
     ├── .chezmoi.toml.tmpl    # init prompts (identity + module toggles)

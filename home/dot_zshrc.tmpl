@@ -8,11 +8,19 @@ setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS INC_APPEND_HISTORY
 setopt AUTO_CD INTERACTIVE_COMMENTS
 
 # ---- Plugins (antidote) ----------------------------------------------------
-{{ if eq .chezmoi.os "darwin" -}}
 ANTIDOTE_DIR="$(brew --prefix)/opt/antidote/share/antidote/antidote.zsh"
-{{ else -}}
-ANTIDOTE_DIR="$(brew --prefix)/opt/antidote/share/antidote/antidote.zsh"
-{{ end -}}
+
+# We load Oh-My-Zsh plugins à-la-carte via antidote, WITHOUT sourcing OMZ's
+# framework (oh-my-zsh.sh). That framework normally (a) initialises the
+# completion system — so `compdef` exists for plugins that register completions
+# at load — and (b) sets $ZSH_CACHE_DIR, where plugins like `gh` write their
+# generated completion. Loading plugins standalone, we must do both ourselves,
+# BEFORE `antidote load`, or every OMZ plugin errors with `compdef: command not
+# found` and gh's completion write lands at the unwritable path /completions/_gh.
+export ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
+[ -d "$ZSH_CACHE_DIR/completions" ] || mkdir -p "$ZSH_CACHE_DIR/completions"
+autoload -Uz compinit && compinit
+
 if [ -f "$ANTIDOTE_DIR" ]; then
   source "$ANTIDOTE_DIR"
   antidote load "${ZDOTDIR:-$HOME}/.zsh_plugins.txt"
@@ -53,6 +61,13 @@ export ANDROID_HOME="$HOME/Library/Android/sdk"
 export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
 # JAVA_HOME comes from mise (zulu-17).
 command -v mise >/dev/null 2>&1 && export JAVA_HOME="$(mise where java 2>/dev/null || true)"
+{{ end -}}
+
+{{ if index .modules "ai-tools" -}}
+# opencode CLI installs to ~/.opencode/bin. Its own installer appends a PATH line
+# to the shell rc, but chezmoi owns this file and overwrites that on every apply,
+# so we set the PATH here instead. $HOME resolves at runtime — nothing hardcoded.
+export PATH="$HOME/.opencode/bin:$PATH"
 {{ end -}}
 
 # >>> proton-pass-doctor >>>
