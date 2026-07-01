@@ -1,0 +1,3 @@
+# taplo owns TOML formatting for `make lint`; oxfmt is configured to skip *.toml.
+# Exclude chezmoi templates: their `{{ ... }}` directives aren't valid TOML.
+exclude = ["**/*.tmpl", "home/.chezmoiexternal.toml"]

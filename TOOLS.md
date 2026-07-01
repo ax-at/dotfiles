@@ -30,6 +30,7 @@
 | ✅ | **pre-commit** | Framework for managing git pre-commit hooks (used by Ultracite) | free | MIT | [repo](https://github.com/pre-commit/pre-commit) |
 | ✅ | **shellcheck** | Static analysis linter for shell scripts (used by the test suite) | free | GPL-3.0 | [repo](https://github.com/koalaman/shellcheck) |
 | ✅ | **shfmt** | Shell script formatter (used by make lint) | free | BSD-3-Clause | [repo](https://github.com/mvdan/sh) |
+| ✅ | **oxfmt** | Formatter for JS/JSON/YAML/HTML/CSS/Markdown (used by make lint; TOML is taplo's) | free | MIT | [repo](https://github.com/oxc-project/oxc) |
 | ✅ | **taplo** | TOML toolkit: formatter + JSON-Schema validator (validates registry.toml) | free | MIT | [repo](https://github.com/tamasfe/taplo) |
 | ✅ | **actionlint** | Static checker for GitHub Actions workflow files | free | MIT | [repo](https://github.com/rhysd/actionlint) |
 | ✅ | **bats-core** | Bash Automated Testing System (shell test runner, used across projects) | free | MIT | [repo](https://github.com/bats-core/bats-core) |

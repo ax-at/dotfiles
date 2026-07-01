@@ -3,10 +3,10 @@
 # .mise.toml / .tool-versions in each repo.
 
 [tools]
-node = "lts"          # Node LTS for web + React Native / Expo
-pnpm = "latest"       # pnpm via mise (Corepack was removed from Node 25+)
-ruby = "latest"       # for CocoaPods etc.
-java = "zulu-17"      # Azul Zulu 17 — Expo/Android recommended JDK
+node = "lts"     # Node LTS for web + React Native / Expo
+pnpm = "latest"  # pnpm via mise (Corepack was removed from Node 25+)
+ruby = "latest"  # for CocoaPods etc.
+java = "zulu-17" # Azul Zulu 17 — Expo/Android recommended JDK
 
 [settings]
 # Don't auto-install on cd; provisioning + explicit `mise install` only.

@@ -61,7 +61,7 @@ setup() {
   # must get them so the suite is runnable after install.
   run render "$PKGS" full.toml
   assert_success
-  for tool in shellcheck shfmt taplo actionlint jq bats-core; do
+  for tool in shellcheck shfmt taplo oxfmt actionlint jq bats-core; do
     assert_output --partial "brew \"$tool\""
   done
 }

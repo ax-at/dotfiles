@@ -2,7 +2,8 @@
 #   make test                    run the full bats suite (bootstraps bats on first run)
 #   make test FILE=templates     run only test/templates.bats
 #   make test FILTER=oxc         run only tests whose name matches the regex
-#   make lint                    shellcheck + shfmt on the plain shell scripts
+#   make lint                    shellcheck + shfmt (shell), taplo (toml), oxfmt (everything else)
+#   make fmt                     auto-format in place with the same three formatters
 #   make check-plugins           validate zsh plugin refs against live GitHub (network)
 #   make update-golden           regenerate the committed TOOLS.md from the registry
 #   make update-ghostty-themes   regenerate the committed Ghostty built-in theme snapshot
@@ -30,18 +31,32 @@ SHELL_FILES := install \
                test/lib/check-crossrefs.sh
 BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
-.PHONY: test lint check-plugins update-golden update-ghostty-themes
+.PHONY: test lint fmt check-plugins update-golden update-ghostty-themes
 
 test:
 	@./test/lib/bootstrap.sh
 	# </dev/null is defense-in-depth: tests never need stdin, so deny it a TTY.
 	@CHEZMOI_BIN=$(CHEZMOI_BIN) $(BATS) $(if $(FILTER),-f '$(FILTER)') $(if $(FILE),test/$(FILE).bats,test/) </dev/null
 
+# Formatting is split three ways, no overlap:
+#   shfmt -> shell, scoped to the explicit $(SHELL_FILES)/$(BASH_LIBS) lists
+#            (the .chezmoiscripts/*.tmpl are linted post-render, see above).
+#   taplo -> *.toml, excludes in taplo.toml (skips chezmoi templates).
+#   oxfmt -> everything else (JS/JSON/YAML/HTML/CSS/Markdown), whole-tree walk;
+#            config + ignores in .oxfmtrc.json.
 lint:
 	@shellcheck $(SHELL_FILES)
 	@shellcheck --shell=bash $(BASH_LIBS)
 	@shfmt -d -i 2 -ci $(SHELL_FILES) $(BASH_LIBS)
+	@taplo fmt --check --diff
+	@oxfmt --check .
 	@actionlint
+
+# Auto-format in place — same division of labour as `lint`, but writing.
+fmt:
+	@shfmt -w -i 2 -ci $(SHELL_FILES) $(BASH_LIBS)
+	@taplo fmt
+	@oxfmt --write .
 
 check-plugins:
 	@./scripts/check-plugins-live.sh
