@@ -20,7 +20,7 @@ BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
 test:
 	@./test/lib/bootstrap.sh
-	@CHEZMOI_BIN=$(CHEZMOI_BIN) $(BATS) test/
+	@CHEZMOI_BIN=$(CHEZMOI_BIN) $(BATS) test/ </dev/null
 
 lint:
 	@shellcheck $(SHELL_FILES)

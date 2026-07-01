@@ -45,7 +45,7 @@ setup() {
   # must get them so the suite is runnable after install.
   run render "$PKGS" full.toml
   assert_success
-  for tool in shellcheck shfmt taplo actionlint jq; do
+  for tool in shellcheck shfmt taplo actionlint jq bats-core; do
     assert_output --partial "brew \"$tool\""
   done
 }
@@ -114,7 +114,7 @@ setup() {
 }
 
 @test "config template: init prompts map to module data" {
-  run "$CHEZMOI_BIN" execute-template --init --source "$SRC_DIR" \
+  run "$CHEZMOI_BIN" execute-template --init --no-tty --source "$SRC_DIR" \
     --promptString "Git name for WORK repos=CI" \
     --promptString "Git email for WORK repos (e.g. you@company.com)=ci@example.com" \
     --promptString "Git name for PERSONAL repos=CI" \

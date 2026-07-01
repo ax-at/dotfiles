@@ -323,6 +323,20 @@ macos = { method = "brew", pkg = "actionlint" }
 linux = { method = "brew", pkg = "actionlint" }
 
 [[packages]]
+name = "bats-core"
+module = "core"
+desc = "Bash Automated Testing System (shell test runner, used across projects)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/bats-core/bats-core"
+enabled = true
+platforms = ["macos", "linux"]
+# This repo's own suite uses a pinned clone under test/lib/ for reproducibility;
+# this installs bats system-wide for general shell-test development.
+macos = { method = "brew", pkg = "bats-core" }
+linux = { method = "brew", pkg = "bats-core" }
+
+[[packages]]
 name = "mas"
 module = "core"
 desc = "Mac App Store command-line interface"

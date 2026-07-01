@@ -31,6 +31,7 @@
 | ✅ | **shfmt** | Shell script formatter (used by make lint) | free | BSD-3-Clause | [repo](https://github.com/mvdan/sh) |
 | ✅ | **taplo** | TOML toolkit: formatter + JSON-Schema validator (validates registry.toml) | free | MIT | [repo](https://github.com/tamasfe/taplo) |
 | ✅ | **actionlint** | Static checker for GitHub Actions workflow files | free | MIT | [repo](https://github.com/rhysd/actionlint) |
+| ✅ | **bats-core** | Bash Automated Testing System (shell test runner, used across projects) | free | MIT | [repo](https://github.com/bats-core/bats-core) |
 | ✅ | **mas** | Mac App Store command-line interface | free | MIT | [repo](https://github.com/mas-cli/mas) |
 | ✅ | **neovim** | Hyperextensible Vim-based text editor (minimal config) | free | Apache-2.0 | [repo](https://github.com/neovim/neovim) |
 | ✅ | **tmux** | Terminal multiplexer | free | ISC | [repo](https://github.com/tmux/tmux) |
