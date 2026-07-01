@@ -24,6 +24,7 @@ ohmyzsh/ohmyzsh path:plugins/aws
 ohmyzsh/ohmyzsh path:plugins/history-substring-search
 ohmyzsh/ohmyzsh path:plugins/tmux
 ohmyzsh/ohmyzsh path:plugins/macos
+ohmyzsh/ohmyzsh path:plugins/systemadmin
 
 # File, database, and UI enhancements
 ohmyzsh/ohmyzsh path:plugins/extract
