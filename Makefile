@@ -5,6 +5,7 @@
 #   make lint                    shellcheck + shfmt on the plain shell scripts
 #   make check-plugins           validate zsh plugin refs against live GitHub (network)
 #   make update-golden           regenerate the committed TOOLS.md from the registry
+#   make update-ghostty-themes   regenerate the committed Ghostty built-in theme snapshot
 #
 # On a machine provisioned by this repo, chezmoi + bats are already on PATH
 # (both are brew formulae in the registry), so these targets need no setup.
@@ -23,12 +24,13 @@ FILTER ?=
 # test/rendered_shellcheck.bats since raw templates aren't valid shell).
 SHELL_FILES := install \
                scripts/gen-tools.sh \
+               scripts/gen-ghostty-themes.sh \
                scripts/check-plugins-live.sh \
                test/lib/bootstrap.sh \
                test/lib/check-crossrefs.sh
 BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
-.PHONY: test lint check-plugins update-golden
+.PHONY: test lint check-plugins update-golden update-ghostty-themes
 
 test:
 	@./test/lib/bootstrap.sh
@@ -46,3 +48,6 @@ check-plugins:
 
 update-golden:
 	@./scripts/gen-tools.sh
+
+update-ghostty-themes:
+	@./scripts/gen-ghostty-themes.sh

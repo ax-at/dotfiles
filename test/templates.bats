@@ -119,7 +119,9 @@ setup() {
   run render "$SRC_DIR/dot_config/ghostty/config.tmpl" full.toml
   assert_success
   assert_output --partial 'font-family = "JetBrainsMono Nerd Font"'
-  assert_output --partial 'theme = "catppuccin-mocha"'
+  # Exact built-in name; validity (that it actually resolves) is covered by
+  # test/ghostty_theme.bats.
+  assert_output --partial 'theme = "Catppuccin Mocha"'
   if [ "$OS" = "darwin" ]; then
     assert_output --partial 'macos-option-as-alt = true'
   else
