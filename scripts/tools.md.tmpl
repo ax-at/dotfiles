@@ -1,0 +1,16 @@
+# 🧰 Tool Catalog
+
+> Auto-generated from `home/.chezmoidata/registry.toml` by `scripts/gen-tools.sh`.
+> Do not edit by hand. ✅ = enabled · ⬜ = present but disabled.
+
+{{ range $i, $p := .packages -}}
+{{ if or (eq $i 0) (ne $p.module (index $.packages (sub $i 1)).module) -}}
+{{ if ne $i 0 }}
+{{ end -}}
+## {{ $p.module }}
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+{{ end -}}
+| {{ if $p.enabled }}✅{{ else }}⬜{{ end }} | **{{ $p.name }}** | {{ $p.desc }} | {{ $p.cost }} | {{ $p.license }} | {{ if $p.repo }}[repo]({{ $p.repo }}){{ else }}—{{ end }} |
+{{ end -}}

@@ -1,0 +1,27 @@
+{{/* Init-time prompts. Asked once on `chezmoi init`; stored in the local
+     chezmoi config (~/.config/chezmoi/chezmoi.toml), never committed. */}}
+{{- $workName    := promptStringOnce . "git.workName"    "Git name for WORK repos" -}}
+{{- $workEmail   := promptStringOnce . "git.workEmail"   "Git email for WORK repos (e.g. you@company.com)" -}}
+{{- $personName  := promptStringOnce . "git.personName"  "Git name for PERSONAL repos" -}}
+{{- $personEmail := promptStringOnce . "git.personEmail" "Git email for PERSONAL repos" -}}
+{{- $ghUser      := promptStringOnce . "github.user"     "GitHub username" -}}
+
+{{/* Module toggles. These override the defaults baked into registry.toml. */}}
+{{- $rn   := promptBoolOnce . "modules.react-native" "Install the React Native / Expo native toolchain" -}}
+{{- $ai   := promptBoolOnce . "modules.ai-tools"     "Install AI coding tools (Claude Code, Codex, etc.)" -}}
+{{- $lf   := promptBoolOnce . "modules.linux-feel"   "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)" -}}
+
+encryption = ""
+
+[data]
+  [data.git]
+    workName    = {{ $workName | quote }}
+    workEmail   = {{ $workEmail | quote }}
+    personName  = {{ $personName | quote }}
+    personEmail = {{ $personEmail | quote }}
+  [data.github]
+    user = {{ $ghUser | quote }}
+  [data.modules]
+    react-native = {{ $rn }}
+    ai-tools     = {{ $ai }}
+    linux-feel   = {{ $lf }}

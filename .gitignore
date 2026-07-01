@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# chezmoi local state / secrets that must never be committed
+*.age
+*.key
+*_rsa
+*_ed25519
+.env
+.env.local
+
+# generated Brewfile cache (built at apply-time)
+/Brewfile.lock.json
+
+# editor
+.idea/
+.vscode/
+
+# logs
+*.log

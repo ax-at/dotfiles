@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# run_onchange_after_20-packages.sh
+# Generates a Brewfile from the enabled registry entries and runs `brew bundle`.
+# Re-runs automatically whenever the rendered package list below changes.
+set -euo pipefail
+
+{{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
+
+# Ensure brew is on PATH.
+if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
+elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+fi
+command -v brew >/dev/null 2>&1 || { echo "brew not found; run prerequisites first" >&2; exit 1; }
+
+BREWFILE="$(mktemp)"
+trap 'rm -f "$BREWFILE"' EXIT
+
+cat >"$BREWFILE" <<'BREWFILE_EOF'
+# Generated from registry.toml — do not edit by hand.
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "brew" }}brew "{{ $p.pkg }}"
+{{ else if eq $p.method "cask" }}cask "{{ $p.pkg }}"
+{{ else if eq $p.method "mas" }}mas "{{ $p.pkg }}", id: {{ $p.id }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+BREWFILE_EOF
+
+echo "==> [packages] brew bundle:"
+cat "$BREWFILE"
+brew bundle --file="$BREWFILE" --no-lock
+echo "==> [packages] done"

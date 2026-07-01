@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# run_onchange_after_30-mise.sh
+# Installs language runtimes via mise, then npm-global CLIs from the registry.
+# Re-runs when mise config or the npm package list below changes.
+set -euo pipefail
+
+{{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
+
+if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
+elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+fi
+command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+
+# mise config hash (forces re-run on change):
+# {{ include (joinPath .chezmoi.homeDir ".config/mise/config.toml") | sha256sum }}
+echo "==> [mise] installing runtimes (node, pnpm, ruby, java)"
+mise install -y
+eval "$(mise activate bash)"
+
+echo "==> [mise] installing npm-global CLIs"
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}
+if ! {{ $p.check }} >/dev/null 2>&1; then
+  echo "  -> {{ $p.pkg }}"
+  mise exec node -- npm install -g {{ $p.pkg }}
+fi
+{{ end -}}
+{{- end -}}
+{{- end }}
+echo "==> [mise] done"

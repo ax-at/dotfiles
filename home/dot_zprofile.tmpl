@@ -1,0 +1,13 @@
+# ~/.zprofile — login shell. Keep heavy PATH/env setup here.
+
+{{ if eq .chezmoi.os "darwin" -}}
+# Homebrew (Apple Silicon first, then Intel).
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+{{ else -}}
+# Linuxbrew.
+[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+{{ end -}}

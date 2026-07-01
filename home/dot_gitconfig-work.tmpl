@@ -1,0 +1,5 @@
+# ~/.gitconfig-work — applied only inside ~/work/ via includeIf.
+[user]
+    name = {{ .git.workName | default "Your Name" }}
+    email = {{ .git.workEmail | default "you@example.com" }}
+    signingkey = ~/.ssh/id_ed25519.pub

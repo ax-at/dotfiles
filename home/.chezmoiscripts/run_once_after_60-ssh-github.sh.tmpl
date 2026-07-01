@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# run_once_after_60-ssh-github.sh
+# Generates an SSH key (used for BOTH auth and commit signing), authenticates
+# gh, and uploads the key. Idempotent; safe to skip if already configured.
+set -euo pipefail
+
+KEY="$HOME/.ssh/id_ed25519"
+EMAIL={{ .git.workEmail | default "you@example.com" | quote }}
+
+if [ ! -f "$KEY" ]; then
+  echo "==> [ssh] generating ed25519 key"
+  mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+  ssh-keygen -t ed25519 -C "$EMAIL" -f "$KEY" -N ""
+fi
+
+# Add to agent + keychain (macOS).
+eval "$(ssh-agent -s)" >/dev/null 2>&1 || true
+{{ if eq .chezmoi.os "darwin" -}}
+ssh-add --apple-use-keychain "$KEY" 2>/dev/null || ssh-add "$KEY" 2>/dev/null || true
+{{ else -}}
+ssh-add "$KEY" 2>/dev/null || true
+{{ end -}}
+
+if command -v gh >/dev/null 2>&1; then
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "==> [gh] login (interactive)"
+    gh auth login --git-protocol ssh --web || true
+  fi
+  echo "==> [gh] registering key for auth + signing (ignore 'already exists')"
+  gh ssh-key add "$KEY.pub" --title "$(hostname)-auth"    --type authentication || true
+  gh ssh-key add "$KEY.pub" --title "$(hostname)-signing" --type signing        || true
+else
+  echo "  (gh not found — add $KEY.pub to GitHub manually)"
+fi
+echo "==> [ssh] done"

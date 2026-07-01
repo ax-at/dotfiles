@@ -1,0 +1,16 @@
+{
+  "$schema": "https://app.linearmouse.org/schema/0.0.1.json",
+  "schemes": [
+    {
+      "scrolling": {
+        "reverse": { "vertical": false, "horizontal": false },
+        "distance": { "vertical": 3, "horizontal": 3 }
+      },
+      "pointer": {
+        "acceleration": 0,
+        "speed": 0.4,
+        "disableAcceleration": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# run_onchange_after_50-editor-extensions.sh
+# Installs the shared extension set into VS Code AND Cursor (whichever exist).
+# Re-runs when this list changes.
+set -euo pipefail
+
+{{ if not (index .modules "editors") }}exit 0{{ end }}
+
+EXTENSIONS=(
+  # Lint/format — Ultracite via Oxc (oxlint + oxfmt). No ESLint/Prettier.
+  oxc.oxc-vscode
+  # React Native / web
+  expo.vscode-expo-tools
+  msjsdiag.vscode-react-native
+  bradlc.vscode-tailwindcss
+  # DX
+  eamodio.gitlens
+  usernamehw.errorlens
+  editorconfig.editorconfig
+  christian-kohler.npm-intellisense
+  yoavbls.pretty-ts-errors
+  yzane.markdown-pdf
+  # Language support used in this repo
+  tamasfe.even-better-toml
+  timonwong.shellcheck
+  foxundermoon.shell-format
+  redhat.vscode-yaml
+  github.vscode-github-actions
+  yzhang.markdown-all-in-one
+)
+
+install_into() {
+  local bin="$1" label="$2"
+  command -v "$bin" >/dev/null 2>&1 || { echo "  ($label not on PATH — skipping)"; return; }
+  echo "==> [extensions] $label"
+  local installed; installed="$("$bin" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  for ext in "${EXTENSIONS[@]}"; do
+    if grep -qx "$(echo "$ext" | tr '[:upper:]' '[:lower:]')" <<<"$installed"; then
+      echo "  ✓ $ext"
+    else
+      "$bin" --install-extension "$ext" --force >/dev/null && echo "  + $ext"
+    fi
+  done
+}
+
+install_into code   "VS Code"
+install_into cursor "Cursor"
+echo "==> [extensions] done"

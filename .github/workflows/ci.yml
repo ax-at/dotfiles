@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: Add chezmoi to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify templates render (registry + TOOLS.md)
+        run: |
+          chezmoi execute-template --source ./home < ./scripts/tools.md.tmpl > /tmp/TOOLS.generated.md
+          echo "Template rendered OK."
+
+      - name: Check TOOLS.md is up to date
+        run: |
+          if ! diff -q /tmp/TOOLS.generated.md ./TOOLS.md >/dev/null; then
+            echo "::error::TOOLS.md is stale. Run ./scripts/gen-tools.sh and commit."
+            diff /tmp/TOOLS.generated.md ./TOOLS.md || true
+            exit 1
+          fi
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint plain shell scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          additional_files: 'gen-tools.sh install'
+          # .tmpl scripts contain Go-template syntax and are intentionally skipped.
+          ignore_paths: home

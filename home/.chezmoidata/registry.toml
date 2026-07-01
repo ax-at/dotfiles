@@ -1,0 +1,889 @@
+# ============================================================================
+# registry.toml  --  single source of truth for this machine
+# ----------------------------------------------------------------------------
+# Every package is one [[packages]] block. To add a tool: append a block.
+# To drop a tool: set enabled = false (it stays documented in TOOLS.md).
+#
+# Fields:
+#   name      display name
+#   module    grouping; installed only if [modules].<module> is true
+#   desc      one-line description (used in TOOLS.md)
+#   cost      free | freemium | paid   (free-first: paid defaults to disabled)
+#   license   SPDX id or "proprietary"
+#   repo      GitHub URL if OSS, else ""
+#   enabled   master on/off for this tool
+#   platforms subset of ["macos","linux"]
+#   <os>      per-OS install table: { method, pkg | cmd | id, check? }
+#             method = brew | cask | mas | npm | script | apt | dnf
+#
+# Module toggles below are DEFAULTS; .chezmoi.toml.tmpl init-prompts can
+# override react-native / ai-tools / linux-feel per machine.
+# ============================================================================
+
+[modules]
+core           = true
+fonts          = true
+editors        = true
+web            = true
+databases      = true
+cloud          = true
+react-native   = true
+ai-tools       = true
+productivity   = true
+linux-feel     = true
+macos-defaults = true
+
+# ----------------------------------------------------------------- core ----
+[[packages]]
+name = "git"
+module = "core"
+desc = "Distributed version control system"
+cost = "free"
+license = "GPL-2.0"
+repo = "https://github.com/git/git"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "git" }
+linux = { method = "brew", pkg = "git" }
+
+[[packages]]
+name = "gh"
+module = "core"
+desc = "GitHub CLI"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/cli/cli"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "gh" }
+linux = { method = "brew", pkg = "gh" }
+
+[[packages]]
+name = "chezmoi"
+module = "core"
+desc = "Dotfiles manager that orchestrates this whole setup"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/twpayne/chezmoi"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "chezmoi" }
+linux = { method = "brew", pkg = "chezmoi" }
+
+[[packages]]
+name = "mise"
+module = "core"
+desc = "Polyglot runtime manager (node, ruby, java, pnpm, ...)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/jdx/mise"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "mise" }
+linux = { method = "brew", pkg = "mise" }
+
+[[packages]]
+name = "starship"
+module = "core"
+desc = "Cross-shell prompt"
+cost = "free"
+license = "ISC"
+repo = "https://github.com/starship/starship"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "starship" }
+linux = { method = "brew", pkg = "starship" }
+
+[[packages]]
+name = "antidote"
+module = "core"
+desc = "Fast zsh plugin manager"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/mattmc3/antidote"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "antidote" }
+linux = { method = "brew", pkg = "antidote" }
+
+[[packages]]
+name = "fzf"
+module = "core"
+desc = "Command-line fuzzy finder"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/junegunn/fzf"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "fzf" }
+linux = { method = "brew", pkg = "fzf" }
+
+[[packages]]
+name = "zoxide"
+module = "core"
+desc = "Smarter cd that learns your habits"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/ajeetdsouza/zoxide"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "zoxide" }
+linux = { method = "brew", pkg = "zoxide" }
+
+[[packages]]
+name = "ripgrep"
+module = "core"
+desc = "Fast recursive grep (rg)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/BurntSushi/ripgrep"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "ripgrep" }
+linux = { method = "brew", pkg = "ripgrep" }
+
+[[packages]]
+name = "fd"
+module = "core"
+desc = "Fast, user-friendly alternative to find"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/sharkdp/fd"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "fd" }
+linux = { method = "brew", pkg = "fd" }
+
+[[packages]]
+name = "bat"
+module = "core"
+desc = "cat clone with syntax highlighting"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/sharkdp/bat"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "bat" }
+linux = { method = "brew", pkg = "bat" }
+
+[[packages]]
+name = "eza"
+module = "core"
+desc = "Modern ls replacement with icons"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/eza-community/eza"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "eza" }
+linux = { method = "brew", pkg = "eza" }
+
+[[packages]]
+name = "jq"
+module = "core"
+desc = "Command-line JSON processor"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/jqlang/jq"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "jq" }
+linux = { method = "brew", pkg = "jq" }
+
+[[packages]]
+name = "yq"
+module = "core"
+desc = "Command-line YAML/JSON/XML processor"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/mikefarah/yq"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "yq" }
+linux = { method = "brew", pkg = "yq" }
+
+[[packages]]
+name = "tree"
+module = "core"
+desc = "Recursive directory listing as a tree"
+cost = "free"
+license = "GPL-2.0"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "tree" }
+linux = { method = "brew", pkg = "tree" }
+
+[[packages]]
+name = "wget"
+module = "core"
+desc = "Internet file retriever"
+cost = "free"
+license = "GPL-3.0"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "wget" }
+linux = { method = "brew", pkg = "wget" }
+
+[[packages]]
+name = "btop"
+module = "core"
+desc = "Resource monitor (htop successor)"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/aristocratos/btop"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "btop" }
+linux = { method = "brew", pkg = "btop" }
+
+[[packages]]
+name = "tealdeer"
+module = "core"
+desc = "Fast tldr client (simplified man pages)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/tealdeer-rs/tealdeer"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "tealdeer" }
+linux = { method = "brew", pkg = "tealdeer" }
+
+[[packages]]
+name = "pv"
+module = "core"
+desc = "Pipe viewer: progress of data through a pipeline"
+cost = "free"
+license = "Artistic-2.0"
+repo = "https://github.com/a-j-wood/pv"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "pv" }
+linux = { method = "brew", pkg = "pv" }
+
+[[packages]]
+name = "pre-commit"
+module = "core"
+desc = "Framework for managing git pre-commit hooks (used by Ultracite)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/pre-commit/pre-commit"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "pre-commit" }
+linux = { method = "brew", pkg = "pre-commit" }
+
+[[packages]]
+name = "mas"
+module = "core"
+desc = "Mac App Store command-line interface"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/mas-cli/mas"
+enabled = true
+platforms = ["macos"]
+macos = { method = "brew", pkg = "mas" }
+
+[[packages]]
+name = "neovim"
+module = "core"
+desc = "Hyperextensible Vim-based text editor (minimal config)"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/neovim/neovim"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "neovim" }
+linux = { method = "brew", pkg = "neovim" }
+
+[[packages]]
+name = "tmux"
+module = "core"
+desc = "Terminal multiplexer"
+cost = "free"
+license = "ISC"
+repo = "https://github.com/tmux/tmux"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "tmux" }
+linux = { method = "brew", pkg = "tmux" }
+
+[[packages]]
+name = "ghostty"
+module = "core"
+desc = "Fast, native, GPU-accelerated terminal emulator"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/ghostty-org/ghostty"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "ghostty" }
+linux = { method = "brew", pkg = "ghostty" }
+
+[[packages]]
+name = "pass-cli"
+module = "core"
+desc = "Proton Pass CLI (chezmoi pulls secrets via this)"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/protonpass/pass-cli"
+enabled = true
+platforms = ["macos", "linux"]
+# Official installer (no Homebrew formula exists).
+macos = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash" }
+linux = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash" }
+
+[[packages]]
+name = "findutils"
+module = "core"
+desc = "GNU find/xargs/locate (BSD xargs ships with macOS already)"
+cost = "free"
+license = "GPL-3.0"
+repo = ""
+enabled = false
+platforms = ["macos"]
+macos = { method = "brew", pkg = "findutils" }
+
+# ---------------------------------------------------------------- fonts ----
+[[packages]]
+name = "JetBrains Mono Nerd Font"
+module = "fonts"
+desc = "Patched monospace font with icons (required for starship/eza/ghostty)"
+cost = "free"
+license = "OFL-1.1"
+repo = "https://github.com/ryanoasis/nerd-fonts"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "font-jetbrains-mono-nerd-font" }
+
+# -------------------------------------------------------------- editors ----
+[[packages]]
+name = "Visual Studio Code"
+module = "editors"
+desc = "Primary editor (settings are the source of truth)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/microsoft/vscode"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "visual-studio-code" }
+
+[[packages]]
+name = "Cursor"
+module = "editors"
+desc = "AI-native VS Code fork"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "cursor" }
+
+[[packages]]
+name = "Sublime Text"
+module = "editors"
+desc = "Fast text editor for quick edits"
+cost = "paid"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "sublime-text" }
+
+# ------------------------------------------------------------------ web ----
+# Runtimes (node, pnpm, ruby, java) are managed by mise -> ~/.config/mise/config.toml
+[[packages]]
+name = "eas-cli"
+module = "web"
+desc = "Expo Application Services CLI (cloud builds/submits/updates)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/expo/eas-cli"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "eas-cli", check = "eas --version" }
+linux = { method = "npm", pkg = "eas-cli", check = "eas --version" }
+
+[[packages]]
+name = "vercel"
+module = "web"
+desc = "Vercel CLI"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/vercel/vercel"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "vercel", check = "vercel --version" }
+linux = { method = "npm", pkg = "vercel", check = "vercel --version" }
+
+[[packages]]
+name = "cloudflared"
+module = "web"
+desc = "Cloudflare Tunnel client"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/cloudflare/cloudflared"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "cloudflared" }
+linux = { method = "brew", pkg = "cloudflared" }
+
+[[packages]]
+name = "fallow"
+module = "web"
+desc = "Rust-native codebase intelligence for TS/JS (dead code, deps, complexity)"
+cost = "freemium"
+license = "proprietary"
+repo = "https://github.com/fallow-rs/fallow"
+enabled = true
+platforms = ["macos", "linux"]
+# Official recommended install (npm global); also commonly a project devDependency.
+macos = { method = "npm", pkg = "fallow", check = "fallow --version" }
+linux = { method = "npm", pkg = "fallow", check = "fallow --version" }
+
+[[packages]]
+name = "bun"
+module = "web"
+desc = "All-in-one JS runtime & toolkit"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/oven-sh/bun"
+enabled = false
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "oven-sh/bun/bun" }
+linux = { method = "brew", pkg = "oven-sh/bun/bun" }
+
+[[packages]]
+name = "deno"
+module = "web"
+desc = "Secure runtime for JavaScript and TypeScript"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/denoland/deno"
+enabled = false
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "deno" }
+linux = { method = "brew", pkg = "deno" }
+
+# ------------------------------------------------------------ databases ----
+[[packages]]
+name = "mysql-client"
+module = "databases"
+desc = "MySQL client tools (no server)"
+cost = "free"
+license = "GPL-2.0"
+repo = "https://github.com/mysql/mysql-server"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "mysql-client" }
+linux = { method = "brew", pkg = "mysql-client" }
+
+[[packages]]
+name = "libpq"
+module = "databases"
+desc = "PostgreSQL client library + psql"
+cost = "free"
+license = "PostgreSQL"
+repo = "https://github.com/postgres/postgres"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "libpq" }
+linux = { method = "brew", pkg = "libpq" }
+
+# ---------------------------------------------------------------- cloud ----
+[[packages]]
+name = "awscli"
+module = "cloud"
+desc = "AWS Command Line Interface v2"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/aws/aws-cli"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "awscli" }
+linux = { method = "brew", pkg = "awscli" }
+
+# --------------------------------------------------------- react-native ----
+[[packages]]
+name = "watchman"
+module = "react-native"
+desc = "File-watching service (legacy; required only for Expo SDK <= 55)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/facebook/watchman"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "watchman" }
+linux = { method = "brew", pkg = "watchman" }
+
+[[packages]]
+name = "cocoapods"
+module = "react-native"
+desc = "iOS dependency manager (prebuild runs pod install for you)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/CocoaPods/CocoaPods"
+enabled = true
+platforms = ["macos"]
+macos = { method = "brew", pkg = "cocoapods" }
+
+[[packages]]
+name = "Android Studio"
+module = "react-native"
+desc = "Android IDE + SDK + emulator manager"
+cost = "free"
+license = "Apache-2.0"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "android-studio" }
+
+[[packages]]
+name = "Expo Orbit"
+module = "react-native"
+desc = "Menu-bar app to manage simulators/emulators/devices and builds"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/expo/orbit"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "expo-orbit" }
+
+[[packages]]
+name = "applesimutils"
+module = "react-native"
+desc = "Apple simulator utilities (used by Detox/RN tooling)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/wix/AppleSimulatorUtils"
+enabled = true
+platforms = ["macos"]
+macos = { method = "brew", pkg = "wix/brew/applesimutils" }
+
+# --------------------------------------------------- ai-tools (CLI) --------
+[[packages]]
+name = "Claude Code"
+module = "ai-tools"
+desc = "Anthropic's agentic coding CLI"
+cost = "freemium"
+license = "proprietary"
+repo = "https://github.com/anthropics/claude-code"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash" }
+linux = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash" }
+
+[[packages]]
+name = "Codex CLI"
+module = "ai-tools"
+desc = "OpenAI Codex agentic coding CLI"
+cost = "freemium"
+license = "Apache-2.0"
+repo = "https://github.com/openai/codex"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "@openai/codex", check = "codex --version" }
+linux = { method = "npm", pkg = "@openai/codex", check = "codex --version" }
+
+[[packages]]
+name = "Gemini CLI"
+module = "ai-tools"
+desc = "Google Gemini agentic coding CLI"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/google-gemini/gemini-cli"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "@google/gemini-cli", check = "gemini --version" }
+linux = { method = "npm", pkg = "@google/gemini-cli", check = "gemini --version" }
+
+[[packages]]
+name = "opencode"
+module = "ai-tools"
+desc = "SST's open-source terminal AI agent"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/sst/opencode"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
+linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
+
+# ------------------------------------------------ ai-tools (desktop) -------
+[[packages]]
+name = "Claude Desktop"
+module = "ai-tools"
+desc = "Anthropic Claude desktop app (NOT the CLI)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "claude" }
+
+[[packages]]
+name = "ChatGPT Desktop"
+module = "ai-tools"
+desc = "OpenAI ChatGPT desktop app (also hosts Codex GUI)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "chatgpt" }
+
+[[packages]]
+name = "Google Gemini Desktop"
+module = "ai-tools"
+desc = "Official Gemini Mac app (NOT the 'gemini' cask)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "google-gemini" }
+
+[[packages]]
+name = "opencode-desktop"
+module = "ai-tools"
+desc = "SST opencode desktop app (beta)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/sst/opencode"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "opencode-desktop" }
+
+[[packages]]
+name = "Superset"
+module = "ai-tools"
+desc = "Desktop orchestrator running multiple agents in parallel worktrees"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "superset" }
+
+# --------------------------------------------------------- productivity ----
+[[packages]]
+name = "Raycast"
+module = "productivity"
+desc = "Launcher, clipboard history, window management, extensions"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "raycast" }
+
+[[packages]]
+name = "Proton Pass"
+module = "productivity"
+desc = "Password manager (secret source for this setup)"
+cost = "freemium"
+license = "GPL-3.0"
+repo = "https://github.com/protonpass"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "proton-pass" }
+
+[[packages]]
+name = "Google Chrome"
+module = "productivity"
+desc = "Web browser"
+cost = "free"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "google-chrome" }
+
+[[packages]]
+name = "OrbStack"
+module = "productivity"
+desc = "Fast, light Docker & Linux VMs (Docker Desktop alternative)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "orbstack" }
+
+[[packages]]
+name = "Bruno"
+module = "productivity"
+desc = "Offline, git-friendly API client"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/usebruno/bruno"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "cask", pkg = "bruno" }
+
+[[packages]]
+name = "Obsidian"
+module = "productivity"
+desc = "Markdown knowledge base / notes"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "obsidian" }
+
+[[packages]]
+name = "Slack"
+module = "productivity"
+desc = "Team chat"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "slack" }
+
+[[packages]]
+name = "Rectangle"
+module = "productivity"
+desc = "Keyboard-driven window snapping (Linux-like)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/rxhanson/Rectangle"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "rectangle" }
+
+[[packages]]
+name = "Stats"
+module = "productivity"
+desc = "Menu-bar system monitor"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/exelban/stats"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "stats" }
+
+[[packages]]
+name = "VLC"
+module = "productivity"
+desc = "Media player"
+cost = "free"
+license = "GPL-2.0"
+repo = "https://github.com/videolan/vlc"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "vlc" }
+
+[[packages]]
+name = "Shottr"
+module = "productivity"
+desc = "Free screenshots + annotation + scrolling capture"
+cost = "free"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "shottr" }
+
+[[packages]]
+name = "Kap"
+module = "productivity"
+desc = "Free open-source screen recorder (video/GIF)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/wulkano/Kap"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "kap" }
+
+[[packages]]
+name = "CleanShot X"
+module = "productivity"
+desc = "Paid all-in-one screenshot + screencast + annotation upgrade"
+cost = "paid"
+license = "proprietary"
+repo = ""
+enabled = false
+platforms = ["macos"]
+macos = { method = "cask", pkg = "cleanshot" }
+
+[[packages]]
+name = "Figma"
+module = "productivity"
+desc = "Design tool (kept in registry, not installed)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = false
+platforms = ["macos"]
+macos = { method = "cask", pkg = "figma" }
+
+[[packages]]
+name = "dockutil"
+module = "productivity"
+desc = "Script the macOS Dock contents (nicety, off by default)"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/kcrawford/dockutil"
+enabled = false
+platforms = ["macos"]
+macos = { method = "brew", pkg = "dockutil" }
+
+[[packages]]
+name = "Syntax Highlight (QuickLook)"
+module = "productivity"
+desc = "Source-code preview in Finder QuickLook (nicety, off by default)"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/sbarex/SourceCodeSyntaxHighlight"
+enabled = false
+platforms = ["macos"]
+macos = { method = "cask", pkg = "syntax-highlight" }
+
+[[packages]]
+name = "QLMarkdown (QuickLook)"
+module = "productivity"
+desc = "Markdown preview in Finder QuickLook (nicety, off by default)"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/sbarex/QLMarkdown"
+enabled = false
+platforms = ["macos"]
+macos = { method = "cask", pkg = "qlmarkdown" }
+
+# ----------------------------------------------------------- linux-feel ----
+[[packages]]
+name = "Karabiner-Elements"
+module = "linux-feel"
+desc = "Keyboard remapper (ships Windows/Linux-style shortcuts, terminal-excluded)"
+cost = "free"
+license = "Unlicense"
+repo = "https://github.com/pqrs-org/Karabiner-Elements"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "karabiner-elements" }
+
+[[packages]]
+name = "LinearMouse"
+module = "linux-feel"
+desc = "Flat/linear pointer (no acceleration) + scroll control"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/linearmouse/linearmouse"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "linearmouse" }
+
+[[packages]]
+name = "Mac Mouse Fix"
+module = "linux-feel"
+desc = "Paid alternative mouse customizer (off by default)"
+cost = "paid"
+license = "proprietary"
+repo = "https://github.com/noah-nuebling/mac-mouse-fix"
+enabled = false
+platforms = ["macos"]
+macos = { method = "cask", pkg = "mac-mouse-fix" }

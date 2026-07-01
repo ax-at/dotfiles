@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# run_once_before_10-prerequisites.sh
+# Installs the foundation Homebrew needs, then Homebrew itself.
+# Runs ONCE (re-runs only if this script's content changes).
+set -euo pipefail
+
+{{ if eq .chezmoi.os "darwin" -}}
+echo "==> [prereq] macOS detected"
+
+# 1. Rosetta 2 — only on Apple Silicon, only if missing. Harmless to keep.
+if [ "$(uname -m)" = "arm64" ]; then
+  if ! /usr/bin/pgrep -q oahd 2>/dev/null; then
+    echo "==> [prereq] Installing Rosetta 2"
+    softwareupdate --install-rosetta --agree-to-license || true
+  fi
+fi
+
+# 2. Xcode Command Line Tools. Homebrew can install these itself, but doing it
+#    here first makes the run deterministic. (This is NOT full Xcode.)
+if ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
+  echo "==> [prereq] Installing Xcode Command Line Tools"
+  xcode-select --install || true
+  echo "    If a GUI dialog appeared, finish it, then re-run: chezmoi apply"
+fi
+
+# 3. Homebrew (installs CLT automatically if step 2 was skipped).
+if ! command -v brew >/dev/null 2>&1; then
+  echo "==> [prereq] Installing Homebrew"
+  NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+
+# Put brew on PATH for the rest of this run (Apple Silicon vs Intel).
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+{{ end -}}
+
+{{ if eq .chezmoi.os "linux" -}}
+echo "==> [prereq] Linux detected — installing Homebrew (Linuxbrew)"
+if ! command -v brew >/dev/null 2>&1; then
+  NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && \
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+{{ end -}}
+
+echo "==> [prereq] done"

@@ -1,0 +1,53 @@
+# ~/.gitconfig (managed by chezmoi). Identity values come from init prompts.
+[user]
+    name = {{ .git.personName | default "Your Name" }}
+    email = {{ .git.personEmail | default "you@example.com" }}
+    # SSH commit signing uses your public key.
+    signingkey = ~/.ssh/id_ed25519.pub
+
+[gpg]
+    format = ssh
+
+[commit]
+    gpgsign = true
+
+[tag]
+    gpgsign = true
+
+# Work identity is auto-selected for repos under ~/work/.
+[includeIf "gitdir:~/work/"]
+    path = ~/.gitconfig-work
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true
+
+[fetch]
+    prune = true
+
+[push]
+    autoSetupRemote = true
+    default = current
+
+[core]
+    editor = nano
+    excludesfile = ~/.gitignore_global
+    autocrlf = input
+
+[diff]
+    colorMoved = default
+
+[rerere]
+    enabled = true
+
+[help]
+    autocorrect = prompt
+
+[alias]
+    co = checkout
+    br = branch
+    st = status
+    last = log -1 HEAD
+    lg = log --oneline --graph --decorate -20

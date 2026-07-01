@@ -1,0 +1,10 @@
+{{/* External assets fetched and auto-refreshed by chezmoi (not vendored). */}}
+{{ if eq .chezmoi.os "darwin" }}
+# Karabiner-Elements: Windows/Linux-style shortcut ruleset (Ctrl+C/V, word-jump,
+# Home/End) that EXCLUDES terminals. After apply, enable it in Karabiner ->
+# Complex Modifications, and add Ghostty's bundle id to the exclusion list.
+[".config/karabiner/assets/complex_modifications/windows_shortcuts.json"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/rux616/karabiner-windows-mode/main/json/windows_shortcuts.json"
+    refreshPeriod = "168h"
+{{ end }}

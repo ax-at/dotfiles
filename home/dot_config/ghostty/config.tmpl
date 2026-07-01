@@ -1,0 +1,21 @@
+# Ghostty config (managed by chezmoi). Plain text → versions cleanly.
+
+font-family = "JetBrainsMono Nerd Font"
+font-size = 14
+theme = "catppuccin-mocha"
+
+background-opacity = 0.98
+window-padding-x = 10
+window-padding-y = 8
+cursor-style = block
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+confirm-close-surface = false
+
+# macOS: use Option as Alt (so word-nav etc. behave as expected).
+{{ if eq .chezmoi.os "darwin" -}}
+macos-option-as-alt = true
+{{ end -}}
+
+# Keybinds
+keybind = cmd+k=clear_screen

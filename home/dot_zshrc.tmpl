@@ -1,0 +1,64 @@
+# ~/.zshrc — interactive shell config (managed by chezmoi).
+
+# ---- History ---------------------------------------------------------------
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS INC_APPEND_HISTORY
+setopt AUTO_CD INTERACTIVE_COMMENTS
+
+# ---- Plugins (antidote) ----------------------------------------------------
+{{ if eq .chezmoi.os "darwin" -}}
+ANTIDOTE_DIR="$(brew --prefix)/opt/antidote/share/antidote/antidote.zsh"
+{{ else -}}
+ANTIDOTE_DIR="$(brew --prefix)/opt/antidote/share/antidote/antidote.zsh"
+{{ end -}}
+if [ -f "$ANTIDOTE_DIR" ]; then
+  source "$ANTIDOTE_DIR"
+  antidote load "${ZDOTDIR:-$HOME}/.zsh_plugins.txt"
+fi
+
+# ---- Tooling init ----------------------------------------------------------
+command -v mise     >/dev/null 2>&1 && eval "$(mise activate zsh)"
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+command -v zoxide   >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+if command -v fzf >/dev/null 2>&1; then
+  source <(fzf --zsh) 2>/dev/null || true
+fi
+
+# ---- Environment -----------------------------------------------------------
+export EDITOR="nano"
+export VISUAL="nano"
+export PAGER="less"
+
+{{ if index .modules "react-native" -}}
+# Android SDK (set up by Android Studio first-run).
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
+# JAVA_HOME comes from mise (zulu-17).
+command -v mise >/dev/null 2>&1 && export JAVA_HOME="$(mise where java 2>/dev/null || true)"
+{{ end -}}
+
+# ---- Aliases ---------------------------------------------------------------
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -lah --icons --group-directories-first'
+alias lt='eza --tree --level=2 --icons'
+alias cat='bat --paging=never'
+alias cd..='cd ..'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias g='git'
+alias gs='git status'
+alias reload='exec zsh'
+# mkcd: make a directory and cd into it (OMZ also provides `take`).
+mkcd() { mkdir -p "$1" && cd "$1"; }
+
+# Maintenance: update everything in one shot.
+update-all() {
+  brew update && brew upgrade && brew cleanup
+  mise upgrade
+  chezmoi update
+}
+
+# ---- Local overrides (never committed) -------------------------------------
+[ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"

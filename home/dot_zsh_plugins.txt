@@ -1,0 +1,13 @@
+# antidote plugin bundle. Order matters: OMZ libs/plugins first, then the
+# zsh-users plugins (syntax-highlighting must be last).
+
+# Oh My Zsh directory helpers (`take`, `md`, ...) and git aliases.
+ohmyzsh/ohmyzsh path:lib/directories.zsh
+ohmyzsh/ohmyzsh path:plugins/git
+
+# Completions + UX.
+zsh-users/zsh-completions
+zsh-users/zsh-autosuggestions
+
+# Must be loaded last.
+zsh-users/zsh-syntax-highlighting

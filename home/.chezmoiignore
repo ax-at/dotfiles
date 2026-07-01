@@ -1,0 +1,12 @@
+# Files that live in the repo but must NOT be applied into $HOME.
+# (Repo-root files like README.md / LICENSE are already excluded by .chezmoiroot=home.)
+
+# Editor settings are macOS-only paths; ignore them on Linux so they are not
+# written to the wrong location.
+{{ if ne .chezmoi.os "darwin" }}
+Library/**
+{{ end }}
+
+# Karabiner main profile is written by the app itself (stateful GUI); we only
+# ship the imported complex-modification ruleset via .chezmoiexternal.
+.config/karabiner/karabiner.json

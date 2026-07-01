@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+# ---------------------------------------------------------------------------
+# dotfiles bootstrap — https://github.com/ax-at/dotfiles
+#
+#   sh -c "$(curl -fsSL https://ax-at.github.io/dotfiles/install)"
+#
+# One command to set up a fresh Mac (later: Linux). Installs chezmoi if
+# missing, then hands off to `chezmoi init --apply` which does the rest
+# (Homebrew, packages, runtimes, dotfiles, macOS defaults). Idempotent and
+# safe to re-run.
+# ---------------------------------------------------------------------------
+set -eu
+
+GITHUB_USER="ax-at"
+
+info() { printf '\033[1;34m==>\033[0m %s\n' "$1"; }
+die()  { printf '\033[1;31mError:\033[0m %s\n' "$1" >&2; exit 1; }
+
+command -v curl >/dev/null 2>&1 || die "curl is required but not found."
+
+info "Bootstrapping ${GITHUB_USER}'s dev machine…"
+
+if command -v chezmoi >/dev/null 2>&1; then
+  chezmoi_bin="$(command -v chezmoi)"
+  info "chezmoi already installed → ${chezmoi_bin}"
+else
+  info "Installing chezmoi (self-contained static binary — no git/brew needed)…"
+  bin_dir="${HOME}/.local/bin"
+  mkdir -p "${bin_dir}"
+  sh -c "$(curl -fsSL get.chezmoi.io)" -- -b "${bin_dir}" \
+    || die "chezmoi installation failed."
+  chezmoi_bin="${bin_dir}/chezmoi"
+fi
+
+info "Running: chezmoi init --apply ${GITHUB_USER}"
+info "You'll be prompted once for your git identity and a few module toggles."
+
+# exec replaces this shell so chezmoi inherits the terminal (its interactive
+# prompts need a real stdin — which the `sh -c \"\$(curl …)\"` form preserves).
+exec "${chezmoi_bin}" init --apply "${GITHUB_USER}"

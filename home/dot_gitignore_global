@@ -1,0 +1,25 @@
+# Global gitignore.
+.DS_Store
+.AppleDouble
+Thumbs.db
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies / build
+node_modules/
+.expo/
+.next/
+dist/
+build/
+*.log
+
+# mise / tool versions are project files — do NOT ignore .mise.toml

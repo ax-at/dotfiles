@@ -1,0 +1,15 @@
+# mise: polyglot runtime manager. `mise install` (run by the provisioning
+# script) installs everything below. Add per-project versions with a local
+# .mise.toml / .tool-versions in each repo.
+
+[tools]
+node = "lts"          # Node LTS for web + React Native / Expo
+pnpm = "latest"       # pnpm via mise (Corepack was removed from Node 25+)
+ruby = "latest"       # for CocoaPods etc.
+java = "zulu-17"      # Azul Zulu 17 — Expo/Android recommended JDK
+
+[settings]
+# Don't auto-install on cd; provisioning + explicit `mise install` only.
+not_found_auto_install = false
+# Trust this config without prompting.
+idiomatic_version_file_enable_tools = ["node", "ruby"]
