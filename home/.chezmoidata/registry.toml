@@ -47,6 +47,19 @@ macos = { method = "brew", pkg = "git" }
 linux = { method = "brew", pkg = "git" }
 
 [[packages]]
+name = "hunk"
+module = "core"
+desc = "Interactive TUI diff/review viewer (git diff replacement)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/modem-dev/hunk"
+enabled = true
+platforms = ["macos", "linux"]
+# Lives in a custom tap; the full tap/formula path in a Brewfile auto-taps.
+macos = { method = "brew", pkg = "modem-dev/tap/hunk" }
+linux = { method = "brew", pkg = "modem-dev/tap/hunk" }
+
+[[packages]]
 name = "gh"
 module = "core"
 desc = "GitHub CLI"

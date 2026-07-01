@@ -107,6 +107,25 @@ alias ...='cd ../..'
 alias g='git'
 alias gs='git status'
 alias reload='exec zsh'
+
+# hunk (https://github.com/modem-dev/hunk) as the default diff viewer: an
+# interactive TUI over the diff. We override each OMZ git-plugin alias with the
+# EXACT hunk equivalent of its original flags rather than a blanket `hunk diff`,
+# so the developer keeps the same meaning (staged vs cached vs upstream). These
+# MUST come after `antidote load` above, where the git plugin defines the
+# originals. Guarded on hunk being installed so these fall back to `git diff`.
+#
+# `hunk diff` accepts --staged/--cached, a positional revision/range, and
+# pathspecs. It has NO --word-diff flag (it word-diffs intraline in the TUI
+# automatically), so gdw/gdcw are LEFT as native git for their text output.
+# Also native (no hunk equivalent): gdt (--name-only tree), gdv (pipes to a
+# pager), gdnolock (excludes lockfiles).
+if command -v hunk >/dev/null 2>&1; then
+  alias gd='hunk diff'                 # was: git diff
+  alias gds='hunk diff --staged'       # was: git diff --staged
+  alias gdca='hunk diff --cached'      # was: git diff --cached
+  alias gdup='hunk diff @{upstream}'   # was: git diff @{upstream}
+fi
 # mkcd: make a directory and cd into it (OMZ also provides `take`).
 mkcd() { mkdir -p "$1" && cd "$1"; }
 

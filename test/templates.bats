@@ -85,6 +85,21 @@ setup() {
   refute_output --partial 'ANDROID_HOME'
 }
 
+@test "zshrc: hunk overrides the git-diff aliases with their exact flags" {
+  run render "$SRC_DIR/dot_zshrc.tmpl" full.toml
+  assert_success
+  # Guarded so a machine without hunk falls back to plain `git diff`.
+  assert_output --partial 'if command -v hunk >/dev/null 2>&1; then'
+  # Each alias keeps the meaning of its original OMZ flags.
+  assert_output --partial "alias gd='hunk diff'"
+  assert_output --partial "alias gds='hunk diff --staged'"
+  assert_output --partial "alias gdca='hunk diff --cached'"
+  assert_output --partial "alias gdup='hunk diff @{upstream}'"
+  # hunk has no --word-diff, so those aliases must NOT be pointed at it.
+  refute_output --partial "alias gdw='hunk"
+  refute_output --partial "alias gdcw='hunk"
+}
+
 # ---- OS-conditional non-script templates ----------------------------------
 
 @test "chezmoiignore: Library/** ignored on linux only" {
