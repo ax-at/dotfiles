@@ -11,7 +11,7 @@
 // pitch, and the install line. Keep it in sync with index.html by eye.
 
 import { Renderer } from "@takumi-rs/core";
-import { container, text, image, googleFont } from "@takumi-rs/helpers";
+import { container, text, image } from "@takumi-rs/helpers";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
@@ -27,21 +27,39 @@ const C = {
 const SANS = "Space Grotesk";
 const MONO = "JetBrains Mono";
 
-// Fonts must be supplied as bytes — Takumi never reads system fonts. googleFont
-// fetches the real files at generation time (we have network here; the committed
-// PNG is what ships, so the build stays offline-safe). It returns one lazy face
-// per weight, so resolve each face's bytes into a flat FontDetails[] the Renderer
-// accepts.
-async function loadFont(family, weight) {
-  const faces = await googleFont(family, { weight });
-  return Promise.all(
-    faces.map(async (f) => ({
-      name: f.name,
-      data: new Uint8Array(await f.data()),
-      weight: f.weight,
-      style: f.style,
-    })),
-  );
+// Fonts must be supplied as bytes — Takumi never reads system fonts. We fetch them
+// from Google Fonts at generation time (network is available here; the committed PNG
+// is what ships, so the build stays offline-safe).
+//
+// Why hand-roll this instead of @takumi-rs/helpers' googleFont()? That helper sends a
+// modern-Chrome User-Agent, for which Google serves a SINGLE variable woff2 shared by
+// every requested weight — then its parser dedupes by URL and keeps only the first
+// (weight 400). So 500/600/700 are silently dropped: headings fall back to the
+// variable font's light default instance and the card's weights never match the site
+// (the very mismatch this card exists to avoid). Requesting with an old User-Agent
+// makes Google emit a distinct STATIC .ttf per weight, so every weight is the real one.
+const OLD_UA = "Mozilla/4.0";
+
+async function loadFont(family, weights) {
+  const cssUrl =
+    `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}` +
+    `:wght@${weights.join(";")}`;
+  const css = await fetch(cssUrl, { headers: { "User-Agent": OLD_UA } }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${family} CSS`);
+    return r.text();
+  });
+
+  // One @font-face block per weight, each pointing at its own static .ttf.
+  const faces = [];
+  for (const [, body] of css.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+    const weight = Number(body.match(/font-weight:\s*(\d+)/)?.[1]);
+    const src = body.match(/src:\s*url\(([^)]+)\)/)?.[1];
+    if (!weight || !src) continue;
+    const data = new Uint8Array(await fetch(src).then((r) => r.arrayBuffer()));
+    faces.push({ name: family, data, weight, style: "normal" });
+  }
+  if (!faces.length) throw new Error(`No @font-face found for ${family}`);
+  return faces;
 }
 
 const [sans, mono] = await Promise.all([
@@ -66,7 +84,7 @@ const card = container({
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    padding: "70px 76px",
+    padding: "54px 76px",
     background: "linear-gradient(135deg, #1c1c2c 0%, #181825 52%, #141420 100%)",
     color: C.text,
     fontFamily: SANS,
@@ -89,8 +107,10 @@ const card = container({
     }),
 
     // ── pitch ───────────────────────────────────────────────────
+    // marginTop widens the brand→eyebrow gap beyond what space-between alone gives,
+    // so the eyebrow breathes under the wordmark the way it does on the site.
     container({
-      style: { display: "flex", flexDirection: "column" },
+      style: { display: "flex", flexDirection: "column", marginTop: 24 },
       children: [
         text("REPRODUCIBLE  ·  DECLARATIVE  ·  OPINIONATED", {
           fontFamily: MONO, fontSize: 21, letterSpacing: 3, color: C.muted, marginBottom: 26,
@@ -119,15 +139,19 @@ const card = container({
     container({
       style: { display: "flex", flexDirection: "column", gap: 24 },
       children: [
+        // Mirrors the site's .command bar: full-width, crust fill, --radius corners,
+        // the same lifted shadow, and a terminal cursor block after the command.
         container({
           style: {
-            display: "flex", flexDirection: "row", alignItems: "center", alignSelf: "flex-start",
-            backgroundColor: C.deep, border: `1px solid ${C.line}`, borderRadius: 12,
-            padding: "16px 24px", fontFamily: MONO, fontSize: 25,
+            display: "flex", flexDirection: "row", alignItems: "center",
+            backgroundColor: C.deep, border: `1px solid ${C.line}`, borderRadius: 14,
+            padding: "18px 22px", fontFamily: MONO, fontSize: 25,
+            boxShadow: "0 18px 50px -30px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.02)",
           },
           children: [
             text("$", { color: C.green }),
             text(`${NB}sh -c "$(curl -fsSL https://ax-at.github.io/dotfiles/install)"`, { color: C.text }),
+            container({ style: { width: 9, height: 26, borderRadius: 2, marginLeft: 9, backgroundColor: C.blue } }),
           ],
         }),
         container({
