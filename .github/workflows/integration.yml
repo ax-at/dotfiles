@@ -1,0 +1,39 @@
+name: integration
+
+# Tier 3: full, real installs on a disposable GitHub-hosted macOS runner.
+# Non-blocking (never runs on PRs) — catches cask-name rot and installer
+# breakage that the no-machine unit tests can't. The runner is throwaway, so a
+# real brew bundle is safe here. Scripts needing secrets / interactive auth
+# (ssh-github, script-installers) are intentionally not run.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+env:
+  CHEZMOI_VERSION: v2.70.5
+
+jobs:
+  full-install-macos:
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install chezmoi (pinned)
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" -t "$CHEZMOI_VERSION"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # Renders the registry -> Brewfile and runs `brew bundle` for real. This
+      # is the whole point of Tier 3: prove every enabled formula/cask still
+      # installs. (mas is unused; script-installers/gh/secrets are not invoked.)
+      - name: Real brew bundle from the registry
+        run: |
+          chezmoi execute-template --source "$PWD/home" \
+            --config test/fixtures/full.toml --config-format toml \
+            < home/.chezmoiscripts/run_onchange_after_20-packages.sh.tmpl > "$RUNNER_TEMP/packages.sh"
+          echo "----- generated packages script -----"
+          cat "$RUNNER_TEMP/packages.sh"
+          echo "-------------------------------------"
+          bash "$RUNNER_TEMP/packages.sh"

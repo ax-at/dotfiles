@@ -2,32 +2,48 @@
 # run_onchange_after_30-mise.sh
 # Installs language runtimes via mise, then npm-global CLIs from the registry.
 # Re-runs when mise config or the npm package list below changes.
-set -euo pipefail
+#
+# Logic lives in functions + main() so the rendered script can be sourced by
+# the test suite without executing side effects (see the BASH_SOURCE guard at
+# the bottom). `set -euo pipefail` is inside main() for the same reason.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
 
-if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
-elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
-elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
-fi
-command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+# npm_install_if_missing PKG CHECK-CMD
+# Installs a global npm CLI only when CHECK-CMD fails (i.e. it isn't present).
+npm_install_if_missing() {
+  local pkg="$1" check="$2"
+  if ! eval "$check" >/dev/null 2>&1; then
+    echo "  -> $pkg"
+    mise exec node -- npm install -g "$pkg"
+  fi
+}
 
-# mise config hash (forces re-run on change):
-# {{ include (joinPath .chezmoi.homeDir ".config/mise/config.toml") | sha256sum }}
-echo "==> [mise] installing runtimes (node, pnpm, ruby, java)"
-mise install -y
-eval "$(mise activate bash)"
+main() {
+  set -euo pipefail
 
-echo "==> [mise] installing npm-global CLIs"
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+  fi
+  command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+
+  # mise config hash (forces re-run on change):
+  # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/config.toml") | sha256sum }}
+  echo "==> [mise] installing runtimes (node, pnpm, ruby, java)"
+  mise install -y
+  eval "$(mise activate bash)"
+
+  echo "==> [mise] installing npm-global CLIs"
 {{ range .packages -}}
 {{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
 {{- $p := index . $os -}}
 {{- if eq $p.method "npm" }}
-if ! {{ $p.check }} >/dev/null 2>&1; then
-  echo "  -> {{ $p.pkg }}"
-  mise exec node -- npm install -g {{ $p.pkg }}
-fi
+  npm_install_if_missing "{{ $p.pkg }}" "{{ $p.check }}"
 {{ end -}}
 {{- end -}}
 {{- end }}
-echo "==> [mise] done"
+  echo "==> [mise] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi

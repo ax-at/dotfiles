@@ -27,6 +27,10 @@
 | ✅ | **tealdeer** | Fast tldr client (simplified man pages) | free | MIT | [repo](https://github.com/tealdeer-rs/tealdeer) |
 | ✅ | **pv** | Pipe viewer: progress of data through a pipeline | free | Artistic-2.0 | [repo](https://github.com/a-j-wood/pv) |
 | ✅ | **pre-commit** | Framework for managing git pre-commit hooks (used by Ultracite) | free | MIT | [repo](https://github.com/pre-commit/pre-commit) |
+| ✅ | **shellcheck** | Static analysis linter for shell scripts (used by the test suite) | free | GPL-3.0 | [repo](https://github.com/koalaman/shellcheck) |
+| ✅ | **shfmt** | Shell script formatter (used by make lint) | free | BSD-3-Clause | [repo](https://github.com/mvdan/sh) |
+| ✅ | **taplo** | TOML toolkit: formatter + JSON-Schema validator (validates registry.toml) | free | MIT | [repo](https://github.com/tamasfe/taplo) |
+| ✅ | **actionlint** | Static checker for GitHub Actions workflow files | free | MIT | [repo](https://github.com/rhysd/actionlint) |
 | ✅ | **mas** | Mac App Store command-line interface | free | MIT | [repo](https://github.com/mas-cli/mas) |
 | ✅ | **neovim** | Hyperextensible Vim-based text editor (minimal config) | free | Apache-2.0 | [repo](https://github.com/neovim/neovim) |
 | ✅ | **tmux** | Terminal multiplexer | free | ISC | [repo](https://github.com/tmux/tmux) |
@@ -80,7 +84,7 @@
 | ✅ | **cocoapods** | iOS dependency manager (prebuild runs pod install for you) | free | MIT | [repo](https://github.com/CocoaPods/CocoaPods) |
 | ✅ | **Android Studio** | Android IDE + SDK + emulator manager | free | Apache-2.0 | — |
 | ✅ | **Expo Orbit** | Menu-bar app to manage simulators/emulators/devices and builds | free | MIT | [repo](https://github.com/expo/orbit) |
-| ✅ | **applesimutils** | Apple simulator utilities (used by Detox/RN tooling) | free | MIT | [repo](https://github.com/wix/AppleSimulatorUtils) |
+| ⬜ | **applesimutils** | Apple simulator utilities (used by Detox/RN tooling) | free | MIT | [repo](https://github.com/wix/AppleSimulatorUtils) |
 
 ## ai-tools
 

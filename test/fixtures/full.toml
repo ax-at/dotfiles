@@ -1,0 +1,16 @@
+# Test fixture: all optional modules ON. Passed to chezmoi via --config so its
+# [data.*] block feeds template rendering non-interactively. Base profile;
+# the *-off.toml fixtures flip exactly one toggle.
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+linux-feel = true

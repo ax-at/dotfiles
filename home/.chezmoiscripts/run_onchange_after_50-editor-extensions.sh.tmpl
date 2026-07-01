@@ -2,9 +2,11 @@
 # run_onchange_after_50-editor-extensions.sh
 # Installs the shared extension set into VS Code AND Cursor (whichever exist).
 # Re-runs when this list changes.
-set -euo pipefail
-
-{{ if not (index .modules "editors") }}exit 0{{ end }}
+#
+# Logic lives in functions + main() so the rendered script can be sourced by
+# the test suite without executing side effects (see the BASH_SOURCE guard at
+# the bottom). The `exit 0` module gate and `set -euo pipefail` live inside
+# main() so sourcing never exits the caller or flips its shell options.
 
 EXTENSIONS=(
   # Lint/format — Ultracite via Oxc (oxlint + oxfmt). No ESLint/Prettier.
@@ -43,6 +45,13 @@ install_into() {
   done
 }
 
-install_into code   "VS Code"
-install_into cursor "Cursor"
-echo "==> [extensions] done"
+main() {
+  set -euo pipefail
+{{ if not (index .modules "editors") }}  exit 0
+{{ end }}
+  install_into code   "VS Code"
+  install_into cursor "Cursor"
+  echo "==> [extensions] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi

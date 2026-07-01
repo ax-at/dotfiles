@@ -1,0 +1,15 @@
+# full.toml with macos-defaults OFF (drives the 70-macos-defaults early exit).
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+linux-feel = true
+macos-defaults = false
