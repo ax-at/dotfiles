@@ -42,6 +42,20 @@ setup() {
   [ "$min_count" -lt "$full_count" ]
 }
 
+# Regression guard for the tap-trust bootstrap failure: registry entries whose
+# pkg is a full `owner/tap/formula` path (e.g. hunk in modem-dev/tap) abort
+# `brew bundle` non-interactively unless we opt into trusting the tap. If this
+# env var is dropped, a fresh-machine install breaks again — but every other
+# test still passes, so this locks it explicitly.
+@test "packages: brew bundle opts into third-party tap trust" {
+  run render "$PKGS" full.toml
+  assert_success
+  # The trigger: a curated tap-path formula must actually reach the Brewfile...
+  assert_output --partial 'brew "modem-dev/tap/hunk"'
+  # ...and the bundle run must trust it, or the whole bundle aborts.
+  assert_output --partial 'HOMEBREW_NO_REQUIRE_TAP_TRUST=1 brew bundle'
+}
+
 @test "packages: the test/lint toolchain is installed by the setup" {
   # These are what `make test` / `make lint` / CI depend on — a fresh machine
   # must get them so the suite is runnable after install.
