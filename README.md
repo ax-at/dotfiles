@@ -39,6 +39,8 @@ You'll be **prompted once** for your git identity (work + personal) and a few mo
 
 > 💡 If the Command Line Tools GUI dialog ever blocks the run, finish it and re-run `chezmoi apply`.
 
+> ℹ️ **How to tell it worked.** chezmoi is silent on success — there's no completion banner. A normal shell prompt with no `Error:` line means it finished; confirm with `echo $?` (`0` = success, non-zero = it aborted). A few steps continue on *non-fatal* errors instead of aborting, so scan the log for stray `HTTP`/`error`/`failed` lines. The known one: registering the SSH **signing** key needs `gh`'s `admin:ssh_signing_key` scope — if it's missing you'll see a `404` there, but the run still completes and everything else is applied.
+
 ---
 
 ## 🩺 Existing machine (non-destructive) — do this first
