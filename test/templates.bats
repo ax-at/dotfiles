@@ -184,7 +184,14 @@ setup() {
 }
 
 @test "config template: init prompts map to module data" {
-  run "$CHEZMOI_BIN" execute-template --init --no-tty --source "$SRC_DIR" \
+  # Isolate HOME + XDG so chezmoi can't read a real ~/.config/chezmoi/chezmoi.toml:
+  # promptStringOnce/promptBoolOnce prefer already-persisted values over the
+  # --prompt* overrides, so on a provisioned machine the dev's identity and
+  # module toggles would leak into this render and fail the assertions below.
+  local h="$BATS_TEST_TMPDIR/init-home"
+  mkdir -p "$h"
+  run env HOME="$h" XDG_CONFIG_HOME="$h/.config" XDG_DATA_HOME="$h/.local/share" \
+    "$CHEZMOI_BIN" execute-template --init --no-tty --source "$SRC_DIR" \
     --promptString "Git name for WORK repos=CI" \
     --promptString "Git email for WORK repos (e.g. you@company.com)=ci@example.com" \
     --promptString "Git name for PERSONAL repos=CI" \
