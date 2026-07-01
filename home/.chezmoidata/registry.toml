@@ -807,6 +807,17 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "slack" }
 
 [[packages]]
+name = "Discord"
+module = "productivity"
+desc = "Voice, video, and text chat for communities"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "discord" }
+
+[[packages]]
 name = "Rectangle"
 module = "productivity"
 desc = "Keyboard-driven window snapping (Linux-like)"
