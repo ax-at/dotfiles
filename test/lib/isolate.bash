@@ -5,8 +5,10 @@
 # the 3 extracted pure functions run, and every real binary they touch
 # (code/cursor/mise/npm) is shadowed by a recording stub.
 
-# Call once from setup(). After this, HOME and PATH are isolated to the
-# per-test temp dir that bats auto-removes.
+# Call once from setup(). Isolates HOME to the per-test temp dir (bats auto-
+# removes it) and PREPENDS a mock bin to PATH. Note: real binaries further down
+# PATH still resolve — a test that needs one genuinely absent (e.g. an editor
+# not installed) must narrow PATH itself; see the "not on PATH" case.
 isolate() {
   export HOME="$BATS_TEST_TMPDIR/home"
   mkdir -p "$HOME"
