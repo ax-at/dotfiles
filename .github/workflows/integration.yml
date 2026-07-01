@@ -1,14 +1,12 @@
 name: integration
 
 # Tier 3: full, real installs on a disposable GitHub-hosted macOS runner.
-# Non-blocking (never runs on PRs) — catches cask-name rot and installer
+# Manual-only (run from the Actions tab) — catches cask-name rot and installer
 # breakage that the no-machine unit tests can't. The runner is throwaway, so a
 # real brew bundle is safe here. Scripts needing secrets / interactive auth
 # (ssh-github, script-installers) are intentionally not run.
 
 on:
-  schedule:
-    - cron: '0 6 * * 1' # Mondays 06:00 UTC
   workflow_dispatch:
 
 env:
