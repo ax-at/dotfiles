@@ -19,10 +19,18 @@ const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 
 // Catppuccin Mocha — the same palette index.html ships.
 const C = {
-  bg: "#181825", panel: "#1e1e2e", deep: "#11111b",
-  line: "#313244", line2: "#45475a",
-  text: "#cdd6f4", muted: "#9399b2", faint: "#6c7086",
-  blue: "#89b4fa", green: "#a6e3a1", mauve: "#cba6f7", peach: "#fab387",
+  bg: "#181825",
+  panel: "#1e1e2e",
+  deep: "#11111b",
+  line: "#313244",
+  line2: "#45475a",
+  text: "#cdd6f4",
+  muted: "#9399b2",
+  faint: "#6c7086",
+  blue: "#89b4fa",
+  green: "#a6e3a1",
+  mauve: "#cba6f7",
+  peach: "#fab387",
 };
 const SANS = "Space Grotesk";
 const MONO = "JetBrains Mono";
@@ -96,7 +104,13 @@ const card = container({
       children: [
         image({ src: markPng, width: 60, height: 60, style: { borderRadius: 14 } }),
         container({
-          style: { display: "flex", flexDirection: "row", alignItems: "baseline", fontFamily: MONO, fontSize: 30 },
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "baseline",
+            fontFamily: MONO,
+            fontSize: 30,
+          },
           children: [
             text("ax-at", { color: C.muted, fontWeight: 500 }),
             text(`${NB}/${NB}`, { color: C.faint }),
@@ -112,11 +126,41 @@ const card = container({
     container({
       style: { display: "flex", flexDirection: "column", marginTop: 24 },
       children: [
-        text("REPRODUCIBLE  ·  DECLARATIVE  ·  OPINIONATED", {
-          fontFamily: MONO, fontSize: 21, letterSpacing: 3, color: C.muted, marginBottom: 26,
+        // Mirrors the site's .eyebrow: the label, then a 1px rule that dissolves to
+        // the right (linear-gradient from --line-2 to transparent) filling the row.
+        container({
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 16,
+            marginBottom: 26,
+          },
+          children: [
+            text("REPRODUCIBLE  ·  DECLARATIVE  ·  OPINIONATED", {
+              fontFamily: MONO,
+              fontSize: 21,
+              letterSpacing: 3,
+              color: C.muted,
+            }),
+            container({
+              style: {
+                flexGrow: 1,
+                height: 2,
+                background: `linear-gradient(90deg, ${C.line2}, transparent)`,
+              },
+            }),
+          ],
         }),
         container({
-          style: { display: "flex", flexDirection: "column", fontWeight: 600, fontSize: 76, lineHeight: 1.05, letterSpacing: -1.5 },
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            fontWeight: 600,
+            fontSize: 76,
+            lineHeight: 1.05,
+            letterSpacing: -1.5,
+          },
           children: [
             container({
               style: { display: "flex", flexDirection: "row", alignItems: "baseline" },
@@ -129,9 +173,16 @@ const card = container({
           ],
         }),
         text("The same tools, runtimes, editors, and dotfiles every time —", {
-          fontSize: 27, color: C.muted, marginTop: 28, lineHeight: 1.4,
+          fontSize: 27,
+          color: C.muted,
+          marginTop: 28,
+          lineHeight: 1.4,
         }),
-        text("declarative, idempotent, safe to re-run.", { fontSize: 27, color: C.muted, lineHeight: 1.4 }),
+        text("declarative, idempotent, safe to re-run.", {
+          fontSize: 27,
+          color: C.muted,
+          lineHeight: 1.4,
+        }),
       ],
     }),
 
@@ -143,21 +194,41 @@ const card = container({
         // the same lifted shadow, and a terminal cursor block after the command.
         container({
           style: {
-            display: "flex", flexDirection: "row", alignItems: "center",
-            backgroundColor: C.deep, border: `1px solid ${C.line}`, borderRadius: 14,
-            padding: "18px 22px", fontFamily: MONO, fontSize: 25,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: C.deep,
+            border: `1px solid ${C.line}`,
+            borderRadius: 14,
+            padding: "18px 22px",
+            fontFamily: MONO,
+            fontSize: 25,
             boxShadow: "0 18px 50px -30px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.02)",
           },
           children: [
             text("$", { color: C.green }),
-            text(`${NB}sh -c "$(curl -fsSL https://ax-at.github.io/dotfiles/install)"`, { color: C.text }),
-            container({ style: { width: 9, height: 26, borderRadius: 2, marginLeft: 9, backgroundColor: C.blue } }),
+            text(`${NB}sh -c "$(curl -fsSL https://ax-at.github.io/dotfiles/install)"`, {
+              color: C.text,
+            }),
+            container({
+              style: {
+                width: 9,
+                height: 26,
+                borderRadius: 2,
+                marginLeft: 9,
+                backgroundColor: C.blue,
+              },
+            }),
           ],
         }),
         container({
           style: {
-            display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-            fontFamily: MONO, fontSize: 22,
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontFamily: MONO,
+            fontSize: 22,
           },
           children: [
             container({
