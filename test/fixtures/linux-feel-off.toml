@@ -1,0 +1,14 @@
+# full.toml with linux-feel OFF.
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+linux-feel = false

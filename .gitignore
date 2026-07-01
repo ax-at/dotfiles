@@ -18,3 +18,8 @@
 
 # logs
 *.log
+
+# test deps: bats-core + helper libs, fetched by test/lib/bootstrap.sh at pinned tags
+/test/lib/bats-core/
+/test/lib/bats-support/
+/test/lib/bats-assert/

@@ -8,8 +8,11 @@ SRC="$ROOT/home"
 TMPL="$ROOT/scripts/tools.md.tmpl"
 OUT="$ROOT/TOOLS.md"
 
-command -v chezmoi >/dev/null 2>&1 || { echo "chezmoi not installed" >&2; exit 1; }
+command -v chezmoi >/dev/null 2>&1 || {
+  echo "chezmoi not installed" >&2
+  exit 1
+}
 
 # Render the template against the registry data only (no init prompts).
-chezmoi execute-template --source "$SRC" < "$TMPL" > "$OUT"
+chezmoi execute-template --source "$SRC" <"$TMPL" >"$OUT"
 echo "Wrote $OUT"

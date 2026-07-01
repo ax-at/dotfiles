@@ -1,0 +1,15 @@
+# full.toml with editors OFF (drives the 50-editor-extensions early exit).
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+linux-feel = true
+editors = false

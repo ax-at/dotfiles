@@ -5,38 +5,80 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # Pin chezmoi so an upgrade can't silently change rendering. Bump deliberately.
+  CHEZMOI_VERSION: v2.70.5
+
 jobs:
-  validate:
-    runs-on: ubuntu-latest
+  # ---- Tier 1: unit, no machine. Runs on both OSes so each renders natively.
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, macos]
+    # Runner is abstracted: set repo variables LINUX_RUNNER / MACOS_RUNNER to
+    # self-hosted labels (e.g. [self-hosted, linux, orbstack]) to switch with
+    # zero workflow edits.
+    runs-on: ${{ (matrix.os == 'linux' && (vars.LINUX_RUNNER || 'ubuntu-latest')) || (vars.MACOS_RUNNER || 'macos-latest') }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install chezmoi
-        run: sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+      - name: Ensure Homebrew on PATH (Linux)
+        if: runner.os == 'Linux'
+        run: '[ -d /home/linuxbrew/.linuxbrew/bin ] && echo /home/linuxbrew/.linuxbrew/bin >> "$GITHUB_PATH" || true'
 
-      - name: Add chezmoi to PATH
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install tools (shellcheck, taplo, jq)
+        run: brew install shellcheck taplo jq
 
-      - name: Verify templates render (registry + TOOLS.md)
+      - name: Install chezmoi (pinned)
         run: |
-          chezmoi execute-template --source ./home < ./scripts/tools.md.tmpl > /tmp/TOOLS.generated.md
-          echo "Template rendered OK."
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" -t "$CHEZMOI_VERSION"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Check TOOLS.md is up to date
+      - name: Run test suite (bats)
+        run: make test
+
+      - name: Whole-apply dry-run (no side effects)
         run: |
-          if ! diff -q /tmp/TOOLS.generated.md ./TOOLS.md >/dev/null; then
-            echo "::error::TOOLS.md is stale. Run ./scripts/gen-tools.sh and commit."
-            diff /tmp/TOOLS.generated.md ./TOOLS.md || true
-            exit 1
-          fi
+          dest="$(mktemp -d)"
+          chezmoi apply --dry-run --verbose \
+            --source "$PWD/home" --destination "$dest" \
+            --config test/fixtures/full.toml --config-format toml --no-tty
 
-  shellcheck:
-    runs-on: ubuntu-latest
+  # ---- Lint: shellcheck + shfmt on the plain shell scripts.
+  lint:
+    runs-on: ${{ vars.LINUX_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Lint plain shell scripts
-        uses: ludeeus/action-shellcheck@master
-        with:
-          additional_files: 'gen-tools.sh install'
-          # .tmpl scripts contain Go-template syntax and are intentionally skipped.
-          ignore_paths: home
+      - name: Ensure Homebrew on PATH (Linux)
+        if: runner.os == 'Linux'
+        run: '[ -d /home/linuxbrew/.linuxbrew/bin ] && echo /home/linuxbrew/.linuxbrew/bin >> "$GITHUB_PATH" || true'
+      - name: Install linters
+        run: brew install shellcheck shfmt actionlint
+      - name: make lint
+        run: make lint
+
+  # ---- Tier 2: verify-apply on a real Mac (fast, no installers).
+  verify-apply-macos:
+    runs-on: ${{ vars.MACOS_RUNNER || 'macos-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install chezmoi (pinned)
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" -t "$CHEZMOI_VERSION"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: init --apply --exclude scripts, then verify (throwaway HOME)
+        env:
+          HOME: ${{ runner.temp }}/dotfiles-home
+        run: |
+          mkdir -p "$HOME"
+          chezmoi init --apply --source "$GITHUB_WORKSPACE/home" --exclude scripts --no-tty \
+            --promptString "Git name for WORK repos=CI" \
+            --promptString "Git email for WORK repos (e.g. you@company.com)=ci@example.com" \
+            --promptString "Git name for PERSONAL repos=CI" \
+            --promptString "Git email for PERSONAL repos=ci@example.com" \
+            --promptString "GitHub username=ci" \
+            --promptBool "Install the React Native / Expo native toolchain=true" \
+            --promptBool "Install AI coding tools (Claude Code, Codex, etc.)=true" \
+            --promptBool "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)=true"
+          chezmoi verify --source "$GITHUB_WORKSPACE/home" --exclude scripts

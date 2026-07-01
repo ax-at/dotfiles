@@ -275,6 +275,68 @@ macos = { method = "brew", pkg = "pre-commit" }
 linux = { method = "brew", pkg = "pre-commit" }
 
 [[packages]]
+name = "shellcheck"
+module = "core"
+desc = "Static analysis linter for shell scripts (used by the test suite)"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/koalaman/shellcheck"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "shellcheck" }
+linux = { method = "brew", pkg = "shellcheck" }
+
+[[packages]]
+name = "shfmt"
+module = "core"
+desc = "Shell script formatter (used by make lint)"
+cost = "free"
+license = "BSD-3-Clause"
+repo = "https://github.com/mvdan/sh"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "shfmt" }
+linux = { method = "brew", pkg = "shfmt" }
+
+[[packages]]
+name = "taplo"
+module = "core"
+desc = "TOML toolkit: formatter + JSON-Schema validator (validates registry.toml)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/tamasfe/taplo"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "taplo" }
+linux = { method = "brew", pkg = "taplo" }
+
+[[packages]]
+name = "actionlint"
+module = "core"
+desc = "Static checker for GitHub Actions workflow files"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/rhysd/actionlint"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "actionlint" }
+linux = { method = "brew", pkg = "actionlint" }
+
+[[packages]]
+name = "bats-core"
+module = "core"
+desc = "Bash Automated Testing System (shell test runner, used across projects)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/bats-core/bats-core"
+enabled = true
+platforms = ["macos", "linux"]
+# This repo's own suite uses a pinned clone under test/lib/ for reproducibility;
+# this installs bats system-wide for general shell-test development.
+macos = { method = "brew", pkg = "bats-core" }
+linux = { method = "brew", pkg = "bats-core" }
+
+[[packages]]
 name = "mas"
 module = "core"
 desc = "Mac App Store command-line interface"
@@ -366,7 +428,7 @@ cost = "free"
 license = "MIT"
 repo = "https://github.com/microsoft/vscode"
 enabled = true
-platforms = ["macos", "linux"]
+platforms = ["macos"]
 macos = { method = "cask", pkg = "visual-studio-code" }
 
 [[packages]]
@@ -377,7 +439,7 @@ cost = "freemium"
 license = "proprietary"
 repo = ""
 enabled = true
-platforms = ["macos", "linux"]
+platforms = ["macos"]
 macos = { method = "cask", pkg = "cursor" }
 
 [[packages]]
@@ -388,7 +450,7 @@ cost = "paid"
 license = "proprietary"
 repo = ""
 enabled = true
-platforms = ["macos", "linux"]
+platforms = ["macos"]
 macos = { method = "cask", pkg = "sublime-text" }
 
 # ------------------------------------------------------------------ web ----
@@ -536,7 +598,7 @@ cost = "free"
 license = "Apache-2.0"
 repo = ""
 enabled = true
-platforms = ["macos", "linux"]
+platforms = ["macos"]
 macos = { method = "cask", pkg = "android-studio" }
 
 [[packages]]
@@ -719,7 +781,7 @@ cost = "free"
 license = "MIT"
 repo = "https://github.com/usebruno/bruno"
 enabled = true
-platforms = ["macos", "linux"]
+platforms = ["macos"]
 macos = { method = "cask", pkg = "bruno" }
 
 [[packages]]

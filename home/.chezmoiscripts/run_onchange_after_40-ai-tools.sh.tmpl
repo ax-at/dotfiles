@@ -2,14 +2,12 @@
 # run_onchange_after_40-ai-tools.sh
 # Installs registry entries whose method is "script" (official installers):
 # AI CLIs, fallow, pass-cli, etc. Skips any already present via its `check`.
-set -euo pipefail
+#
+# Logic lives in functions + main() so the rendered script can be sourced by
+# the test suite without executing side effects (see the BASH_SOURCE guard at
+# the bottom). `set -euo pipefail` is inside main() for the same reason.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
-
-if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
-elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
-elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
-fi
 
 install_one() {
   local name="$1" check="$2" cmd="$3"
@@ -21,13 +19,24 @@ install_one() {
   fi
 }
 
-echo "==> [script-installers]"
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+  fi
+
+  echo "==> [script-installers]"
 {{ range .packages -}}
 {{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
 {{- $p := index . $os -}}
 {{- if eq $p.method "script" }}
-install_one {{ .name | quote }} {{ $p.check | quote }} {{ $p.cmd | quote }}
+  install_one {{ .name | quote }} {{ $p.check | quote }} {{ $p.cmd | quote }}
 {{ end -}}
 {{- end -}}
 {{- end }}
-echo "==> [script-installers] done"
+  echo "==> [script-installers] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi

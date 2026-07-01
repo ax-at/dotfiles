@@ -1,0 +1,21 @@
+# Minimal profile: only the core module on, every optional module off.
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+fonts = false
+editors = false
+web = false
+databases = false
+cloud = false
+react-native = false
+ai-tools = false
+productivity = false
+linux-feel = false
+macos-defaults = false
