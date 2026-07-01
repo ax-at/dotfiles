@@ -101,6 +101,21 @@ After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatic
 
 ---
 
+## 🧪 Testing (contributors)
+
+A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It runs **fully offline** — no installs, no machine changes — so it's safe to run anywhere. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
+
+```sh
+make test                    # whole suite
+make test FILE=templates     # one suite  → test/templates.bats
+make test FILTER=oxc         # one test   → regex over test names (bats -f)
+make lint                    # shellcheck + shfmt + actionlint
+```
+
+The first run fetches pinned `bats` into `test/lib/` (gitignored); the same suite gates every push via [CI](./.github/workflows/ci.yml). Not yet bootstrapped and `chezmoi` isn't on PATH? Point at it once: `make test CHEZMOI_BIN=~/.local/bin/chezmoi`.
+
+---
+
 ## 🔁 Day-2 maintenance
 
 ```sh
