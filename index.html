@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ax-at/dotfiles — one command sets up your entire dev machine</title>
+<meta name="description" content="One command installs and configures a whole dev machine — tools, runtimes, editors, and every dotfile — the same way every time. Declarative, idempotent, safe to re-run." />
+<meta name="color-scheme" content="dark" />
+
+<!-- Inline SVG favicon (no build step, no Jekyll): a ❯ prompt + cursor on a Catppuccin tile. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNyIgZmlsbD0iIzE4MTgyNSIvPjxwYXRoIGQ9Ik0xMCAxMC41IDE1LjUgMTYgMTAgMjEuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODliNGZhIiBzdHJva2Utd2lkdGg9IjIuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHJlY3QgeD0iMTYuOCIgeT0iMTkuNiIgd2lkdGg9IjYuNiIgaGVpZ2h0PSIyLjQiIHJ4PSIxLjIiIGZpbGw9IiNhNmUzYTEiLz48L3N2Zz4=" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="ax-at/dotfiles" />
+<meta property="og:description" content="One command sets up your entire dev machine. Declarative, idempotent, safe to re-run." />
+<meta property="og:url" content="https://ax-at.github.io/dotfiles/" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    /* Catppuccin Mocha — the theme this repo ships (ghostty). Used semantically. */
+    --bg:     #181825; /* mantle  */
+    --panel:  #1e1e2e; /* base    */
+    --deep:   #11111b; /* crust   */
+    --line:   #313244; /* surface0 */
+    --line-2: #45475a; /* surface1 */
+    --text:   #cdd6f4;
+    --muted:  #9399b2; /* overlay2 */
+    --faint:  #6c7086; /* overlay0 */
+    --blue:   #89b4fa;
+    --green:  #a6e3a1;
+    --mauve:  #cba6f7;
+    --peach:  #fab387;
+
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+    --sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    --maxw: 1120px;
+    --radius: 14px;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(120% 90% at 8% -8%, rgba(137, 180, 250, .10), transparent 55%),
+      radial-gradient(90% 70% at 100% 0%, rgba(203, 166, 247, .06), transparent 50%);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: var(--maxw);
+    margin-inline: auto;
+    padding-inline: clamp(20px, 5vw, 48px);
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar { padding-top: clamp(20px, 4vh, 34px); }
+  .topbar .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-family: var(--mono);
+    font-size: .82rem;
+    letter-spacing: .02em;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .brand .mark { flex: none; display: block; border-radius: 6px; }
+  .brand b { color: var(--text); font-weight: 500; }
+
+  .nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    font-family: var(--mono);
+    font-size: .82rem;
+  }
+  .nav a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color .18s var(--ease);
+  }
+  .nav a:hover { color: var(--text); }
+  .nav a::before { content: "· "; color: var(--faint); }
+  .nav a:first-child::before { content: ""; }
+
+  /* ---------- stage ---------- */
+  main { flex: 1 0 auto; display: flex; align-items: center; }
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr);
+    grid-template-areas:
+      "pitch    manifest"
+      "cta      cta";
+    column-gap: clamp(32px, 5vw, 72px);
+    row-gap: clamp(30px, 4.5vh, 46px);
+    align-items: start;
+    padding-block: clamp(40px, 7vh, 84px);
+    width: 100%;
+  }
+  .pitch    { grid-area: pitch;    min-width: 0; }
+  .manifest { grid-area: manifest; min-width: 0; }
+  .cta      { grid-area: cta;      min-width: 0; }
+
+  /* ---------- pitch ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .78rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .eyebrow::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, var(--line-2), transparent);
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: clamp(2.35rem, 6vw, 4.1rem);
+    line-height: 1.02;
+    letter-spacing: -.035em;
+    margin: 0 0 22px;
+    color: var(--text);
+    text-wrap: balance;
+  }
+  h1 .cmd { color: var(--blue); white-space: nowrap; }
+
+  .sub {
+    font-size: clamp(1.02rem, 1.5vw, 1.22rem);
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 44ch;
+    margin: 0;
+  }
+  .sub b { color: var(--text); font-weight: 500; }
+  .sub .hl { color: var(--mauve); font-weight: 600; }
+
+  /* ---------- command bar (full-width CTA) ---------- */
+  .command {
+    display: flex;
+    align-items: stretch;
+    background: var(--deep);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 18px 50px -30px rgba(0, 0, 0, .9), inset 0 1px 0 rgba(255, 255, 255, .02);
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .command:hover,
+  .command:focus-within {
+    border-color: var(--blue);
+    box-shadow: 0 18px 50px -28px rgba(0, 0, 0, .9), 0 0 0 1px rgba(137, 180, 250, .22);
+  }
+  .command code {
+    flex: 1;
+    min-width: 0;
+    align-self: center;
+    padding: 15px 18px;
+    font-family: var(--mono);
+    font-size: clamp(.8rem, .92vw, .94rem);
+    line-height: 1.6;
+    color: var(--text);
+    /* one line on desktop (fits the full width); wraps cleanly at the <wbr>
+       hints on narrow screens — the hostname never splits mid-token */
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  .command .p  { color: var(--green); user-select: none; }
+  .command .fl { color: var(--blue); }
+  .command .host { white-space: nowrap; }
+  /* keep the trailing token + cursor together so the cursor never wraps alone */
+  .command .tail { white-space: nowrap; }
+  .command .cur {
+    display: inline-block;
+    width: .5ch;
+    height: 1.05em;
+    margin-left: 3px;
+    vertical-align: -.16em;
+    border-radius: 1px;
+    background: var(--blue);
+    user-select: none;
+    animation: blink 1.06s infinite;
+  }
+  @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+  .copy {
+    flex: none;
+    width: 48px;
+    align-self: stretch;
+    border: 0;
+    border-left: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: color .16s var(--ease), background .16s var(--ease);
+  }
+  .copy:hover { color: var(--text); background: rgba(255, 255, 255, .03); }
+  .copy:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; border-radius: 0; }
+  .copy.copied { color: var(--green); }
+  .copy svg { width: 17px; height: 17px; display: block; }
+  .copy .i-check { display: none; }
+  .copy.copied .i-copy { display: none; }
+  .copy.copied .i-check { display: block; }
+
+  .cta-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 14px 2px 0;
+    font-family: var(--mono);
+    font-size: .78rem;
+  }
+  .platforms {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .platforms .dot-on {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 7px 1px rgba(166, 227, 161, .5);
+  }
+  .platforms .sep  { color: var(--faint); }
+  .platforms .soon { color: var(--faint); }
+  .guide {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--line-2);
+    padding-bottom: 1px;
+    white-space: nowrap;
+    transition: color .16s var(--ease), border-color .16s var(--ease);
+  }
+  .guide:hover { color: var(--blue); border-color: var(--blue); }
+
+  /* ---------- manifest (signature) ---------- */
+  .manifest {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 30px 70px -40px rgba(0, 0, 0, .95);
+  }
+  .manifest .tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .015), transparent);
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+  .manifest .tab .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(166, 227, 161, .12);
+    flex: none;
+  }
+  .manifest .tab .path {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .manifest .tab .path b { color: var(--text); font-weight: 500; }
+  .manifest .tab .flag { margin-left: auto; color: var(--faint); flex: none; }
+
+  .code {
+    margin: 0;
+    padding: 18px 20px 20px;
+    font-family: var(--mono);
+    font-size: clamp(.78rem, 1.15vw, .9rem);
+    line-height: 1.72;
+    overflow-x: auto;
+    counter-reset: ln;
+  }
+  .code .row { display: block; white-space: pre; }
+  .code .row::before {
+    counter-increment: ln;
+    content: counter(ln);
+    display: inline-block;
+    width: 2ch;
+    margin-right: 20px;
+    text-align: right;
+    color: var(--faint);
+    opacity: .55;
+    user-select: none;
+  }
+  .code .c   { color: var(--faint); }
+  .code .sec { color: var(--mauve); }
+  .code .key { color: var(--text); }
+  .code .eq  { color: var(--faint); }
+  .code .t   { color: var(--green); }
+
+  .manifest .foot {
+    border-top: 1px solid var(--line);
+    padding: 15px 20px 16px;
+  }
+  .manifest .foot p {
+    margin: 0 0 12px;
+    font-family: var(--sans);
+    font-size: .9rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .manifest .foot p b { color: var(--text); font-weight: 500; }
+  .stat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-family: var(--mono);
+    font-size: .76rem;
+    color: var(--muted);
+  }
+  .stat span { display: inline-flex; align-items: center; gap: 8px; }
+  .stat span + span::before {
+    content: "·";
+    color: var(--faint);
+    margin-right: 14px;
+  }
+  .stat b { color: var(--text); font-weight: 700; }
+
+  /* ---------- footer ---------- */
+  footer { flex: none; padding-bottom: clamp(18px, 4vh, 30px); }
+  footer .wrap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 22px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: .76rem;
+    color: var(--faint);
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+  footer .reconcile b { color: var(--muted); font-weight: 500; }
+  .deployed { display: inline-flex; align-items: center; gap: 8px; color: var(--faint); }
+  .deployed .k { color: var(--faint); }
+  .deployed .sha { color: var(--muted); }
+  .deployed .live {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px 1px rgba(166, 227, 161, .5);
+  }
+
+  /* ---------- entrance (pure CSS; works with JS off) ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise .62s var(--ease) forwards;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* the "reconcile" beat: each `= true` illuminates in sequence */
+  .code .t {
+    opacity: .28;
+    color: var(--muted);
+    animation: settle .4s var(--ease) forwards;
+    animation-delay: calc(.6s + var(--i, 0) * .07s);
+  }
+  @keyframes settle { to { opacity: 1; color: var(--green); } }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 860px) {
+    .stage {
+      grid-template-columns: 1fr;
+      grid-template-areas: "pitch" "cta" "manifest";
+      row-gap: 30px;
+      padding-block: clamp(28px, 5vh, 56px);
+    }
+    main { align-items: flex-start; }
+    .sub { max-width: 52ch; }
+    h1 { letter-spacing: -.03em; }
+    h1 .cmd { white-space: normal; }
+  }
+  @media (max-width: 480px) {
+    .nav { gap: 16px; }
+    /* keep the three stats on one line on small screens */
+    .stat { gap: 5px 8px; font-size: .72rem; }
+    .stat span { gap: 5px; }
+    .stat span + span::before { margin-right: 8px; }
+    .cta-meta { font-size: .74rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; animation: none; }
+    .code .t { opacity: 1; color: var(--green); animation: none; }
+    .command .cur { animation: none; opacity: .85; }
+    * { scroll-behavior: auto; }
+  }
+</style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <span class="brand">
+        <svg class="mark" width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="#1e1e2e" />
+          <path d="M10 10.5 15.5 16 10 21.5" fill="none" stroke="#89b4fa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+          <rect x="16.8" y="19.6" width="6.6" height="2.4" rx="1.2" fill="#a6e3a1" />
+        </svg>
+        ax-at&nbsp;/&nbsp;<b>dotfiles</b>
+      </span>
+      <nav class="nav" aria-label="Primary">
+        <a href="https://github.com/ax-at/dotfiles#readme">README</a>
+        <a href="https://github.com/ax-at/dotfiles">source</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="stage">
+
+        <!-- LEFT: the human pitch -->
+        <section class="pitch">
+          <p class="eyebrow reveal" style="--d:.02s">reproducible · declarative · opinionated</p>
+
+          <h1 class="reveal" style="--d:.08s">
+            <span class="cmd">One command</span> sets up your entire dev machine.
+          </h1>
+
+          <p class="sub reveal" style="--d:.16s">
+            Highly <span class="hl">opinionated</span>, and reproducible — the same
+            tools, runtimes, editors, and dotfiles every time, on a fresh machine or
+            one you've used for years. Idempotent, and safe to re-run.
+          </p>
+        </section>
+
+        <!-- RIGHT: the machine's own truth — the signature -->
+        <aside class="manifest reveal" style="--d:.24s" aria-label="A view of the repository's declarative registry">
+          <div class="tab">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="path"><b>registry.toml</b></span>
+            <span class="flag">source of truth</span>
+          </div>
+
+          <pre class="code" aria-hidden="true"><span class="row"><span class="c"># one opinionated machine, declared as data</span></span><span class="row"><span class="sec">[modules]</span></span><span class="row"><span class="key">core          </span> <span class="eq">=</span> <span class="t" style="--i:0">true</span></span><span class="row"><span class="key">fonts         </span> <span class="eq">=</span> <span class="t" style="--i:1">true</span></span><span class="row"><span class="key">editors       </span> <span class="eq">=</span> <span class="t" style="--i:2">true</span></span><span class="row"><span class="key">web           </span> <span class="eq">=</span> <span class="t" style="--i:3">true</span></span><span class="row"><span class="key">databases     </span> <span class="eq">=</span> <span class="t" style="--i:4">true</span></span><span class="row"><span class="key">cloud         </span> <span class="eq">=</span> <span class="t" style="--i:5">true</span></span><span class="row"><span class="key">react-native  </span> <span class="eq">=</span> <span class="t" style="--i:6">true</span></span><span class="row"><span class="key">ai-tools      </span> <span class="eq">=</span> <span class="t" style="--i:7">true</span></span><span class="row"><span class="key">productivity  </span> <span class="eq">=</span> <span class="t" style="--i:8">true</span></span><span class="row"><span class="key">linux-feel    </span> <span class="eq">=</span> <span class="t" style="--i:9">true</span></span><span class="row"><span class="key">macos-defaults</span> <span class="eq">=</span> <span class="t" style="--i:10">true</span></span></pre>
+
+          <div class="foot">
+            <p>Every tool here is a deliberate choice, declared in one file.
+               <b>Batteries included — the decisions are already made.</b></p>
+            <div class="stat">
+              <span><b>80</b>&nbsp;packages</span>
+              <span><b>70</b>&nbsp;enabled</span>
+              <span><b>11</b>&nbsp;modules</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- FULL-WIDTH: the command (click anywhere to copy) -->
+        <div class="cta reveal" style="--d:.30s">
+          <div class="command" id="cmdbox" role="group" aria-label="Install command — click to copy">
+            <code id="cmd"><span class="p">$</span> sh <span class="fl">-c</span> "$(curl <span class="fl">-fsSL</span> https://<wbr><span class="host">ax-at.github.io</span>/<wbr>dotfiles/<wbr><span class="tail">install)"<span class="cur" aria-hidden="true"></span></span></code>
+            <button class="copy" id="copy" type="button" aria-label="Copy install command">
+              <svg class="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.2" /><path d="M6.5 15.5H5.6A1.6 1.6 0 0 1 4 13.9V5.6A1.6 1.6 0 0 1 5.6 4h8.3A1.6 1.6 0 0 1 15.5 5.6v.9" /></svg>
+              <svg class="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7" /></svg>
+            </button>
+          </div>
+          <div class="cta-meta">
+            <p class="platforms">
+              <span class="dot-on" aria-hidden="true"></span>macOS
+              <span class="sep">·</span>
+              <span class="soon">Linux &amp; sandboxes soon</span>
+            </p>
+            <a class="guide" href="https://github.com/ax-at/dotfiles#readme">Read the full guide →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="reconcile">one <b>apply</b> reconciles your machine to the manifest</span>
+      <span class="deployed" title="Short SHA of the commit currently deployed to GitHub Pages">
+        <span class="live" aria-hidden="true"></span>
+        <span class="k">deployed</span>&nbsp;·&nbsp;<span class="sha">__COMMIT_SHA__</span>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    // Progressive enhancement only — the page (and its entrance animation) works
+    // with JavaScript disabled; the command stays selectable text either way.
+    (function () {
+      var box = document.getElementById("cmdbox");
+      var btn = document.getElementById("copy");
+      var CMD = "sh -c \"$(curl -fsSL https://ax-at.github.io/dotfiles/install)\"";
+      if (!box || !btn || !navigator.clipboard) return;
+
+      var reset;
+      function flash() {
+        btn.classList.add("copied");
+        clearTimeout(reset);
+        reset = setTimeout(function () { btn.classList.remove("copied"); }, 1800);
+      }
+      function copy() { navigator.clipboard.writeText(CMD).then(flash); }
+
+      // Click anywhere on the box copies — but never hijack a real text selection
+      // (double-click a word, triple-click the line, or drag-select still work).
+      box.addEventListener("click", function (e) {
+        if (e.detail > 1) return;                         // 2nd/3rd click = selecting
+        var sel = window.getSelection();
+        if (sel && String(sel).trim().length) return;     // user has selected text
+        copy();
+      });
+    })();
+  </script>
+</body>
+</html>
