@@ -61,14 +61,34 @@ Back up any existing `~/.zshrc`, `~/.gitconfig`, etc. that you want to keep.
 
 ## 🔐 Secrets (Proton Pass)
 
-Secrets are **never committed**. They're pulled live from Proton Pass via `pass-cli` using chezmoi's `protonPass` template function. On a new machine:
+Secrets are **never committed** and **never written to disk**. The repo only ever holds
+`pass://vault/item/field` **reference locators** (not secrets). At the point a tool runs, `pass-cli`
+resolves those references and injects the real values into that tool's process environment only —
+masked in logs, gone when the process exits:
+
+```sh
+# A committed reference (safe to publish):
+export SOME_TOKEN="pass://Personal/some-service/password"
+
+# Resolved into the child's env at invocation, nothing persisted:
+pass-cli run -- some-tool
+```
+
+On a new machine, `pass-cli` installs automatically; authenticate once:
 
 ```sh
 pass-cli login          # one-time interactive auth
-chezmoi apply           # re-render templates that need secrets
+pass-cli info           # verify the session
+proton-pass-doctor      # health-check the whole pipeline end to end
 ```
 
-Templates degrade gracefully, so the **first** apply succeeds even before you log in — just re-apply afterward.
+`proton-pass-doctor` is a `brew doctor`-style diagnostic: it checks that `pass-cli` is installed, a
+session is active, and a `pass://` reference actually resolves to a real value — exiting non-zero
+with a specific message for whichever step is wrong.
+
+Degrades gracefully: before you log in, references simply stay unresolved and tools fall back to
+their own auth — nothing breaks. No secret is wired in this repo yet; each real secret is added as a
+per-tool `pass-cli run` wrapper when needed.
 
 ---
 

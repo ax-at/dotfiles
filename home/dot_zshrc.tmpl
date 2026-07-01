@@ -55,6 +55,32 @@ export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
 command -v mise >/dev/null 2>&1 && export JAVA_HOME="$(mise where java 2>/dev/null || true)"
 {{ end -}}
 
+# >>> proton-pass-doctor >>>
+# Health check for the Proton Pass secrets pipeline, following the `<tool>
+# doctor` diagnostics convention (cf. `brew doctor`, `flutter doctor`): a
+# read-only check that exits non-zero when something is wrong. It verifies the
+# whole chain end to end — pass-cli is installed, a session is active, and a
+# `pass://` reference actually resolves to a real value at invocation time.
+# The pass:// string is a reference *locator*, never a secret.
+export PROTON_PASS_CANARY="pass://test/chezmoi-test/password"
+proton-pass-doctor() {
+  command -v pass-cli >/dev/null 2>&1 \
+    || { echo "proton-pass-doctor: pass-cli not installed"; return 1; }
+  pass-cli info >/dev/null 2>&1 \
+    || { echo "proton-pass-doctor: not logged in (run: pass-cli login)"; return 1; }
+  local resolved
+  resolved="$(pass-cli run -- sh -c 'printf %s "$PROTON_PASS_CANARY"')"
+  case "$resolved" in
+    "" | pass://*)
+      echo "proton-pass-doctor: session active but canary did not resolve ($PROTON_PASS_CANARY)"
+      return 1 ;;
+    *)
+      echo "proton-pass-doctor: OK — secrets pipeline resolves"
+      return 0 ;;
+  esac
+}
+# <<< proton-pass-doctor <<<
+
 # ---- Aliases ---------------------------------------------------------------
 alias ls='eza --icons --group-directories-first'
 alias ll='eza -lah --icons --group-directories-first'
