@@ -106,7 +106,7 @@ Tracked here because Apple/vendor flows require a human:
 - [ ] **Android Studio** first-run: install the SDK + an emulator (AVD). `ANDROID_HOME` is already exported in `.zshrc`.
 - [ ] `pass-cli login` (see Secrets).
 - [ ] Grant **Karabiner-Elements** and **LinearMouse** their permissions (Input Monitoring / Accessibility) when prompted.
-- [ ] **Karabiner**: open it → Complex Modifications → enable the imported _Windows-style_ rules, and add **Ghostty's bundle id** to the terminal-exclusion list (use Karabiner's EventViewer to find it).
+- [ ] **Karabiner**: open it → Complex Modifications → "Add Predefined Rule" → enable all "Windows Shortcuts" rules.
 - [ ] **VS Code / Cursor**: turn **off** the built-in Settings Sync (chezmoi manages `settings.json`).
 - [ ] **Log out / back in** so fast key-repeat + modifier changes fully apply.
 
