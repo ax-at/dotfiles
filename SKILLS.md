@@ -13,7 +13,6 @@ repo; the skill name is the identity key (unique across the whole file).
 | [vercel-labs/skills](https://github.com/vercel-labs/skills) | `find-skills` | universal, claude-code, openclaw, hermes-agent, pi |
 | [vercel/turborepo](https://github.com/vercel/turborepo) | `turborepo` | universal, claude-code, openclaw, hermes-agent, pi |
 | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | `vercel-react-native-skills`, `vercel-composition-patterns`, `vercel-react-view-transitions`, `web-design-guidelines`, `deploy-to-vercel`, `vercel-optimize` | universal, claude-code, openclaw, hermes-agent, pi |
-| [vercel-labs/next-skills](https://github.com/vercel-labs/next-skills) | `next-best-practices` | universal, claude-code, openclaw, hermes-agent, pi |
 | [vercel/components.build](https://github.com/vercel/components.build) | `building-components` | universal, claude-code, openclaw, hermes-agent, pi |
 | [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser) | `agent-browser` | universal, claude-code, openclaw, hermes-agent, pi |
 | [expo/skills](https://github.com/expo/skills) | `building-native-ui`, `native-data-fetching`, `upgrading-expo`, `expo-deployment`, `expo-dev-client`, `expo-cicd-workflows`, `use-dom`, `expo-module`, `eas-update-insights`, `add-app-clip`, `expo-observe`, `expo-ui`, `expo-examples`, `web-to-native`, `eas-simulator` | universal, claude-code, openclaw, hermes-agent, pi |
