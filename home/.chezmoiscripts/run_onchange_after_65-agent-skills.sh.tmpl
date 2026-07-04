@@ -91,12 +91,18 @@ reconcile() {
 
   local desired installed manifest_prev desired_keys touched failures
   local a s r key line agent skills_r agents_r skills_a stale stale_agents
-  local installed_after ours
+  local installed_after ours added_ok failed_ops
   desired="$(desired_triples)"
   installed="$(installed_pairs)"
   manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
-  desired_keys="$(printf '%s\n' "$desired" | grep -v '^$' | cut -f1,2 | sort -u)"
+  # grep -v '^$' exits 1 when every line is blank; the trailing `|| true` keeps
+  # these substitutions from tripping `set -e`/pipefail on an empty set (e.g. no
+  # skills desired, or nothing stale). This is the fix for the crash where the
+  # run aborted before rebuilding the manifest or printing its summary.
+  desired_keys="$(printf '%s\n' "$desired" | grep -v '^$' | cut -f1,2 | sort -u || true)"
   failures=0
+  added_ok=""   # repos whose batched add succeeded
+  failed_ops="" # human-readable lines describing each failed op
 
   # ADD: distinct repos owning >=1 desired pair that isn't installed.
   touched=""
@@ -116,8 +122,11 @@ EOF
     skills_r="$(printf '%s\n' "$desired" | awk -F'\t' -v r="$r" '$3==r{print $2}' | sort -u | tr '\n' ' ')"
     agents_r="$(printf '%s\n' "$desired" | awk -F'\t' -v r="$r" '$3==r{print $1}' | sort -u | tr '\n' ' ')"
     echo "  -> add $r (skills: ${skills_r}| agents: ${agents_r})"
-    if ! skill_add_batch "$r" "$skills_r" "$agents_r"; then
+    if skill_add_batch "$r" "$skills_r" "$agents_r"; then
+      added_ok="$added_ok$r"$'\n'
+    else
       echo "  !! FAILED add: $r" >&2
+      failed_ops="${failed_ops}  - add ${r} (skills: ${skills_r})"$'\n'
       failures=$((failures + 1))
     fi
   done <<EOF
@@ -133,13 +142,14 @@ EOF
 $manifest_prev
 EOF
 
-  stale_agents="$(printf '%s' "$stale" | grep -v '^$' | cut -f1 | sort -u)"
+  stale_agents="$(printf '%s' "$stale" | grep -v '^$' | cut -f1 | sort -u || true)"
   while IFS= read -r agent; do
     [ -n "$agent" ] || continue
     skills_a="$(printf '%s' "$stale" | awk -F'\t' -v a="$agent" '$1==a{print $2}' | sort -u | tr '\n' ' ')"
     echo "  -> remove from $agent: $skills_a"
     if ! skill_remove_batch "$agent" "$skills_a"; then
       echo "  !! FAILED remove: $agent ($skills_a)" >&2
+      failed_ops="${failed_ops}  - remove from ${agent}: ${skills_a}"$'\n'
       failures=$((failures + 1))
     fi
   done <<EOF
@@ -150,13 +160,21 @@ EOF
   # Keeps successful desired installs, retains failed-removal pairs for retry,
   # drops removed pairs, and never records hand-added skills.
   installed_after="$(installed_pairs)"
-  ours="$(printf '%s\n%s\n' "$desired_keys" "$manifest_prev" | grep -v '^$' | sort -u)"
+  ours="$(printf '%s\n%s\n' "$desired_keys" "$manifest_prev" | grep -v '^$' | sort -u || true)"
   printf '%s\n' "$installed_after" | grep -v '^$' \
     | grep -Fxf <(printf '%s\n' "$ours") 2>/dev/null | sort -u >"$MANIFEST.tmp" || true
   mv "$MANIFEST.tmp" "$MANIFEST"
 
+  # Summary: what landed vs. what failed. Always runs (soft-fail); the caller
+  # reports the tracked-count total.
+  local n_added n_tracked
+  n_added="$(printf '%s' "$added_ok" | grep -c . || true)"
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [agent-skills] summary: ${n_added} repo(s) installed/reapplied, ${n_tracked} skill install(s) now tracked"
   if [ "$failures" -gt 0 ]; then
-    echo "==> [agent-skills] $failures operation(s) failed (see above); continuing" >&2
+    echo "==> [agent-skills] $failures operation(s) FAILED (skills above still installed OK):" >&2
+    printf '%s' "$failed_ops" >&2
+    echo "==> [agent-skills] continuing despite failures (exit 0)" >&2
   fi
 }
 

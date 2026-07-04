@@ -124,6 +124,59 @@ setup() {
   refute_line --partial "delta"
 }
 
+@test "reconcile: set -e safe with nothing stale; rebuilds manifest + prints summary (regression)" {
+  # Regression for the crash where reconcile ran under main()'s `set -euo pipefail`
+  # and aborted at an empty-set command substitution BEFORE rebuilding the manifest
+  # or printing a summary. Here nothing is stale (empty manifest) and one repo is
+  # missing -- the run must complete, install, rebuild the manifest, and summarize.
+  desired_triples() { printf '%s\n' "claude-code${TAB}alpha${TAB}own/repoA"; }
+  : >"$MANIFEST" # empty manifest -> empty stale set (the trigger)
+  : >"$WORLD"    # alpha missing -> gets added
+
+  # Run reconcile with the same strict flags main() uses.
+  strict_reconcile() { set -euo pipefail; reconcile; }
+  run strict_reconcile
+  assert_success # would exit 1 before the fix
+  assert_output --partial "[agent-skills] summary:"
+
+  # It reached the ADD and the manifest REBUILD (both downstream of the old crash).
+  grep -qxF "add own/repoA -s alpha -a claude-code -g -y" "$CALLS"
+  run cat "$MANIFEST"
+  assert_line "claude-code${TAB}alpha"
+}
+
+@test "reconcile: set -e safe on a total no-op (all present, nothing stale)" {
+  # The other empty-set path: nothing to add AND nothing to remove.
+  desired_triples() { printf '%s\n' "claude-code${TAB}alpha${TAB}own/repoA"; }
+  printf '%s\n' "claude-code${TAB}alpha" >"$WORLD"    # already installed
+  printf '%s\n' "claude-code${TAB}alpha" >"$MANIFEST" # already tracked, desired
+
+  strict_reconcile() { set -euo pipefail; reconcile; }
+  run strict_reconcile
+  assert_success
+  assert_output --partial "[agent-skills] summary:"
+  ! grep -q '^add ' "$CALLS"    # nothing added
+  ! grep -q '^remove ' "$CALLS" # nothing removed
+}
+
+@test "reconcile: failure summary lists the failed op explicitly" {
+  desired_triples() {
+    printf '%s\n' \
+      "claude-code${TAB}good${TAB}own/repoG" \
+      "claude-code${TAB}bad${TAB}own/repoB"
+  }
+  run_npx() {
+    echo "$*" >>"$CALLS"
+    case "$*" in *repoB*) return 1 ;; esac
+    world_apply "$@"
+  }
+
+  run reconcile
+  assert_success
+  assert_output --partial "operation(s) FAILED"
+  assert_output --partial "- add own/repoB"
+}
+
 @test "reconcile: openclaw is a plain -a agent; no risk flag anywhere" {
   desired_triples() {
     printf '%s\n' \
