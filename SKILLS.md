@@ -31,7 +31,7 @@ repo; the skill name is the identity key (unique across the whole file).
 | [antfu/skills](https://github.com/antfu/skills) | `vitest` | universal, claude-code, openclaw, hermes-agent, pi |
 | [github/awesome-copilot](https://github.com/github/awesome-copilot) | `gh-cli`, `git-commit` | universal, claude-code, openclaw, hermes-agent, pi |
 | [xixu-me/skills](https://github.com/xixu-me/skills) | `github-actions-docs` | universal, claude-code, openclaw, hermes-agent, pi |
-| [hugorcd/evlog](https://github.com/hugorcd/evlog) | `evlog`, `review-logging-patterns`, `analyze-logs`, `build-audit-logs` | universal, claude-code, openclaw, hermes-agent, pi |
+| [https://www.evlog.dev](https://www.evlog.dev) | `review-logging-patterns`, `analyze-logs`, `build-audit-logs` | universal, claude-code, openclaw, hermes-agent, pi |
 | [remorses/errore](https://github.com/remorses/errore) | `errore` | universal, claude-code, openclaw, hermes-agent, pi |
 | [better-auth/skills](https://github.com/better-auth/skills) | `better-auth-best-practices`, `create-auth-skill`, `organization-best-practices`, `two-factor-authentication-best-practices`, `email-and-password-best-practices` | universal, claude-code, openclaw, hermes-agent, pi |
 | [ax-at/better-auth-skills](https://github.com/ax-at/better-auth-skills) | `better-auth-security-best-practices` | universal, claude-code, openclaw, hermes-agent, pi |

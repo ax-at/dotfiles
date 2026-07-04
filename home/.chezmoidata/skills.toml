@@ -184,14 +184,14 @@ repo = "xixu-me/skills"
 skills = ["github-actions-docs"]
 
 # ---------------------------------------------------------- logging ----
+# evlog publishes its user-facing skills via a well-known endpoint on its site
+# (apps/docs/skills/ in the repo), NOT in the conventional .agents/skills/ dir.
+# The GitHub-shorthand "hugorcd/evlog" clone path only scans .agents/skills/
+# (which holds unrelated contributor skills), so we must point at the URL so the
+# CLI reads https://www.evlog.dev/.well-known/skills/index.json instead.
 [[repos]]
-repo = "hugorcd/evlog"
-skills = [
-  "evlog",
-  "review-logging-patterns",
-  "analyze-logs",
-  "build-audit-logs",
-]
+repo = "https://www.evlog.dev"
+skills = ["review-logging-patterns", "analyze-logs", "build-audit-logs"]
 
 [[repos]]
 repo = "remorses/errore"

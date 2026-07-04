@@ -191,6 +191,27 @@ setup() {
   ! grep -q 'dangerously-accept-openclaw-risks' "$CALLS"
 }
 
+@test "reconcile: a URL repo (not owner/repo) flows through the batched add" {
+  # evlog publishes via a well-known endpoint, so its repo is a full URL, not
+  # owner/repo. The URL carries ':' and '/' -- guard that reconcile's repo
+  # grouping (awk $3==r / grep -qxF) treats it as one opaque token.
+  local url="https://www.evlog.dev"
+  desired_triples() {
+    printf '%s\n' \
+      "universal${TAB}analyze-logs${TAB}${url}" \
+      "claude-code${TAB}analyze-logs${TAB}${url}"
+  }
+
+  run reconcile
+  assert_success
+
+  # One batched add addressed to the URL verbatim; skill lands for both agents.
+  grep -qxF "add ${url} -s analyze-logs -a claude-code universal -g -y" "$CALLS"
+  run cat "$MANIFEST"
+  assert_line "universal${TAB}analyze-logs"
+  assert_line "claude-code${TAB}analyze-logs"
+}
+
 @test "reconcile: reality overrides a stale manifest (drift self-heal -> re-add)" {
   desired_triples() { printf '%s\n' "claude-code${TAB}alpha${TAB}own/repoA"; }
   # Manifest FALSELY claims alpha installed; WORLD (reality) is empty.

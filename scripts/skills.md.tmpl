@@ -12,5 +12,5 @@ repo; the skill name is the identity key (unique across the whole file).
 |--------|--------|--------|
 {{ range $r := .repos -}}
 {{- $agents := $.agents }}{{ if hasKey $r "agents" }}{{ $agents = $r.agents }}{{ end -}}
-| [{{ $r.repo }}]({{ if hasPrefix $r.repo "http" }}{{ $r.repo }}{{ else }}https://github.com/{{ $r.repo }}{{ end }}) | {{ range $i, $s := $r.skills }}{{ if $i }}, {{ end }}`{{ $s }}`{{ end }} | {{ range $i, $a := $agents }}{{ if $i }}, {{ end }}{{ $a }}{{ end }} |
+| [{{ $r.repo }}]({{ if hasPrefix "http" $r.repo }}{{ $r.repo }}{{ else }}https://github.com/{{ $r.repo }}{{ end }}) | {{ range $i, $s := $r.skills }}{{ if $i }}, {{ end }}`{{ $s }}`{{ end }} | {{ range $i, $a := $agents }}{{ if $i }}, {{ end }}{{ $a }}{{ end }} |
 {{ end -}}
