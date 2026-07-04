@@ -1,15 +1,55 @@
 {
-  "$schema": "https://app.linearmouse.org/schema/0.0.1.json",
+  "$schema": "https:\/\/schema.linearmouse.app\/0.11.2",
   "schemes": [
     {
-      "scrolling": {
-        "reverse": { "vertical": false, "horizontal": false },
-        "distance": { "vertical": 3, "horizontal": 3 }
-      },
       "pointer": {
         "acceleration": 0,
-        "speed": 0.4,
-        "disableAcceleration": true
+        "disableAcceleration": true,
+        "speed": 0.4
+      },
+      "scrolling": {
+        "distance": 3,
+        "reverse": false
+      }
+    },
+    {
+      "if": {
+        "device": {
+          "category": "mouse",
+          "productID": "0x60ef",
+          "productName": "Lenovo Bluetooth Mouse",
+          "serialNumber": "000000000000000",
+          "vendorID": "0x17ef"
+        }
+      },
+      "pointer": {
+        "acceleration": "unset",
+        "disableAcceleration": false,
+        "redirectsToScroll": false,
+        "speed": "unset"
+      },
+      "scrolling": {
+        "acceleration": {
+          "vertical": 1
+        },
+        "distance": {
+          "vertical": "auto"
+        },
+        "modifiers": {
+          "vertical": {
+            "control": {
+              "type": "auto"
+            }
+          }
+        },
+        "smoothed": {
+          "vertical": {
+            "enabled": false
+          }
+        },
+        "speed": {
+          "vertical": 0
+        }
       }
     }
   ]
