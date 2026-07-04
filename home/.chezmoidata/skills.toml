@@ -176,9 +176,14 @@ repo = "antfu/skills"
 skills = ["vitest"]
 
 # --------------------------------------------------------- git / ci ----
+# gh-cli was retired upstream (github/awesome-copilot@352def3c): with gh CLI 1.0.46's
+# built-in handling of read-only gh commands plus models' general gh knowledge, the
+# skill was deemed unnecessary and deleted -- not renamed or split. Keeping it here
+# left a phantom desired-pair the reconcile could never satisfy, so every apply
+# re-added the whole repo (reinstalling git-commit each run). Only git-commit remains.
 [[repos]]
 repo = "github/awesome-copilot"
-skills = ["gh-cli", "git-commit"]
+skills = ["git-commit"]
 
 [[repos]]
 repo = "xixu-me/skills"
