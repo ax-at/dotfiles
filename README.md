@@ -130,13 +130,14 @@ After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatic
 
 A curated set of [agent skills](https://skills.sh) is installed **globally** (available in every project) via [`npx skills`](https://github.com/vercel-labs/skills) for five agents: `universal` (the shared `.agents/skills` dir many tools read), `claude-code`, `openclaw`, `hermes-agent`, and `pi`. The full catalog is in [SKILLS.md](./SKILLS.md).
 
-- **Source of truth:** [`home/.chezmoidata/skills.toml`](./home/.chezmoidata/skills.toml) — one `[[skills]]` block per skill (`repo` + `skill`, plus an optional per-skill `agents` override; omitted → all agents in the top-level `agents` list).
-- **Add / remove a skill:** add or delete its block, then `chezmoi apply`. The install script **reconciles** against `~/.local/state/dotfiles/skills.applied` — adding installs, **removing uninstalls** — but only ever touches skills it installed, so skills you add by hand are left alone.
+- **Source of truth:** [`home/.chezmoidata/skills.toml`](./home/.chezmoidata/skills.toml) — one `[[repos]]` block per source repo (`repo` + a `skills = [...]` list, plus an optional per-repo `agents` override; omitted → all agents in the top-level `agents` list). Each repo installs in a single batched `npx skills add` (one clone, symlinked into every target agent).
+- **Agent granularity is per repo, not per skill:** every skill in a `[[repos]]` block shares that block's agent set. If one skill needs a different set, give it its own `[[repos]]` block (as the `ax-at/better-auth-skills` fork does).
+- **Add / remove a skill:** add or delete it from a block, then `chezmoi apply`. The script **reconciles** against on-disk reality (`skills list -g --json`): it installs whatever's missing and **uninstalls** anything it previously installed that you've dropped from the file. It reads a manifest at `~/.local/state/dotfiles/skills.applied` only to scope removals, so **skills you add by hand are never removed** — and because reconcile trusts reality, it self-heals if the manifest drifts. (Identity is the skill _name_: hand-adding a skill whose name collides with a curated one makes it look "ours.")
 - **Pin a skill:** the CLI has no `@tag` syntax, but `repo` accepts any git source, so point it at a branch URL to pin (e.g. our fork `ax-at/better-auth-skills` for the security skill).
-- **Note:** five Matt Pocock skills (`grilling`, `grill-me`, `code-review`, `resolving-merge-conflicts`, `improve`) share names with Claude Code built-ins and **deliberately override** them.
+- **Note:** five Matt Pocock skills (`grilling`, `grill-me`, `code-review`, `resolving-merge-conflicts`) plus `shadcn/improve`'s `improve` share names with Claude Code built-ins and **deliberately override** them.
 - **Regenerate the catalog:** `make update-skills` (CI enforces it stays current).
 
-Installs are best-effort: a broken upstream skill logs a warning and is skipped — it never blocks `chezmoi apply`.
+Runs after `gh` login (step 65, below), so clones are GitHub-authenticated and dodge anonymous rate limits — without exporting any token to the third-party skills the CLI runs. Installs are best-effort: a broken upstream skill logs a warning and is skipped — it never blocks `chezmoi apply`.
 
 ---
 
@@ -197,9 +198,9 @@ dotfiles/
 | `run_onchange_after_20-packages`          | generate Brewfile from registry → `brew bundle` |
 | `run_onchange_after_30-mise`              | runtimes + npm-global CLIs                      |
 | `run_onchange_after_40-ai-tools`          | official `script` installers                    |
-| `run_onchange_after_45-agent-skills`      | reconcile global agent skills via `npx skills`  |
 | `run_onchange_after_50-editor-extensions` | VS Code + Cursor extensions                     |
 | `run_once_after_60-ssh-github`            | SSH key + `gh` auth + signing key               |
+| `run_onchange_after_65-agent-skills`      | reconcile global agent skills via `npx skills`  |
 | `run_onchange_after_70-macos-defaults`    | dev defaults + Ubuntu-feel tweaks               |
 
 ---

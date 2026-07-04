@@ -1,341 +1,228 @@
 # ============================================================================
 # skills.toml  --  curated set of agent skills installed globally on this machine
 # ----------------------------------------------------------------------------
-# Installed by run_onchange_after_45-agent-skills.sh via the `skills` CLI
+# Installed by run_onchange_after_65-agent-skills.sh via the `skills` CLI
 # (`npx skills`, https://github.com/vercel-labs/skills). Skills are installed at
-# GLOBAL scope (`-g`, e.g. ~/.claude/skills) and SYMLINKED (the CLI default).
+# GLOBAL scope (`-g`) and SYMLINKED (the CLI default): the real files live once
+# in the universal store (~/.agents/skills) and every other agent symlinks to it.
 #
-# `agents` below is the DEFAULT target set every skill installs to. It is
+# `agents` below is the DEFAULT target set every repo installs to. It is
 # independent of which agent CLIs are actually installed -- a skill is placed in
 # an agent's global skills dir whether or not that agent exists yet.
 #
-# Each [[skills]] block is ONE skill (TOML array-of-tables; the array is
-# `skills`, each block is one element). Fields:
+# Each [[repos]] block is ONE source repo (TOML array-of-tables). Fields:
 #   repo   source the CLI clones from. Usually "owner/repo"; may be any git
 #          source the CLI accepts (full URL, GitLab, direct path) -- use a
-#          branch URL to pin a skill, since the CLI has no @tag/#ref syntax.
-#   skill  the skill NAME within that repo. This is the identity key used for
-#          install AND removal AND the applied-manifest, so it must be unique.
-#   agents OPTIONAL per-skill override. Omitted -> installs to every agent in the
-#          top-level `agents` list. Present -> installs ONLY to those agents.
+#          branch URL to pin, since the CLI has no @tag/#ref syntax.
+#   skills the skill NAMES within that repo to install. Each name is the identity
+#          key used for install AND removal AND the applied-manifest, so a name
+#          must be UNIQUE across the whole file (not just within its repo).
+#   agents OPTIONAL per-REPO override. Omitted -> the block installs to every
+#          agent in the top-level `agents` list. Present -> only to those agents.
 #
-# The install script RECONCILES against ~/.local/state/dotfiles/skills.applied:
-# adding an entry installs it, and REMOVING an entry here UNINSTALLS it on the
-# next `chezmoi apply` (only skills this file installed are ever removed --
-# skills you add by hand are left untouched).
+# GRANULARITY: agents are chosen per REPO, not per individual skill. Every skill
+# in a block shares that block's agent set. If one skill needs a different set,
+# give it its own [[repos]] block (as the better-auth fork below does).
 #
-# Note: five mattpocock skills (grilling, grill-me, code-review,
-# resolving-merge-conflicts, improve) share names with Claude Code built-ins and
-# deliberately OVERRIDE them. `improve` also ships from shadcn/improve.
+# Installs are BATCHED: one `npx skills add <repo> -s <skills...> -a <agents...>`
+# per repo (one clone, not one-per-skill-per-agent). The script RECONCILES against
+# on-disk reality (`skills list -g --json`) plus a manifest at
+# ~/.local/state/dotfiles/skills.applied:
+#   - adding a skill/repo here installs it on the next `chezmoi apply`;
+#   - removing one UNINSTALLS it -- but ONLY skills this file installed are ever
+#     removed (tracked in the manifest); skills you add by hand are left alone.
+# Caveat: identity is the skill NAME, so hand-adding a skill whose name collides
+# with a curated one makes it look "ours" (it would be removed if dropped here).
+#
+# Notes:
+#   - Five mattpocock skills (grilling, grill-me, code-review,
+#     resolving-merge-conflicts) plus shadcn/improve's `improve` share names with
+#     Claude Code built-ins and deliberately OVERRIDE them.
+#   - The security skill is sourced from our fork ax-at/better-auth-skills, not
+#     upstream better-auth/skills.
+#   - An openclaw-OWNED source repo would need --dangerously-accept-openclaw-risks
+#     (a `use`-time gate); none of the repos below are openclaw-owned, and
+#     installing TO the openclaw agent needs no special flag.
 # ============================================================================
 
 agents = ["universal", "claude-code", "openclaw", "hermes-agent", "pi"]
 
 # ------------------------------------------------------------ vercel ----
-[[skills]]
+[[repos]]
 repo = "vercel-labs/skills"
-skill = "find-skills"
+skills = ["find-skills"]
 
-[[skills]]
+[[repos]]
 repo = "vercel/turborepo"
-skill = "turborepo"
+skills = ["turborepo"]
 
-[[skills]]
+[[repos]]
 repo = "vercel-labs/agent-skills"
-skill = "vercel-react-native-skills"
+skills = [
+  "vercel-react-native-skills",
+  "vercel-composition-patterns",
+  "vercel-react-view-transitions",
+  "web-design-guidelines",
+  "deploy-to-vercel",
+  "vercel-optimize",
+]
 
-[[skills]]
-repo = "vercel-labs/agent-skills"
-skill = "vercel-composition-patterns"
-
-[[skills]]
-repo = "vercel-labs/agent-skills"
-skill = "vercel-react-view-transitions"
-
-[[skills]]
-repo = "vercel-labs/agent-skills"
-skill = "web-design-guidelines"
-
-[[skills]]
-repo = "vercel-labs/agent-skills"
-skill = "deploy-to-vercel"
-
-[[skills]]
-repo = "vercel-labs/agent-skills"
-skill = "vercel-optimize"
-
-[[skills]]
+[[repos]]
 repo = "vercel-labs/next-skills"
-skill = "next-best-practices"
+skills = ["next-best-practices"]
 
-[[skills]]
+[[repos]]
 repo = "vercel/components.build"
-skill = "building-components"
+skills = ["building-components"]
 
-[[skills]]
+[[repos]]
 repo = "vercel-labs/agent-browser"
-skill = "agent-browser"
+skills = ["agent-browser"]
 
 # -------------------------------------------------------------- expo ----
-[[skills]]
+[[repos]]
 repo = "expo/skills"
-skill = "building-native-ui"
-
-[[skills]]
-repo = "expo/skills"
-skill = "native-data-fetching"
-
-[[skills]]
-repo = "expo/skills"
-skill = "upgrading-expo"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-deployment"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-dev-client"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-cicd-workflows"
-
-[[skills]]
-repo = "expo/skills"
-skill = "use-dom"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-module"
-
-[[skills]]
-repo = "expo/skills"
-skill = "eas-update-insights"
-
-[[skills]]
-repo = "expo/skills"
-skill = "add-app-clip"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-observe"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-ui"
-
-[[skills]]
-repo = "expo/skills"
-skill = "expo-examples"
-
-[[skills]]
-repo = "expo/skills"
-skill = "web-to-native"
-
-[[skills]]
-repo = "expo/skills"
-skill = "eas-simulator"
+skills = [
+  "building-native-ui",
+  "native-data-fetching",
+  "upgrading-expo",
+  "expo-deployment",
+  "expo-dev-client",
+  "expo-cicd-workflows",
+  "use-dom",
+  "expo-module",
+  "eas-update-insights",
+  "add-app-clip",
+  "expo-observe",
+  "expo-ui",
+  "expo-examples",
+  "web-to-native",
+  "eas-simulator",
+]
 
 # ------------------------------------------------- react / react-native ----
-[[skills]]
+# callstackincubator/agent-skills ships both a react-native and a CI skill.
+[[repos]]
 repo = "callstackincubator/agent-skills"
-skill = "react-native-best-practices"
+skills = ["react-native-best-practices", "github-actions"]
 
-[[skills]]
+[[repos]]
 repo = "callstack/react-native-testing-library"
-skill = "react-native-testing"
+skills = ["react-native-testing"]
 
-[[skills]]
+[[repos]]
 repo = "pproenca/dot-skills"
-skill = "react-testing-library"
+skills = ["react-testing-library"]
 
-[[skills]]
+[[repos]]
 repo = "aidenybai/react-doctor"
-skill = "react-doctor"
+skills = ["react-doctor"]
 
 # --------------------------------------------------------------- ui ----
-[[skills]]
+[[repos]]
 repo = "shadcn/ui"
-skill = "shadcn"
+skills = ["shadcn"]
 
-[[skills]]
+[[repos]]
 repo = "shadcn/improve"
-skill = "improve"
+skills = ["improve"]
 
 # --------------------------------------------------------- typescript ----
-[[skills]]
+[[repos]]
 repo = "mcollina/skills"
-skill = "typescript-magician"
+skills = ["typescript-magician"]
 
-[[skills]]
+[[repos]]
 repo = "wshobson/agents"
-skill = "typescript-advanced-types"
-
-# ------------------------------------------------------------ testing ----
-[[skills]]
-repo = "mattpocock/skills"
-skill = "tdd"
-
-[[skills]]
-repo = "currents-dev/playwright-best-practices-skill"
-skill = "playwright-best-practices"
-
-[[skills]]
-repo = "microsoft/playwright-cli"
-skill = "playwright-cli"
-
-[[skills]]
-repo = "antfu/skills"
-skill = "vitest"
-
-# --------------------------------------------------------- git / ci ----
-[[skills]]
-repo = "github/awesome-copilot"
-skill = "gh-cli"
-
-[[skills]]
-repo = "github/awesome-copilot"
-skill = "git-commit"
-
-[[skills]]
-repo = "xixu-me/skills"
-skill = "github-actions-docs"
-
-[[skills]]
-repo = "callstackincubator/agent-skills"
-skill = "github-actions"
+skills = ["typescript-advanced-types"]
 
 # ----------------------------------------------- mattpocock workflow ----
-[[skills]]
+# tdd + the full workflow set, all from one repo -> one clone.
+[[repos]]
 repo = "mattpocock/skills"
-skill = "wayfinder"
+skills = [
+  "tdd",
+  "wayfinder",
+  "wizard",
+  "code-review",
+  "loop-me",
+  "resolving-merge-conflicts",
+  "ask-matt",
+  "diagnosing-bugs",
+  "codebase-design",
+  "writing-great-skills",
+  "domain-modeling",
+  "grill-me",
+  "grilling",
+  "improve-codebase-architecture",
+  "teach",
+  "prototype",
+  "triage",
+  "setup-matt-pocock-skills",
+]
 
-[[skills]]
-repo = "mattpocock/skills"
-skill = "wizard"
+# ------------------------------------------------------------ testing ----
+[[repos]]
+repo = "currents-dev/playwright-best-practices-skill"
+skills = ["playwright-best-practices"]
 
-[[skills]]
-repo = "mattpocock/skills"
-skill = "code-review"
+[[repos]]
+repo = "microsoft/playwright-cli"
+skills = ["playwright-cli"]
 
-[[skills]]
-repo = "mattpocock/skills"
-skill = "loop-me"
+[[repos]]
+repo = "antfu/skills"
+skills = ["vitest"]
 
-[[skills]]
-repo = "mattpocock/skills"
-skill = "resolving-merge-conflicts"
+# --------------------------------------------------------- git / ci ----
+[[repos]]
+repo = "github/awesome-copilot"
+skills = ["gh-cli", "git-commit"]
 
-[[skills]]
-repo = "mattpocock/skills"
-skill = "ask-matt"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "diagnosing-bugs"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "codebase-design"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "writing-great-skills"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "domain-modeling"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "grill-me"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "grilling"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "improve-codebase-architecture"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "teach"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "prototype"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "triage"
-
-[[skills]]
-repo = "mattpocock/skills"
-skill = "setup-matt-pocock-skills"
+[[repos]]
+repo = "xixu-me/skills"
+skills = ["github-actions-docs"]
 
 # ---------------------------------------------------------- logging ----
-[[skills]]
+[[repos]]
 repo = "hugorcd/evlog"
-skill = "evlog"
+skills = [
+  "evlog",
+  "review-logging-patterns",
+  "analyze-logs",
+  "build-audit-logs",
+]
 
-[[skills]]
-repo = "hugorcd/evlog"
-skill = "review-logging-patterns"
-
-[[skills]]
-repo = "hugorcd/evlog"
-skill = "analyze-logs"
-
-[[skills]]
-repo = "hugorcd/evlog"
-skill = "build-audit-logs"
-
-[[skills]]
+[[repos]]
 repo = "remorses/errore"
-skill = "errore"
+skills = ["errore"]
 
 # ------------------------------------------------------- better-auth ----
-[[skills]]
+[[repos]]
 repo = "better-auth/skills"
-skill = "better-auth-best-practices"
-
-[[skills]]
-repo = "better-auth/skills"
-skill = "create-auth-skill"
-
-[[skills]]
-repo = "better-auth/skills"
-skill = "organization-best-practices"
-
-[[skills]]
-repo = "better-auth/skills"
-skill = "two-factor-authentication-best-practices"
-
-[[skills]]
-repo = "better-auth/skills"
-skill = "email-and-password-best-practices"
+skills = [
+  "better-auth-best-practices",
+  "create-auth-skill",
+  "organization-best-practices",
+  "two-factor-authentication-best-practices",
+  "email-and-password-best-practices",
+]
 
 # Security skill sourced from our fork instead of upstream better-auth/skills.
-[[skills]]
+[[repos]]
 repo = "ax-at/better-auth-skills"
-skill = "better-auth-security-best-practices"
+skills = ["better-auth-security-best-practices"]
 
 # -------------------------------------------------------- databases ----
-[[skills]]
+[[repos]]
 repo = "planetscale/database-skills"
-skill = "postgres"
-
-[[skills]]
-repo = "planetscale/database-skills"
-skill = "mysql"
+skills = ["postgres", "mysql"]
 
 # ------------------------------------------------------------ media ----
-[[skills]]
+[[repos]]
 repo = "remotion-dev/skills"
-skill = "remotion-best-practices"
+skills = ["remotion-best-practices"]
 
-[[skills]]
+[[repos]]
 repo = "heygen-com/hyperframes"
-skill = "hyperframes"
+skills = ["hyperframes"]

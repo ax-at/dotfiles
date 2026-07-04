@@ -1,9 +1,10 @@
 #!/usr/bin/env bats
 # Agent-skills data + reconcile logic.
 #   1. skills.toml structure (taplo schema) + cross-ref invariants (jq).
-#   2. run_onchange_after_45-agent-skills reconcile(): render the script, source
-#      it (main() is skipped by the BASH_SOURCE guard), stub the CLI layer, and
-#      drive the add/remove diff against a fake manifest -- no real npx runs.
+#   2. run_onchange_after_65-agent-skills reconcile(): render the script, source
+#      it (main() is skipped by the BASH_SOURCE guard), model installed reality in
+#      a fake WORLD file, stub the CLI layer, and drive the batched add/remove
+#      diff -- no real npx runs.
 
 load 'lib/bats-support/load'
 load 'lib/bats-assert/load'
@@ -29,104 +30,205 @@ SCHEMA="$REPO_ROOT/test/lib/skills.schema.json"
 
 # ---- reconcile() branch logic ---------------------------------------------
 
-# Source the rendered script and point the manifest at a temp file. Tests then
-# override desired_pairs / run_npx to inject a small, deterministic world.
+# world_apply CMD ARGS... — mutate the fake WORLD (installed reality) the way the
+# real CLI would: `add <repo> -s <skills> -a <agents>` inserts the skill×agent
+# grid; `remove <skills> -a <agent>` deletes those pairs. Lets one stub back both
+# installed_pairs (reads WORLD) and run_npx (writes WORLD), so CALLS and MANIFEST
+# assertions stay consistent across reconcile's two reality reads.
+world_apply() {
+  local cmd="$1"
+  shift
+  local mode skills="" agents="" agent="" repo="" tok
+  if [ "$cmd" = "add" ]; then
+    repo="$1"
+    shift
+    mode=""
+    for tok in "$@"; do
+      case "$tok" in
+        -s) mode=s ;; -a) mode=a ;; -g | -y) mode="" ;;
+        *) [ "$mode" = s ] && skills="$skills $tok"; [ "$mode" = a ] && agents="$agents $tok" ;;
+      esac
+    done
+    local sk ag
+    for sk in $skills; do for ag in $agents; do printf '%s\t%s\n' "$ag" "$sk" >>"$WORLD"; done; done
+  elif [ "$cmd" = "remove" ]; then
+    mode=s
+    for tok in "$@"; do
+      case "$tok" in
+        -s) mode=s ;; -a) mode=a ;; -g | -y) mode="" ;;
+        *) [ "$mode" = s ] && skills="$skills $tok"; [ "$mode" = a ] && agent="$tok" ;;
+      esac
+    done
+    local sk
+    for sk in $skills; do
+      grep -vF "$agent	$sk" "$WORLD" >"$WORLD.t" 2>/dev/null || true
+      mv "$WORLD.t" "$WORLD" 2>/dev/null || :
+    done
+  fi
+}
+
 setup() {
-  render_to_file "$(script_tmpl 45-agent-skills)" "$BATS_TEST_TMPDIR/skills.sh" full.toml
+  render_to_file "$(script_tmpl 65-agent-skills)" "$BATS_TEST_TMPDIR/skills.sh" full.toml
   source "$BATS_TEST_TMPDIR/skills.sh"
   MANIFEST="$BATS_TEST_TMPDIR/applied"
   CALLS="$BATS_TEST_TMPDIR/calls.log"
+  WORLD="$BATS_TEST_TMPDIR/world" # installed reality
+  TAB="$(printf '\t')"
   : >"$CALLS"
-  # Log every CLI invocation instead of running it (exercises the real
-  # skill_add/skill_remove flag logic; only the npx layer is stubbed). Defined
-  # AFTER the source so it overrides the script's real run_npx. Tests may
-  # redefine it again in their body to inject failures.
-  run_npx() { echo "$*" >>"$CALLS"; }
+  : >"$WORLD"
+  : >"$MANIFEST"
+  # Reality reader backed by the fake WORLD (overrides the real jq-based one).
+  installed_pairs() { grep -v '^$' "$WORLD" 2>/dev/null | sort -u || true; }
+  # Default CLI stub: log every call and mutate WORLD. Tests may redefine run_npx
+  # in their body to inject failures (calling world_apply for the success path).
+  run_npx() {
+    echo "$*" >>"$CALLS"
+    world_apply "$@"
+  }
 }
 
-@test "reconcile: adds missing, keeps present, removes stale" {
-  desired_pairs() {
+@test "reconcile: one batched add per touched repo; present repo not re-added; stale removed" {
+  desired_triples() {
     printf '%s\n' \
-      "claude-code	alpha	own/repo" \
-      "pi	alpha	own/repo" \
-      "claude-code	beta	own/repo2"
+      "claude-code${TAB}alpha${TAB}own/repoA" \
+      "pi${TAB}alpha${TAB}own/repoA" \
+      "claude-code${TAB}beta${TAB}own/repoA" \
+      "pi${TAB}beta${TAB}own/repoA" \
+      "claude-code${TAB}gamma${TAB}own/repoB" \
+      "claude-code${TAB}zeta${TAB}own/repoC"
   }
-  # alpha@claude-code already installed (keep); delta@universal stale (remove).
-  printf '%s\n' "claude-code	alpha" "universal	delta" >"$MANIFEST"
+  # Reality: repoA's alpha@claude-code and repoC's zeta@claude-code already there.
+  printf '%s\n' "claude-code${TAB}alpha" "claude-code${TAB}zeta" >"$WORLD"
+  # Manifest: alpha (ours, present) + stale delta@universal (ours, undesired).
+  printf '%s\n' "claude-code${TAB}alpha" "universal${TAB}delta" >"$MANIFEST"
 
   run reconcile
   assert_success
 
-  # alpha@claude-code was NOT re-added; the two new ones were.
-  ! grep -q 'add own/repo --skill alpha -g -a claude-code' "$CALLS"
-  grep -q 'add own/repo --skill alpha -g -a pi' "$CALLS"
-  grep -q 'add own/repo2 --skill beta -g -a claude-code' "$CALLS"
-  # stale delta removed.
-  grep -q 'remove delta -g -a universal' "$CALLS"
+  # repoA and repoB each get ONE batched add (skills+agents sorted). repoC is
+  # fully installed -> not re-added.
+  grep -qxF "add own/repoA -s alpha beta -a claude-code pi -g -y" "$CALLS"
+  grep -qxF "add own/repoB -s gamma -a claude-code -g -y" "$CALLS"
+  ! grep -q 'add own/repoC' "$CALLS"
+  # stale delta removed (batched per agent).
+  grep -qxF "remove delta -g -a universal -y" "$CALLS"
 
-  # Manifest ends as exactly the desired set (sorted, unique), delta gone.
+  # Manifest ends as exactly the desired set; delta gone.
   run cat "$MANIFEST"
-  assert_line "claude-code	alpha"
-  assert_line "claude-code	beta"
-  assert_line "pi	alpha"
+  assert_line "claude-code${TAB}alpha"
+  assert_line "claude-code${TAB}beta"
+  assert_line "pi${TAB}alpha"
+  assert_line "pi${TAB}beta"
+  assert_line "claude-code${TAB}gamma"
+  assert_line "claude-code${TAB}zeta"
   refute_line --partial "delta"
 }
 
-@test "reconcile: openclaw installs pass the unverified-risk flag; others don't" {
-  desired_pairs() {
+@test "reconcile: openclaw is a plain -a agent; no risk flag anywhere" {
+  desired_triples() {
     printf '%s\n' \
-      "openclaw	gamma	own/repo" \
-      "claude-code	gamma	own/repo"
+      "claude-code${TAB}gamma${TAB}own/repo" \
+      "openclaw${TAB}gamma${TAB}own/repo"
   }
-  : >"$MANIFEST"
 
   run reconcile
   assert_success
 
-  grep -q 'add own/repo --skill gamma -g -a openclaw -y --dangerously-accept-openclaw-risks' "$CALLS"
-  grep -q 'add own/repo --skill gamma -g -a claude-code -y$' "$CALLS"
-  ! grep -q 'claude-code -y --dangerously-accept-openclaw-risks' "$CALLS"
+  grep -qxF "add own/repo -s gamma -a claude-code openclaw -g -y" "$CALLS"
+  ! grep -q 'dangerously-accept-openclaw-risks' "$CALLS"
+}
+
+@test "reconcile: reality overrides a stale manifest (drift self-heal -> re-add)" {
+  desired_triples() { printf '%s\n' "claude-code${TAB}alpha${TAB}own/repoA"; }
+  # Manifest FALSELY claims alpha installed; WORLD (reality) is empty.
+  printf '%s\n' "claude-code${TAB}alpha" >"$MANIFEST"
+
+  run reconcile
+  assert_success
+
+  # Missing per reality -> re-added despite the manifest claim.
+  grep -qxF "add own/repoA -s alpha -a claude-code -g -y" "$CALLS"
+  run cat "$MANIFEST"
+  assert_line "claude-code${TAB}alpha"
+}
+
+@test "reconcile: a hand-added skill is never removed and never tracked" {
+  desired_triples() { printf '%s\n' "claude-code${TAB}alpha${TAB}own/repoA"; }
+  # Reality: our alpha + a hand-added skill the user installed outside dotfiles.
+  printf '%s\n' "claude-code${TAB}alpha" "claude-code${TAB}handmade" >"$WORLD"
+  # Manifest only tracks alpha (handmade was never ours).
+  printf '%s\n' "claude-code${TAB}alpha" >"$MANIFEST"
+
+  run reconcile
+  assert_success
+
+  # Nothing to add (alpha present) and nothing to remove (handmade not ours).
+  ! grep -q 'handmade' "$CALLS"
+  run cat "$MANIFEST"
+  assert_line "claude-code${TAB}alpha"
+  refute_line --partial "handmade"
 }
 
 @test "reconcile: a failed add soft-fails (exit 0, excluded from manifest)" {
-  desired_pairs() {
+  desired_triples() {
     printf '%s\n' \
-      "claude-code	good	own/repo" \
-      "claude-code	bad	own/repo"
+      "claude-code${TAB}good${TAB}own/repoG" \
+      "claude-code${TAB}bad${TAB}own/repoB"
   }
-  : >"$MANIFEST"
-  # Fail only the 'bad' skill's install; everything else succeeds.
+  # repoB's add fails; repoG succeeds (mutates WORLD).
   run_npx() {
     echo "$*" >>"$CALLS"
-    case "$*" in *"--skill bad "*) return 1 ;; esac
-    return 0
+    case "$*" in *repoB*) return 1 ;; esac
+    world_apply "$@"
   }
 
   run reconcile
-  assert_success                                   # soft-fail: never aborts
-  assert_output --partial "FAILED add: bad"
+  assert_success # soft-fail: never aborts
+  assert_output --partial "FAILED add: own/repoB"
 
   run cat "$MANIFEST"
-  assert_line "claude-code	good"                 # good persisted
-  refute_line "claude-code	bad"                  # bad excluded
+  assert_line "claude-code${TAB}good" # good persisted
+  refute_line "claude-code${TAB}bad"  # bad excluded (never landed)
 }
 
 @test "reconcile: a failed remove keeps the skill tracked in the manifest" {
-  desired_pairs() { printf '%s\n' "claude-code	keep	own/repo"; }
-  printf '%s\n' "claude-code	keep" "claude-code	drop" >"$MANIFEST"
+  desired_triples() { printf '%s\n' "claude-code${TAB}keep${TAB}own/repoK"; }
+  printf '%s\n' "claude-code${TAB}keep" "claude-code${TAB}drop" >"$WORLD"
+  printf '%s\n' "claude-code${TAB}keep" "claude-code${TAB}drop" >"$MANIFEST"
+  # Removal fails -> WORLD keeps drop -> stays tracked.
   run_npx() {
     echo "$*" >>"$CALLS"
-    case "$*" in "remove drop"*) return 1 ;; esac
-    return 0
+    case "$*" in remove*) return 1 ;; esac
+    world_apply "$@"
   }
 
   run reconcile
   assert_success
-  assert_output --partial "FAILED remove: drop"
+  assert_output --partial "FAILED remove: claude-code"
 
   run cat "$MANIFEST"
-  assert_line "claude-code	keep"
-  assert_line "claude-code	drop"                  # kept because removal failed
+  assert_line "claude-code${TAB}keep"
+  assert_line "claude-code${TAB}drop" # kept because removal failed
+}
+
+@test "installed_pairs: maps display names to slugs; universal implied by existence" {
+  command -v jq >/dev/null 2>&1 || skip "jq not installed"
+  # Restore the REAL installed_pairs (setup overrode it), stub only the CLI.
+  source "$BATS_TEST_TMPDIR/skills.sh"
+  TAB="$(printf '\t')"
+  run_npx() {
+    cat <<'JSON'
+[{"name":"alpha","agents":["Claude Code","Hermes Agent"]},{"name":"beta","agents":[]}]
+JSON
+  }
+
+  run installed_pairs
+  assert_success
+  assert_line "universal${TAB}alpha"    # implied by the entry existing
+  assert_line "claude-code${TAB}alpha"
+  assert_line "hermes-agent${TAB}alpha"
+  assert_line "universal${TAB}beta"     # no agents[] -> universal only
+  refute_line "claude-code${TAB}beta"
 }
 
 @test "SKILLS.md is up to date with skills.toml" {
@@ -134,8 +236,8 @@ setup() {
   assert_success
 }
 
-@test "45-agent-skills renders to a no-op when ai-tools is off" {
-  render_to_file "$(script_tmpl 45-agent-skills)" "$BATS_TEST_TMPDIR/off.sh" ai-off.toml
+@test "65-agent-skills renders to a no-op when ai-tools is off" {
+  render_to_file "$(script_tmpl 65-agent-skills)" "$BATS_TEST_TMPDIR/off.sh" ai-off.toml
   run grep -c "reconcile()" "$BATS_TEST_TMPDIR/off.sh"
   assert_output "0"
 }
