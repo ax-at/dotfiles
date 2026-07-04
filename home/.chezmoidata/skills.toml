@@ -67,10 +67,11 @@ skills = [
   "vercel-optimize",
 ]
 
-[[repos]]
-repo = "vercel-labs/next-skills"
-skills = ["next-best-practices"]
-
+# next-best-practices was retired upstream: vercel/nextjs-skills redirects to the
+# now-empty vercel-labs/next-skills, and the skill was dissolved into Next.js's
+# bundled docs + the AGENTS.md/CLAUDE.md that `next dev` auto-generates (16.3+),
+# so it no longer ships as an installable skill. (skills.sh still lists a stale
+# page for it.) The surviving Next.js workflow skills live in vercel/next.js.
 [[repos]]
 repo = "vercel/components.build"
 skills = ["building-components"]
