@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+# run_onchange_after_66-ai-plugins.sh
+# Installs AI-client plugins from .chezmoidata/ai-plugins.toml INTO the agent
+# CLIs (Claude Code, Gemini CLI, Codex, Cursor) and keeps them RECONCILED
+# against on-disk reality. Runs AFTER 40-ai-tools (the CLIs exist) and after
+# 60-ssh-github / 65-agent-skills (git/gh ready) -- plugin installs only need
+# public repos, so no token is required.
+#
+# Design -- an ABSTRACT plugin installer, reused across clients:
+#   The reconcile driver is client-agnostic. Per-client knowledge lives in four
+#   backend functions dispatched on a `kind`: pm_cli_present, pm_is_installed,
+#   pm_install, pm_uninstall. Adding a NEW plugin is data-only (ai-plugins.toml);
+#   adding a new CLIENT is one new `case` branch in each backend.
+#
+#   kind      install verb                         list / check              uninstall
+#   claude    claude plugin install <slug>         plugin list --json .id    plugin uninstall
+#   gemini    gemini extensions install <url> ...  extensions list           extensions uninstall
+#   codex     plugin marketplace add + plugin add  plugin list --json        plugin remove
+#   cursor    MANUAL (prints in-app step)          ~/.cursor/plugins probe   MANUAL (prints step)
+#
+# Reconcile model (mirrors 65-agent-skills):
+#   desired  = (kind,name,id) rows from ai-plugins.toml (enabled plugins x their
+#              per-client sub-tables).
+#   installed= queried live per backend (pm_is_installed).
+#   ADD    = desired & CLI-present & not-installed -> pm_install.
+#   REMOVE = manifest (ai-plugins.applied) & not-desired -> pm_uninstall. The
+#            manifest scopes removals, so hand-installed plugins are never
+#            touched. It is rebuilt from reality each run (self-heals drift).
+#   Soft-fail throughout: a failed op warns and the run still exits 0.
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2
+# (macOS system bash): no associative arrays, no mapfile.
+{{ if index .modules "ai-tools" }}
+# ai-plugins.toml hash (forces re-run when the declared set changes):
+# {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
+
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/ai-plugins.applied"
+
+# desired_rows -- the desired install set, one "kind|name|id|source|marketplace"
+# line per (enabled plugin x its per-client sub-table). Pipe-delimited (URLs and
+# owner/repo carry '/' and ':' but never '|'). Tests override this.
+desired_rows() {
+  cat <<'DESIRED'
+{{ range $p := .plugins }}{{ if $p.enabled -}}
+{{ if hasKey $p "claude" }}claude|{{ $p.name }}|{{ $p.claude.slug }}||
+{{ end }}{{ if hasKey $p "gemini" }}gemini|{{ $p.name }}|{{ $p.gemini.name }}|{{ $p.gemini.source }}|
+{{ end }}{{ if hasKey $p "codex" }}codex|{{ $p.name }}|{{ $p.codex.slug }}||{{ $p.codex.marketplace }}
+{{ end }}{{ if hasKey $p "cursor" }}cursor|{{ $p.name }}|{{ $p.cursor.slug }}|{{ $p.cursor.url }}|
+{{ end }}{{- end }}{{ end -}}
+DESIRED
+}
+
+# ---- backends -------------------------------------------------------------
+# Each is dispatched on KIND. Tests stub these to model reality without CLIs.
+
+# pm_cli_present KIND -- 0 if that client's CLI is usable on this machine.
+pm_cli_present() {
+  case "$1" in
+    claude | gemini | codex | cursor) command -v "$1" >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# pm_is_installed KIND ID -- 0 if the plugin is already installed in that client.
+pm_is_installed() {
+  local kind="$1" id="$2"
+  case "$kind" in
+    claude)
+      claude plugin list --json 2>/dev/null \
+        | jq -e --arg s "$id" 'any(.[]?; (.id // "") | startswith($s + "@"))' >/dev/null 2>&1
+      ;;
+    gemini)
+      # `gemini extensions list` prints to STDERR, so fold it into stdout (2>&1).
+      gemini extensions list </dev/null 2>&1 \
+        | grep -qiE "(^|[^[:alnum:]-])${id}([^[:alnum:]-]|\$)"
+      ;;
+    codex)
+      codex plugin list --json </dev/null 2>/dev/null \
+        | jq -e --arg s "$id" 'any(.installed[]?; .name == $s)' >/dev/null 2>&1
+      ;;
+    cursor)
+      # No CLI to query; probe the on-disk plugin store as a best-effort check.
+      find "$HOME/.cursor/plugins" -maxdepth 3 -iname "*${id}*" 2>/dev/null | grep -q .
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# pm_install KIND ID SOURCE MARKETPLACE -- install; return non-zero on failure.
+pm_install() {
+  local kind="$1" id="$2" source="$3" marketplace="$4" pid
+  case "$kind" in
+    claude)
+      claude plugin install "$id" </dev/null
+      ;;
+    gemini)
+      # --consent skips the third-party warning; --skip-settings avoids the
+      # interactive per-setting prompt that otherwise hangs a headless apply.
+      gemini extensions install "$source" --consent --skip-settings </dev/null
+      ;;
+    codex)
+      # marketplace add is idempotent-ish; swallow "already added". Then resolve
+      # the fully-qualified pluginId (slug@marketplace) rather than hard-coding
+      # the derived marketplace name.
+      codex plugin marketplace add "$marketplace" </dev/null >/dev/null 2>&1 || true
+      pid="$(codex plugin list --json --available </dev/null 2>/dev/null \
+        | jq -r --arg s "$id" 'first((.available[]?, .installed[]?) | select(.name == $s) | .pluginId) // empty')"
+      [ -n "$pid" ] || pid="$id"
+      codex plugin add "$pid" </dev/null
+      ;;
+    cursor)
+      pm_cursor_manual add "$id" "$source"
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# pm_uninstall KIND ID -- remove; return non-zero on failure.
+pm_uninstall() {
+  local kind="$1" id="$2" pid
+  case "$kind" in
+    claude) claude plugin uninstall "$id" --yes </dev/null ;;
+    gemini) gemini extensions uninstall "$id" </dev/null ;;
+    codex)
+      pid="$(codex plugin list --json </dev/null 2>/dev/null \
+        | jq -r --arg s "$id" 'first(.installed[]? | select(.name == $s) | .pluginId) // empty')"
+      [ -n "$pid" ] || pid="$id"
+      codex plugin remove "$pid" </dev/null
+      ;;
+    cursor) pm_cursor_manual remove "$id" "" ;;
+    *) return 1 ;;
+  esac
+}
+
+# pm_cursor_manual ACTION ID URL -- Cursor has no headless plugin CLI, so print
+# the in-app step for the user to run. Always succeeds (informational).
+pm_cursor_manual() {
+  local action="$1" id="$2" url="$3"
+  if [ "$action" = add ]; then
+    echo "  ⚠ cursor: install '${id}' manually -- in Cursor, open the plugin"
+    echo "     picker (Settings > Plugins${url:+ / ${url}}) and add PostHog,"
+    echo "     or run '/add-plugin ${id}' in a Cursor chat. See docs/ai-plugins.md."
+  else
+    echo "  ⚠ cursor: remove '${id}' manually via Cursor Settings > Plugins."
+  fi
+  return 0
+}
+
+# pm_auth_note KIND -- one-time OAuth reminder printed after a fresh install.
+pm_auth_note() {
+  case "$1" in
+    claude) echo "     ↳ auth: run 'claude', then /mcp and select plugin:posthog:posthog (browser OAuth)" ;;
+    gemini) echo "     ↳ auth: invoke a PostHog tool in 'gemini' and follow the browser OAuth prompt" ;;
+    codex) echo "     ↳ auth: invoke a PostHog tool in 'codex' and follow the browser OAuth prompt" ;;
+  esac
+}
+
+# reconcile -- diff desired (ai-plugins.toml) against live reality; install what
+# is missing, remove manifest-tracked plugins no longer desired, then rebuild the
+# manifest from what is actually ours. Uses desired_rows + the pm_* backends +
+# $MANIFEST, so tests can stub those.
+reconcile() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local desired manifest_prev desired_keys failures auth_kinds
+  local kind name id source marketplace key
+  desired="$(desired_rows)"
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  # grep -v '^$' exits 1 on an all-blank set; `|| true` keeps that from tripping
+  # `set -e`/pipefail when nothing is desired or tracked.
+  failures=0
+  auth_kinds=""
+  desired_keys=""
+  : >"$MANIFEST.tmp"
+
+  # ADD / ensure: install desired plugins whose CLI is present and that aren't
+  # already installed; record every desired+ours pair (kind<TAB>name<TAB>id).
+  while IFS='|' read -r kind name id source marketplace; do
+    [ -n "$kind" ] || continue
+    key="$kind"$'\t'"$name"
+    desired_keys="$desired_keys$key"$'\n'
+    if ! pm_cli_present "$kind"; then
+      echo "  -- ${name}/${kind}: ${kind} CLI not present, skipping"
+      continue
+    fi
+    if pm_is_installed "$kind" "$id"; then
+      echo "  ✓ ${name} already installed in ${kind}"
+    else
+      echo "  -> installing ${name} into ${kind}"
+      if pm_install "$kind" "$id" "$source" "$marketplace"; then
+        case "$kind" in cursor) : ;; *) auth_kinds="${auth_kinds}${kind}"$'\n' ;; esac
+      else
+        echo "  !! FAILED install: ${name}/${kind}" >&2
+        failures=$((failures + 1))
+        continue
+      fi
+    fi
+    printf '%s\t%s\t%s\n' "$kind" "$name" "$id" >>"$MANIFEST.tmp"
+  done <<EOF
+$desired
+EOF
+
+  # REMOVE: manifest pairs no longer desired. Manifest holds kind<TAB>name<TAB>id;
+  # compare on kind<TAB>name, uninstall by the stored id.
+  desired_keys="$(printf '%s' "$desired_keys" | grep -v '^$' | sort -u || true)"
+  while IFS=$'\t' read -r kind name id; do
+    [ -n "$kind" ] || continue
+    key="$kind"$'\t'"$name"
+    if printf '%s\n' "$desired_keys" | grep -qxF "$key"; then continue; fi
+    if pm_cli_present "$kind" && pm_is_installed "$kind" "$id"; then
+      echo "  -> removing ${name} from ${kind}"
+      if ! pm_uninstall "$kind" "$id"; then
+        echo "  !! FAILED remove: ${name}/${kind}" >&2
+        failures=$((failures + 1))
+        printf '%s\t%s\t%s\n' "$kind" "$name" "$id" >>"$MANIFEST.tmp" # keep for retry
+      fi
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  # Auth reminders, one per unique client freshly installed this run.
+  if [ -n "$auth_kinds" ]; then
+    echo "==> [ai-plugins] one-time authentication (per client):"
+    local k
+    for k in $(printf '%s' "$auth_kinds" | grep -v '^$' | sort -u); do pm_auth_note "$k"; done
+  fi
+
+  local n_tracked
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [ai-plugins] summary: ${n_tracked} plugin install(s) tracked"
+  if [ "$failures" -gt 0 ]; then
+    echo "==> [ai-plugins] ${failures} operation(s) FAILED (see above); continuing (exit 0)" >&2
+  fi
+}
+
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+  command -v jq >/dev/null 2>&1 || { echo "jq not found; ensure core packages installed" >&2; exit 1; }
+
+  echo "==> [ai-plugins] reconciling AI-client plugins"
+  reconcile
+  echo "==> [ai-plugins] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi
+{{ end }}

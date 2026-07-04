@@ -1,0 +1,45 @@
+# ============================================================================
+# ai-plugins.toml  --  AI-client plugins installed INTO the agent CLIs
+# ----------------------------------------------------------------------------
+# registry.toml installs the CLIs themselves; THIS file installs plugins *into*
+# those CLIs -- one upstream plugin, declared once, fanned out across every
+# supported client. Installed/reconciled by run_onchange_after_66-ai-plugins.sh.
+#
+# Model (abstract + reusable):
+#   Each [[plugins]] is ONE upstream plugin. Its per-client sub-tables name the
+#   client "backend" that installs it. The reconcile script owns the per-CLI
+#   verbs (install / list / uninstall); this file owns only declarative
+#   identifiers. Adding a NEW plugin is new rows here, with NO new script code.
+#   Adding a new CLIENT is one new backend `case` branch in the script.
+#
+# Backends and the fields each one consumes:
+#   claude  { slug }               -> claude plugin install <slug>
+#                                     (resolves from claude's official marketplace)
+#   gemini  { source, name }       -> gemini extensions install <source>
+#                                     --consent --skip-settings; <name> = the
+#                                     installed extension name (list / uninstall)
+#   codex   { marketplace, slug }  -> codex plugin marketplace add <marketplace>;
+#                                     codex plugin add <slug>@<resolved-marketplace>
+#   cursor  { slug, url }          -> MANUAL. Cursor has no headless plugin CLI,
+#                                     so the script PRINTS the in-app step
+#                                     instead of running it (see docs/ai-plugins.md).
+#
+# Gating: the whole file is under the `ai-tools` module; each backend runs only
+# if its CLI is present (`command -v`); each plugin has its own `enabled` master
+# switch. Removals are scoped to a manifest (ai-plugins.applied), so a plugin
+# you installed by hand is NEVER touched -- only what this file installed.
+#
+# Auth: installing a plugin does NOT authenticate it. Each client needs a
+# one-time manual OAuth step (browser). The script prints the per-client
+# reminder after install; full steps live in docs/ai-plugins.md.
+# ============================================================================
+
+[[plugins]]
+name = "posthog"
+enabled = true
+desc = "PostHog analytics, feature flags, experiments, error tracking (27+ MCP tools + 30+ skills)"
+repo = "https://github.com/PostHog/ai-plugin"
+claude = { slug = "posthog" }
+gemini = { source = "https://github.com/PostHog/ai-plugin", name = "posthog" }
+codex = { marketplace = "PostHog/ai-plugin", slug = "posthog" }
+cursor = { slug = "posthog", url = "https://cursor.com/marketplace" }
