@@ -30,7 +30,7 @@ main() {
 
   # mise config hash (forces re-run on change):
   # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/config.toml") | sha256sum }}
-  echo "==> [mise] installing runtimes (node, pnpm, ruby, java)"
+  echo "==> [mise] installing runtimes (node, pnpm, ruby, java, python)"
   mise install -y
   eval "$(mise activate bash)"
 

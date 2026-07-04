@@ -33,7 +33,7 @@ chezmoi will then:
 
 1. install **Rosetta 2** (Apple Silicon) + **Homebrew** (which pulls in the Xcode Command Line Tools),
 2. `brew bundle` every enabled package from the registry,
-3. install runtimes via **mise** (Node LTS, pnpm, Ruby, Zulu-17 JDK) + npm CLIs,
+3. install runtimes via **mise** (Node LTS, pnpm, Ruby, Zulu-17 JDK, Python) + npm CLIs,
 4. run the official installers for AI tools / `fallow` / `pass-cli`,
 5. install editor extensions, generate SSH keys + `gh` login, and apply macOS defaults,
 6. drop all dotfiles (zsh, starship, ghostty, git, nano, karabiner, linearmouse).

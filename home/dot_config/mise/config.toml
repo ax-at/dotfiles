@@ -3,16 +3,17 @@
 # .mise.toml / .tool-versions in each repo.
 
 [tools]
-node = "lts"     # Node LTS for web + React Native / Expo
-pnpm = "latest"  # pnpm via mise (Corepack was removed from Node 25+)
-ruby = "latest"  # for CocoaPods etc.
-java = "zulu-17" # Azul Zulu 17 — Expo/Android recommended JDK
+node = "lts"      # Node LTS for web + React Native / Expo
+pnpm = "latest"   # pnpm via mise (Corepack was removed from Node 25+)
+ruby = "latest"   # for CocoaPods etc.
+java = "zulu-17"  # Azul Zulu 17 — Expo/Android recommended JDK
+python = "latest" # a real, writable python3 + pip (Homebrew's is PEP-668 locked)
 
 [settings]
 # Don't auto-install on cd; provisioning + explicit `mise install` only.
 not_found_auto_install = false
 # Trust this config without prompting.
-idiomatic_version_file_enable_tools = ["node", "ruby"]
+idiomatic_version_file_enable_tools = ["node", "ruby", "python"]
 # Use precompiled Ruby binaries (faster installs, no source toolchain needed).
 # Becomes mise's default in 2026.8.0; set explicitly to lock behavior + silence warning.
 ruby.compile = false
