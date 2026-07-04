@@ -1,19 +1,36 @@
 {
-  "$schema": "https://schema.linearmouse.app/0.11.2",
+  "$schema": "https:\/\/schema.linearmouse.app\/0.11.2",
   "schemes": [
     {
       "pointer": {
-        "acceleration": 0,
-        "disableAcceleration": true,
-        "speed": 0.4
+        "acceleration": 0.5,
+        "disableAcceleration": false,
+        "redirectsToScroll": false,
+        "speed": 0.1
       },
       "scrolling": {
-        "acceleration": { "vertical": 1 },
-        "distance": { "vertical": "auto" },
-        "modifiers": { "vertical": { "control": { "type": "auto" } } },
+        "acceleration": {
+          "vertical": 1
+        },
+        "distance": {
+          "vertical": "auto"
+        },
+        "modifiers": {
+          "vertical": {
+            "control": {
+              "type": "auto"
+            }
+          }
+        },
         "reverse": false,
-        "smoothed": { "vertical": { "enabled": false } },
-        "speed": { "vertical": 0 }
+        "smoothed": {
+          "vertical": {
+            "enabled": false
+          }
+        },
+        "speed": {
+          "vertical": 0
+        }
       }
     }
   ]
