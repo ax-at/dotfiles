@@ -1,0 +1,341 @@
+# ============================================================================
+# skills.toml  --  curated set of agent skills installed globally on this machine
+# ----------------------------------------------------------------------------
+# Installed by run_onchange_after_45-agent-skills.sh via the `skills` CLI
+# (`npx skills`, https://github.com/vercel-labs/skills). Skills are installed at
+# GLOBAL scope (`-g`, e.g. ~/.claude/skills) and SYMLINKED (the CLI default).
+#
+# `agents` below is the DEFAULT target set every skill installs to. It is
+# independent of which agent CLIs are actually installed -- a skill is placed in
+# an agent's global skills dir whether or not that agent exists yet.
+#
+# Each [[skills]] block is ONE skill (TOML array-of-tables; the array is
+# `skills`, each block is one element). Fields:
+#   repo   source the CLI clones from. Usually "owner/repo"; may be any git
+#          source the CLI accepts (full URL, GitLab, direct path) -- use a
+#          branch URL to pin a skill, since the CLI has no @tag/#ref syntax.
+#   skill  the skill NAME within that repo. This is the identity key used for
+#          install AND removal AND the applied-manifest, so it must be unique.
+#   agents OPTIONAL per-skill override. Omitted -> installs to every agent in the
+#          top-level `agents` list. Present -> installs ONLY to those agents.
+#
+# The install script RECONCILES against ~/.local/state/dotfiles/skills.applied:
+# adding an entry installs it, and REMOVING an entry here UNINSTALLS it on the
+# next `chezmoi apply` (only skills this file installed are ever removed --
+# skills you add by hand are left untouched).
+#
+# Note: five mattpocock skills (grilling, grill-me, code-review,
+# resolving-merge-conflicts, improve) share names with Claude Code built-ins and
+# deliberately OVERRIDE them. `improve` also ships from shadcn/improve.
+# ============================================================================
+
+agents = ["universal", "claude-code", "openclaw", "hermes-agent", "pi"]
+
+# ------------------------------------------------------------ vercel ----
+[[skills]]
+repo = "vercel-labs/skills"
+skill = "find-skills"
+
+[[skills]]
+repo = "vercel/turborepo"
+skill = "turborepo"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "vercel-react-native-skills"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "vercel-composition-patterns"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "vercel-react-view-transitions"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "web-design-guidelines"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "deploy-to-vercel"
+
+[[skills]]
+repo = "vercel-labs/agent-skills"
+skill = "vercel-optimize"
+
+[[skills]]
+repo = "vercel-labs/next-skills"
+skill = "next-best-practices"
+
+[[skills]]
+repo = "vercel/components.build"
+skill = "building-components"
+
+[[skills]]
+repo = "vercel-labs/agent-browser"
+skill = "agent-browser"
+
+# -------------------------------------------------------------- expo ----
+[[skills]]
+repo = "expo/skills"
+skill = "building-native-ui"
+
+[[skills]]
+repo = "expo/skills"
+skill = "native-data-fetching"
+
+[[skills]]
+repo = "expo/skills"
+skill = "upgrading-expo"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-deployment"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-dev-client"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-cicd-workflows"
+
+[[skills]]
+repo = "expo/skills"
+skill = "use-dom"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-module"
+
+[[skills]]
+repo = "expo/skills"
+skill = "eas-update-insights"
+
+[[skills]]
+repo = "expo/skills"
+skill = "add-app-clip"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-observe"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-ui"
+
+[[skills]]
+repo = "expo/skills"
+skill = "expo-examples"
+
+[[skills]]
+repo = "expo/skills"
+skill = "web-to-native"
+
+[[skills]]
+repo = "expo/skills"
+skill = "eas-simulator"
+
+# ------------------------------------------------- react / react-native ----
+[[skills]]
+repo = "callstackincubator/agent-skills"
+skill = "react-native-best-practices"
+
+[[skills]]
+repo = "callstack/react-native-testing-library"
+skill = "react-native-testing"
+
+[[skills]]
+repo = "pproenca/dot-skills"
+skill = "react-testing-library"
+
+[[skills]]
+repo = "aidenybai/react-doctor"
+skill = "react-doctor"
+
+# --------------------------------------------------------------- ui ----
+[[skills]]
+repo = "shadcn/ui"
+skill = "shadcn"
+
+[[skills]]
+repo = "shadcn/improve"
+skill = "improve"
+
+# --------------------------------------------------------- typescript ----
+[[skills]]
+repo = "mcollina/skills"
+skill = "typescript-magician"
+
+[[skills]]
+repo = "wshobson/agents"
+skill = "typescript-advanced-types"
+
+# ------------------------------------------------------------ testing ----
+[[skills]]
+repo = "mattpocock/skills"
+skill = "tdd"
+
+[[skills]]
+repo = "currents-dev/playwright-best-practices-skill"
+skill = "playwright-best-practices"
+
+[[skills]]
+repo = "microsoft/playwright-cli"
+skill = "playwright-cli"
+
+[[skills]]
+repo = "antfu/skills"
+skill = "vitest"
+
+# --------------------------------------------------------- git / ci ----
+[[skills]]
+repo = "github/awesome-copilot"
+skill = "gh-cli"
+
+[[skills]]
+repo = "github/awesome-copilot"
+skill = "git-commit"
+
+[[skills]]
+repo = "xixu-me/skills"
+skill = "github-actions-docs"
+
+[[skills]]
+repo = "callstackincubator/agent-skills"
+skill = "github-actions"
+
+# ----------------------------------------------- mattpocock workflow ----
+[[skills]]
+repo = "mattpocock/skills"
+skill = "wayfinder"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "wizard"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "code-review"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "loop-me"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "resolving-merge-conflicts"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "ask-matt"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "diagnosing-bugs"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "codebase-design"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "writing-great-skills"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "domain-modeling"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "grill-me"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "grilling"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "improve-codebase-architecture"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "teach"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "prototype"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "triage"
+
+[[skills]]
+repo = "mattpocock/skills"
+skill = "setup-matt-pocock-skills"
+
+# ---------------------------------------------------------- logging ----
+[[skills]]
+repo = "hugorcd/evlog"
+skill = "evlog"
+
+[[skills]]
+repo = "hugorcd/evlog"
+skill = "review-logging-patterns"
+
+[[skills]]
+repo = "hugorcd/evlog"
+skill = "analyze-logs"
+
+[[skills]]
+repo = "hugorcd/evlog"
+skill = "build-audit-logs"
+
+[[skills]]
+repo = "remorses/errore"
+skill = "errore"
+
+# ------------------------------------------------------- better-auth ----
+[[skills]]
+repo = "better-auth/skills"
+skill = "better-auth-best-practices"
+
+[[skills]]
+repo = "better-auth/skills"
+skill = "create-auth-skill"
+
+[[skills]]
+repo = "better-auth/skills"
+skill = "organization-best-practices"
+
+[[skills]]
+repo = "better-auth/skills"
+skill = "two-factor-authentication-best-practices"
+
+[[skills]]
+repo = "better-auth/skills"
+skill = "email-and-password-best-practices"
+
+# Security skill sourced from our fork instead of upstream better-auth/skills.
+[[skills]]
+repo = "ax-at/better-auth-skills"
+skill = "better-auth-security-best-practices"
+
+# -------------------------------------------------------- databases ----
+[[skills]]
+repo = "planetscale/database-skills"
+skill = "postgres"
+
+[[skills]]
+repo = "planetscale/database-skills"
+skill = "mysql"
+
+# ------------------------------------------------------------ media ----
+[[skills]]
+repo = "remotion-dev/skills"
+skill = "remotion-best-practices"
+
+[[skills]]
+repo = "heygen-com/hyperframes"
+skill = "hyperframes"
