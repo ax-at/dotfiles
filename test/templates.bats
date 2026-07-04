@@ -80,6 +80,19 @@ setup() {
   assert_output --partial 'npm_install_if_missing '
 }
 
+# Regression guard for the "agents can't run python" class of bug: Homebrew's
+# python3 is PEP-668 locked, so a mise-managed python is what keeps `python3` +
+# `pip install` working for ad-hoc scripts (e.g. throwaway validators). Dropping
+# any runtime here silently breaks a fresh machine while the suite stays green,
+# so lock the whole set explicitly.
+@test "mise: provisions the runtimes agents assume (incl. writable python3+pip)" {
+  run cat "$SRC_DIR/dot_config/mise/config.toml"
+  assert_success
+  for tool in node pnpm ruby java python; do
+    assert_output --partial "$tool ="
+  done
+}
+
 @test "editors-off: main() early-exits (standalone 'exit 0')" {
   render "$ED" editors-off.toml | grep -qE '^[[:space:]]*exit 0[[:space:]]*$'
   run render "$ED" full.toml
