@@ -1,0 +1,15 @@
+# 🧠 Agent Skills
+
+> Auto-generated from `home/.chezmoidata/skills.toml` by `scripts/gen-skills.sh`.
+> Do not edit by hand. Run `make update-skills` after editing the registry.
+
+Installed globally (symlinked) via [`npx skills`](https://github.com/vercel-labs/skills)
+for these agents by default: {{ range $i, $a := .agents }}{{ if $i }}, {{ end }}`{{ $a }}`{{ end }}.
+A skill with its own `agents` list installs only to those.
+
+| Skill | Source | Agents |
+|-------|--------|--------|
+{{ range $s := .skills -}}
+{{- $agents := $.agents }}{{ if hasKey $s "agents" }}{{ $agents = $s.agents }}{{ end -}}
+| `{{ $s.skill }}` | [{{ $s.repo }}]({{ if hasPrefix $s.repo "http" }}{{ $s.repo }}{{ else }}https://github.com/{{ $s.repo }}{{ end }}) | {{ range $i, $a := $agents }}{{ if $i }}, {{ end }}{{ $a }}{{ end }} |
+{{ end -}}

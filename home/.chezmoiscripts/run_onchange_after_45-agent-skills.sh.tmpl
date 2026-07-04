@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# run_onchange_after_45-agent-skills.sh
+# Installs the curated global agent skills from .chezmoidata/skills.toml via the
+# `skills` CLI (npx skills, https://github.com/vercel-labs/skills), then keeps
+# them RECONCILED: adding a skill to the toml installs it, removing one from the
+# toml uninstalls it -- but only skills this script installed are ever removed
+# (tracked in ~/.local/state/dotfiles/skills.applied), so hand-added skills are
+# left alone.
+#
+# Skills are installed at GLOBAL scope (-g) and symlinked (the CLI default).
+# The identity key is (agent, skill); repo is only used when adding. Re-pointing
+# an existing skill to a new repo therefore needs a manual remove first.
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2
+# (macOS system bash): no associative arrays, no mapfile.
+{{ if index .modules "ai-tools" }}
+# skills.toml hash (forces re-run when the curated set changes):
+# {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/skills.toml") | sha256sum }}
+
+SKILLS_CLI="skills@1"
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/skills.applied"
+
+# desired_pairs -- prints the desired install set, one TAB-separated
+# "agent<TAB>skill<TAB>repo" line per (skill x its effective agents).
+desired_pairs() {
+  cat <<'DESIRED'
+{{ range $s := .skills }}{{ $agents := $.agents }}{{ if hasKey $s "agents" }}{{ $agents = $s.agents }}{{ end }}{{ range $a := $agents }}{{ $a }}	{{ $s.skill }}	{{ $s.repo }}
+{{ end }}{{ end -}}
+DESIRED
+}
+
+# run_npx ARGS... -- invoke the pinned skills CLI via mise's node. stdin is
+# denied so an add/remove can't swallow the reconcile loop's here-doc.
+run_npx() {
+  mise exec node -- npx -y "$SKILLS_CLI" "$@" </dev/null
+}
+
+# skill_add AGENT SKILL REPO
+skill_add() {
+  local agent="$1" skill="$2" repo="$3"
+  if [ "$agent" = "openclaw" ]; then
+    # OpenClaw refuses unverified (third-party) skills without this flag.
+    run_npx add "$repo" --skill "$skill" -g -a "$agent" -y --dangerously-accept-openclaw-risks
+  else
+    run_npx add "$repo" --skill "$skill" -g -a "$agent" -y
+  fi
+}
+
+# skill_remove AGENT SKILL
+skill_remove() {
+  local agent="$1" skill="$2"
+  run_npx remove "$skill" -g -a "$agent" -y
+}
+
+# reconcile -- diff desired_pairs against $MANIFEST; add what's missing, remove
+# what's no longer wanted. Soft-fails: a failed op warns, is excluded from (add)
+# or kept in (remove) the manifest, and never aborts the run. Uses desired_pairs,
+# skill_add, skill_remove and $MANIFEST, so tests can stub those.
+reconcile() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local desired have desired_keys applied failures agent skill repo key
+  desired="$(desired_pairs)"
+  have="$(cat "$MANIFEST")"
+  desired_keys="$(printf '%s\n' "$desired" | cut -f1,2)"
+  applied=""
+  failures=0
+
+  # ADD pass: desired pairs not already in the manifest.
+  while IFS=$'\t' read -r agent skill repo; do
+    [ -n "$agent" ] || continue
+    key="$agent"$'\t'"$skill"
+    if printf '%s\n' "$have" | grep -qxF "$key"; then
+      applied="$applied$key"$'\n' # already installed; keep tracking it
+      continue
+    fi
+    echo "  -> add $skill ($agent)"
+    if skill_add "$agent" "$skill" "$repo"; then
+      applied="$applied$key"$'\n'
+    else
+      echo "  !! FAILED add: $skill ($agent)" >&2
+      failures=$((failures + 1))
+    fi
+  done <<EOF
+$desired
+EOF
+
+  # REMOVE pass: manifest pairs no longer desired.
+  while IFS=$'\t' read -r agent skill; do
+    [ -n "$agent" ] || continue
+    key="$agent"$'\t'"$skill"
+    if printf '%s\n' "$desired_keys" | grep -qxF "$key"; then
+      continue
+    fi
+    echo "  -> remove $skill ($agent)"
+    if skill_remove "$agent" "$skill"; then
+      : # gone; drop from manifest
+    else
+      echo "  !! FAILED remove: $skill ($agent)" >&2
+      failures=$((failures + 1))
+      applied="$applied$key"$'\n' # still present; keep tracking it
+    fi
+  done <<EOF
+$have
+EOF
+
+  # Persist the applied set (unique, sorted, no blanks). || true: an empty set
+  # makes grep exit 1 under pipefail, which is fine here.
+  printf '%s' "$applied" | grep -v '^$' | sort -u >"$MANIFEST.tmp" || true
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  if [ "$failures" -gt 0 ]; then
+    echo "==> [agent-skills] $failures operation(s) failed (see above); continuing" >&2
+  fi
+}
+
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+  command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+
+  echo "==> [agent-skills] reconciling global agent skills"
+  reconcile
+  local n
+  n="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [agent-skills] done ($n skill install(s) tracked)"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi
+{{ end }}

@@ -2,7 +2,7 @@
 
 One-command setup for a **highly opinionated** Mac (and, later, Linux) development machine — web (React/Next/Vite) and native (React Native/Expo). It ships a curated stack with the **decisions already made**; [chezmoi](https://www.chezmoi.io) is the single orchestrator that installs everything, applies configs, and is safe to re-run on a fresh **or** existing machine.
 
-- **What gets installed:** see [TOOLS.md](./TOOLS.md) (auto-generated from the registry).
+- **What gets installed:** see [TOOLS.md](./TOOLS.md) (auto-generated from the registry) and [SKILLS.md](./SKILLS.md) (global [agent skills](#-agent-skills)).
 - **Source of truth:** [`home/.chezmoidata/registry.toml`](./home/.chezmoidata/registry.toml) — one block per tool, toggle with `enabled = true/false`.
 
 ---
@@ -126,6 +126,20 @@ After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatic
 
 ---
 
+## 🧠 Agent skills
+
+A curated set of [agent skills](https://skills.sh) is installed **globally** (available in every project) via [`npx skills`](https://github.com/vercel-labs/skills) for five agents: `universal` (the shared `.agents/skills` dir many tools read), `claude-code`, `openclaw`, `hermes-agent`, and `pi`. The full catalog is in [SKILLS.md](./SKILLS.md).
+
+- **Source of truth:** [`home/.chezmoidata/skills.toml`](./home/.chezmoidata/skills.toml) — one `[[skills]]` block per skill (`repo` + `skill`, plus an optional per-skill `agents` override; omitted → all agents in the top-level `agents` list).
+- **Add / remove a skill:** add or delete its block, then `chezmoi apply`. The install script **reconciles** against `~/.local/state/dotfiles/skills.applied` — adding installs, **removing uninstalls** — but only ever touches skills it installed, so skills you add by hand are left alone.
+- **Pin a skill:** the CLI has no `@tag` syntax, but `repo` accepts any git source, so point it at a branch URL to pin (e.g. our fork `ax-at/better-auth-skills` for the security skill).
+- **Note:** five Matt Pocock skills (`grilling`, `grill-me`, `code-review`, `resolving-merge-conflicts`, `improve`) share names with Claude Code built-ins and **deliberately override** them.
+- **Regenerate the catalog:** `make update-skills` (CI enforces it stays current).
+
+Installs are best-effort: a broken upstream skill logs a warning and is skipped — it never blocks `chezmoi apply`.
+
+---
+
 ## 🧪 Testing (contributors)
 
 A [bats](https://github.com/bats-core/bats-core) suite covers template rendering, registry integrity, and the provisioning scripts' shell-function logic. It's **offline-first** — no installs, no machine changes. The one network-aware check (zsh plugin validation) **prefers live GitHub** when it's reachable and **falls back to a pinned snapshot** otherwise, so the suite stays green — and never flakes — anywhere. Run it against live GitHub on demand with `make check-plugins`. On a machine provisioned by this repo, `chezmoi` and `bats` are already on PATH (both are in the registry), so there's nothing to set up:
@@ -157,15 +171,18 @@ dotfiles/
 ├── .nojekyll                 # serve Pages as static files (don't run Jekyll/Liquid)
 ├── README.md                 # this guide
 ├── TOOLS.md                  # generated tool catalog
+├── SKILLS.md                 # generated agent-skills catalog
 ├── .chezmoiroot              # → "home" (keeps repo meta out of $HOME)
 ├── scripts/                  # maintenance helpers (wired to `make` targets)
 │   ├── gen-tools.sh          #   regenerate TOOLS.md from the registry
+│   ├── gen-skills.sh         #   regenerate SKILLS.md from skills.toml
 │   ├── gen-ghostty-themes.sh #   snapshot Ghostty's built-in themes for tests
 │   └── check-plugins-live.sh #   validate zsh plugin refs against live GitHub
 ├── .github/workflows/ci.yml  # template lint + TOOLS.md freshness + shellcheck
 └── home/                     # ← chezmoi source root
     ├── .chezmoi.toml.tmpl    # init prompts (identity + module toggles)
-    ├── .chezmoidata/registry.toml   # SINGLE SOURCE OF TRUTH
+    ├── .chezmoidata/registry.toml  # SINGLE SOURCE OF TRUTH (tools)
+    ├── .chezmoidata/skills.toml     # curated global agent skills
     ├── .chezmoiexternal.toml        # fetches Karabiner ruleset
     ├── .chezmoiscripts/             # ordered provisioning steps
     ├── dot_zshrc.tmpl  dot_zsh_plugins.txt  dot_gitconfig.tmpl  dot_nanorc
@@ -180,6 +197,7 @@ dotfiles/
 | `run_onchange_after_20-packages`          | generate Brewfile from registry → `brew bundle` |
 | `run_onchange_after_30-mise`              | runtimes + npm-global CLIs                      |
 | `run_onchange_after_40-ai-tools`          | official `script` installers                    |
+| `run_onchange_after_45-agent-skills`      | reconcile global agent skills via `npx skills`  |
 | `run_onchange_after_50-editor-extensions` | VS Code + Cursor extensions                     |
 | `run_once_after_60-ssh-github`            | SSH key + `gh` auth + signing key               |
 | `run_onchange_after_70-macos-defaults`    | dev defaults + Ubuntu-feel tweaks               |

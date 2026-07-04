@@ -6,6 +6,7 @@
 #   make fmt                     auto-format in place with the same three formatters
 #   make check-plugins           validate zsh plugin refs against live GitHub (network)
 #   make update-golden           regenerate the committed TOOLS.md from the registry
+#   make update-skills           regenerate the committed SKILLS.md from skills.toml
 #   make update-ghostty-themes   regenerate the committed Ghostty built-in theme snapshot
 #
 # On a machine provisioned by this repo, chezmoi + bats are already on PATH
@@ -25,13 +26,15 @@ FILTER ?=
 # test/rendered_shellcheck.bats since raw templates aren't valid shell).
 SHELL_FILES := install \
                scripts/gen-tools.sh \
+               scripts/gen-skills.sh \
                scripts/gen-ghostty-themes.sh \
                scripts/check-plugins-live.sh \
                test/lib/bootstrap.sh \
-               test/lib/check-crossrefs.sh
+               test/lib/check-crossrefs.sh \
+               test/lib/check-skills-crossrefs.sh
 BASH_LIBS   := test/lib/isolate.bash test/lib/helpers.bash
 
-.PHONY: test lint fmt check-plugins update-golden update-ghostty-themes
+.PHONY: test lint fmt check-plugins update-golden update-skills update-ghostty-themes
 
 test:
 	@./test/lib/bootstrap.sh
@@ -63,6 +66,9 @@ check-plugins:
 
 update-golden:
 	@./scripts/gen-tools.sh
+
+update-skills:
+	@./scripts/gen-skills.sh
 
 update-ghostty-themes:
 	@./scripts/gen-ghostty-themes.sh
