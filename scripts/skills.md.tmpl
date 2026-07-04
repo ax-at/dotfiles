@@ -1,15 +1,16 @@
 # 🧠 Agent Skills
 
 > Auto-generated from `home/.chezmoidata/skills.toml` by `scripts/gen-skills.sh`.
-> Do not edit by hand. Run `make update-skills` after editing the registry.
+> Do not edit by hand. Run `make update-skills` after editing the data.
 
 Installed globally (symlinked) via [`npx skills`](https://github.com/vercel-labs/skills)
 for these agents by default: {{ range $i, $a := .agents }}{{ if $i }}, {{ end }}`{{ $a }}`{{ end }}.
-A skill with its own `agents` list installs only to those.
+A repo with its own `agents` list installs only to those. One batched install per
+repo; the skill name is the identity key (unique across the whole file).
 
-| Skill | Source | Agents |
-|-------|--------|--------|
-{{ range $s := .skills -}}
-{{- $agents := $.agents }}{{ if hasKey $s "agents" }}{{ $agents = $s.agents }}{{ end -}}
-| `{{ $s.skill }}` | [{{ $s.repo }}]({{ if hasPrefix $s.repo "http" }}{{ $s.repo }}{{ else }}https://github.com/{{ $s.repo }}{{ end }}) | {{ range $i, $a := $agents }}{{ if $i }}, {{ end }}{{ $a }}{{ end }} |
+| Source | Skills | Agents |
+|--------|--------|--------|
+{{ range $r := .repos -}}
+{{- $agents := $.agents }}{{ if hasKey $r "agents" }}{{ $agents = $r.agents }}{{ end -}}
+| [{{ $r.repo }}]({{ if hasPrefix $r.repo "http" }}{{ $r.repo }}{{ else }}https://github.com/{{ $r.repo }}{{ end }}) | {{ range $i, $s := $r.skills }}{{ if $i }}, {{ end }}`{{ $s }}`{{ end }} | {{ range $i, $a := $agents }}{{ if $i }}, {{ end }}{{ $a }}{{ end }} |
 {{ end -}}

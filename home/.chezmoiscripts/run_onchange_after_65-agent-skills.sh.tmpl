@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# run_onchange_after_65-agent-skills.sh
+# Installs the curated global agent skills from .chezmoidata/skills.toml via the
+# `skills` CLI (npx skills, https://github.com/vercel-labs/skills), BATCHED one
+# `add` per repo (one clone per repo, not one per skill-per-agent), then keeps
+# them RECONCILED against on-disk reality.
+#
+# Runs AFTER 60-ssh-github so `gh` is authenticated -- the CLI then clones via
+# gh's credentials and dodges anonymous GitHub rate limits. We do NOT export a
+# token: the CLI calls `gh auth token` on demand, in-memory, so the broad
+# repo-scoped token is never handed to the third-party skills it clones and runs.
+#
+# Reconcile model:
+#   desired  = (agent, skill) pairs from skills.toml (repo x skills x agents).
+#   installed= (agent, skill) pairs actually present, read from
+#              `skills list -g --json` (jq). Universal is implied by an entry
+#              existing (its files are the canonical ~/.agents/skills store);
+#              other agents appear by display name in the entry's `agents` array.
+#   ADD    = desired not installed -> one batched `add` per touched repo.
+#   REMOVE = manifest not desired  -> one batched `remove` per agent. The manifest
+#            (~/.local/state/dotfiles/skills.applied) is used ONLY to scope
+#            removals, so skills you add by hand (never in the manifest) are never
+#            removed. Identity is the skill NAME.
+# The manifest is rebuilt from reality each run, so it self-heals drift and
+# partial failures. Soft-fail throughout: a failed op warns and the run still
+# exits 0.
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2
+# (macOS system bash): no associative arrays, no mapfile.
+{{ if index .modules "ai-tools" }}
+# skills.toml hash (forces re-run when the curated set changes):
+# {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/skills.toml") | sha256sum }}
+
+SKILLS_CLI="skills@1"
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/skills.applied"
+
+# desired_triples -- the desired install set, one TAB-separated
+# "agent<TAB>skill<TAB>repo" line per (repo x its skills x its effective agents).
+desired_triples() {
+  cat <<'DESIRED'
+{{ range $r := .repos }}{{ $agents := $.agents }}{{ if hasKey $r "agents" }}{{ $agents = $r.agents }}{{ end }}{{ range $skill := $r.skills }}{{ range $a := $agents }}{{ $a }}	{{ $skill }}	{{ $r.repo }}
+{{ end }}{{ end }}{{ end -}}
+DESIRED
+}
+
+# run_npx ARGS... -- invoke the pinned skills CLI via mise's node. stdin is
+# denied so an add/remove can't swallow a reconcile here-doc.
+run_npx() {
+  mise exec node -- npx -y "$SKILLS_CLI" "$@" </dev/null
+}
+
+# installed_pairs -- read on-disk reality via `skills list -g --json` and emit
+# "agent<TAB>skill" lines (agent = our slug). Universal is implied by an entry
+# existing; other agents come from the entry's display-name `agents` array, which
+# we map back to slugs (unknown/other agents drop out). Tests stub this.
+installed_pairs() {
+  run_npx list -g --json 2>/dev/null | jq -r '
+    {"Universal":"universal","Claude Code":"claude-code","OpenClaw":"openclaw","Hermes Agent":"hermes-agent","Pi":"pi"} as $map
+    | .[]
+    | .name as $s
+    | (["Universal"] + (.agents // []))
+    | map($map[.] // empty) | unique
+    | .[] | "\(.)\t\($s)"
+  ' 2>/dev/null || true
+}
+
+# skill_add_batch REPO SKILLS AGENTS -- one batched add ($SKILLS/$AGENTS are
+# space-separated lists; word-splitting is intentional).
+skill_add_batch() {
+  local repo="$1" skills="$2" agents="$3"
+  # shellcheck disable=SC2086
+  run_npx add "$repo" -s $skills -a $agents -g -y
+}
+
+# skill_remove_batch AGENT SKILLS -- one batched remove for one agent.
+skill_remove_batch() {
+  local agent="$1" skills="$2"
+  # shellcheck disable=SC2086
+  run_npx remove $skills -g -a "$agent" -y
+}
+
+# reconcile -- diff desired (skills.toml) against installed (reality); batch-add
+# touched repos, batch-remove manifest-tracked pairs no longer desired, then
+# rebuild the manifest from reality. Uses desired_triples, installed_pairs,
+# skill_add_batch, skill_remove_batch and $MANIFEST, so tests can stub those.
+reconcile() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local desired installed manifest_prev desired_keys touched failures
+  local a s r key line agent skills_r agents_r skills_a stale stale_agents
+  local installed_after ours
+  desired="$(desired_triples)"
+  installed="$(installed_pairs)"
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  desired_keys="$(printf '%s\n' "$desired" | grep -v '^$' | cut -f1,2 | sort -u)"
+  failures=0
+
+  # ADD: distinct repos owning >=1 desired pair that isn't installed.
+  touched=""
+  while IFS=$'\t' read -r a s r; do
+    [ -n "$a" ] || continue
+    key="$a"$'\t'"$s"
+    if ! printf '%s\n' "$installed" | grep -qxF "$key"; then
+      printf '%s\n' "$touched" | grep -qxF "$r" || touched="$touched$r"$'\n'
+    fi
+  done <<EOF
+$desired
+EOF
+
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    # Whole block re-applied (idempotent): full desired skills x agents for repo.
+    skills_r="$(printf '%s\n' "$desired" | awk -F'\t' -v r="$r" '$3==r{print $2}' | sort -u | tr '\n' ' ')"
+    agents_r="$(printf '%s\n' "$desired" | awk -F'\t' -v r="$r" '$3==r{print $1}' | sort -u | tr '\n' ' ')"
+    echo "  -> add $r (skills: ${skills_r}| agents: ${agents_r})"
+    if ! skill_add_batch "$r" "$skills_r" "$agents_r"; then
+      echo "  !! FAILED add: $r" >&2
+      failures=$((failures + 1))
+    fi
+  done <<EOF
+$touched
+EOF
+
+  # REMOVE: manifest pairs no longer desired, grouped by agent.
+  stale=""
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    printf '%s\n' "$desired_keys" | grep -qxF "$line" || stale="$stale$line"$'\n'
+  done <<EOF
+$manifest_prev
+EOF
+
+  stale_agents="$(printf '%s' "$stale" | grep -v '^$' | cut -f1 | sort -u)"
+  while IFS= read -r agent; do
+    [ -n "$agent" ] || continue
+    skills_a="$(printf '%s' "$stale" | awk -F'\t' -v a="$agent" '$1==a{print $2}' | sort -u | tr '\n' ' ')"
+    echo "  -> remove from $agent: $skills_a"
+    if ! skill_remove_batch "$agent" "$skills_a"; then
+      echo "  !! FAILED remove: $agent ($skills_a)" >&2
+      failures=$((failures + 1))
+    fi
+  done <<EOF
+$stale_agents
+EOF
+
+  # REBUILD MANIFEST from reality: installed_after ∩ (desired ∪ manifest_prev).
+  # Keeps successful desired installs, retains failed-removal pairs for retry,
+  # drops removed pairs, and never records hand-added skills.
+  installed_after="$(installed_pairs)"
+  ours="$(printf '%s\n%s\n' "$desired_keys" "$manifest_prev" | grep -v '^$' | sort -u)"
+  printf '%s\n' "$installed_after" | grep -v '^$' \
+    | grep -Fxf <(printf '%s\n' "$ours") 2>/dev/null | sort -u >"$MANIFEST.tmp" || true
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  if [ "$failures" -gt 0 ]; then
+    echo "==> [agent-skills] $failures operation(s) failed (see above); continuing" >&2
+  fi
+}
+
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+  command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+  command -v jq >/dev/null 2>&1 || { echo "jq not found; ensure core packages installed" >&2; exit 1; }
+
+  echo "==> [agent-skills] reconciling global agent skills"
+  reconcile
+  local n
+  n="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [agent-skills] done ($n skill install(s) tracked)"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi
+{{ end }}
