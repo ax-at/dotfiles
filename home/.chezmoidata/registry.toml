@@ -759,15 +759,15 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "chatgpt" }
 
 [[packages]]
-name = "Google Gemini Desktop"
+name = "Antigravity Desktop"
 module = "ai-tools"
-desc = "Official Gemini Mac app (NOT the 'gemini' cask)"
-cost = "freemium"
+desc = "Google Antigravity agentic IDE (desktop app, NOT the CLI)"
+cost = "free"
 license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
-macos = { method = "cask", pkg = "google-gemini" }
+macos = { method = "cask", pkg = "antigravity" }
 
 [[packages]]
 name = "opencode-desktop"
