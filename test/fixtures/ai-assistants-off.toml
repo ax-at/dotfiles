@@ -1,0 +1,16 @@
+# Test fixture: all modules ON except ai-assistants. Mirrors full.toml with
+# exactly one toggle flipped — used to verify ai-assistants gate removes casks.
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+ai-assistants = false
+linux-feel = true

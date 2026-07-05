@@ -803,6 +803,17 @@ platforms = ["macos", "linux"]
 macos = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
 linux = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
 
+[[packages]]
+name = "Dayflow"
+module = "ai-assistants"
+desc = "Automatic work journal — privately turns your screen activity into a daily timeline"
+cost = "freemium"
+license = "MIT"
+repo = "https://github.com/JerryZLiu/Dayflow"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "dayflow" }
+
 # --------------------------------------------------------- productivity ----
 [[packages]]
 name = "Raycast"

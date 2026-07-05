@@ -74,6 +74,13 @@ setup() {
   [ "$off" -lt "$on" ]
 }
 
+@test "ai-assistants: toggling the module gates dayflow cask" {
+  run render "$PKGS" full.toml
+  assert_output --partial 'cask "dayflow"'
+  run render "$PKGS" ai-assistants-off.toml
+  refute_output --partial 'cask "dayflow"'
+}
+
 @test "mise: npm CLIs render as npm_install_if_missing calls" {
   run render "$MISE" full.toml
   assert_success

@@ -111,6 +111,7 @@
 | | Tool | Description | Cost | License | Source |
 |---|------|-------------|------|---------|--------|
 | ✅ | **screenpipe** | Local, always-on screen + audio capture with AI search and MCP server (CLI) | freemium | proprietary | [repo](https://github.com/screenpipe/screenpipe) |
+| ✅ | **Dayflow** | Automatic work journal — privately turns your screen activity into a daily timeline | freemium | MIT | [repo](https://github.com/JerryZLiu/Dayflow) |
 
 ## productivity
 
