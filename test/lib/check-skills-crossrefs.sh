@@ -15,7 +15,7 @@ set -euo pipefail
 CHEZMOI_BIN="${CHEZMOI_BIN:-chezmoi}"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../home" && pwd)"
 
-KNOWN_AGENTS='["adal","aider-desk","amp","antigravity","antigravity-cli","astrbot","augment","autohand-code","bob","claude-code","cline","codearts-agent","codebuddy","codemaker","codestudio","codex","command-code","continue","cortex","crush","cursor","deepagents","devin","dexto","droid","eve","firebender","forgecode","gemini-cli","github-copilot","goose","hermes-agent","iflow-cli","inference-sh","jazz","junie","kilo","kimi-code-cli","kiro-cli","kode","lingma","loaf","mcpjam","mistral-vibe","moxby","mux","neovate","ona","openclaw","opencode","openhands","pi","pochi","promptscript","qoder","qoder-cn","qwen-code","reasonix","replit","roo","rovodev","tabnine-cli","terramind","tinycloud","trae","trae-cn","universal","warp","windsurf","zed","zencoder","zenflow"]'
+KNOWN_AGENTS='["adal","aider-desk","amp","antigravity","antigravity-cli","astrbot","augment","autohand-code","bob","claude-code","cline","codearts-agent","codebuddy","codemaker","codestudio","codex","command-code","continue","cortex","crush","cursor","deepagents","devin","dexto","droid","eve","firebender","forgecode","github-copilot","goose","hermes-agent","iflow-cli","inference-sh","jazz","junie","kilo","kimi-code-cli","kiro-cli","kode","lingma","loaf","mcpjam","mistral-vibe","moxby","mux","neovate","ona","openclaw","opencode","openhands","pi","pochi","promptscript","qoder","qoder-cn","qwen-code","reasonix","replit","roo","rovodev","tabnine-cli","terramind","tinycloud","trae","trae-cn","universal","warp","windsurf","zed","zencoder","zenflow"]'
 
 data="$("$CHEZMOI_BIN" execute-template --source "$SRC_DIR" \
   '{{ dict "repos" .repos "agents" .agents | toJson }}')"
