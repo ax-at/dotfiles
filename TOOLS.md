@@ -53,6 +53,7 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **Visual Studio Code** | Primary editor (settings are the source of truth) | free | MIT | [repo](https://github.com/microsoft/vscode) |
 | ✅ | **Cursor** | AI-native VS Code fork | freemium | proprietary | — |
+| ✅ | **Antigravity IDE** | AI Coding Agent IDE | free | proprietary | — |
 | ✅ | **Sublime Text** | Fast text editor for quick edits | paid | proprietary | — |
 
 ## web
@@ -103,7 +104,6 @@
 | ✅ | **Claude Desktop** | Anthropic Claude desktop app (NOT the CLI) | freemium | proprietary | — |
 | ✅ | **ChatGPT Desktop** | OpenAI ChatGPT desktop app (also hosts Codex GUI) | freemium | proprietary | — |
 | ✅ | **Antigravity** | Agent orchestration platform | free | proprietary | — |
-| ✅ | **Antigravity IDE** | AI Coding Agent IDE | free | proprietary | — |
 | ✅ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
 | ✅ | **Pencil Desktop** | Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI | freemium | proprietary | — |

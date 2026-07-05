@@ -470,6 +470,17 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "cursor" }
 
 [[packages]]
+name = "Antigravity IDE"
+module = "editors"
+desc = "AI Coding Agent IDE"
+cost = "free"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "antigravity-ide" }
+
+[[packages]]
 name = "Sublime Text"
 module = "editors"
 desc = "Fast text editor for quick edits"
@@ -768,17 +779,6 @@ repo = ""
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "antigravity" }
-
-[[packages]]
-name = "Antigravity IDE"
-module = "ai-tools"
-desc = "AI Coding Agent IDE"
-cost = "free"
-license = "proprietary"
-repo = ""
-enabled = true
-platforms = ["macos"]
-macos = { method = "cask", pkg = "antigravity-ide" }
 
 [[packages]]
 name = "opencode-desktop"

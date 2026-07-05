@@ -33,10 +33,12 @@ setup() {
 
 # ---- install_into (50-editor-extensions) ----------------------------------
 
-@test "install_into: installs missing extensions via the editor CLI" {
+@test "install_into: installs missing extensions in one batched editor CLI call" {
   CODE_INSTALLED_EXTS="" run install_into code "VS Code"
   assert_success
-  grep -q 'code --install-extension oxc.oxc-vscode' "$CALLS_LOG"
+  # All missing extensions ship in a single `code` invocation, so match the
+  # flag anywhere on the install line (only the first ext follows `code`).
+  grep '^code ' "$CALLS_LOG" | grep -qF -- '--install-extension oxc.oxc-vscode'
 }
 
 @test "install_into: skips an already-installed extension" {
@@ -44,7 +46,8 @@ setup() {
   run install_into code "VS Code"
   assert_success
   assert_output --partial '✓ oxc.oxc-vscode'
-  ! grep -q 'code --install-extension oxc.oxc-vscode' "$CALLS_LOG"
+  # oxc was already present, so it must not appear in the batched install call.
+  ! grep '^code ' "$CALLS_LOG" | grep -qF -- '--install-extension oxc.oxc-vscode'
 }
 
 @test "install_into: skips entirely when the editor is not on PATH" {
@@ -60,6 +63,25 @@ setup() {
   assert_success
   assert_output --partial 'not on PATH'
   [ ! -s "$CALLS_LOG" ] || ! grep -q 'code --install-extension' "$CALLS_LOG"
+}
+
+@test "install_into: installs the Pencil extension into Antigravity IDE via agy-ide" {
+  # Antigravity IDE is a VS Code fork whose CLI is `agy-ide` (Open VSX gallery).
+  # Same shared list, same code path as code/cursor.
+  CODE_INSTALLED_EXTS="" run install_into agy-ide "Antigravity IDE"
+  assert_success
+  grep '^agy-ide ' "$CALLS_LOG" | grep -qF -- '--install-extension highagency.pencildev'
+}
+
+@test "install_into: skips Antigravity IDE entirely when agy-ide is not on PATH" {
+  remove_stub agy-ide
+  local saved_path="$PATH"
+  PATH="$MOCKBIN:/usr/bin:/bin"
+  run install_into agy-ide "Antigravity IDE"
+  PATH="$saved_path"
+  assert_success
+  assert_output --partial 'not on PATH'
+  [ ! -s "$CALLS_LOG" ] || ! grep -q 'agy-ide --install-extension' "$CALLS_LOG"
 }
 
 # ---- npm_install_if_missing (30-mise) -------------------------------------

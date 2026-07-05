@@ -30,6 +30,7 @@ isolate() {
   make_stub mise # records e.g. "mise exec node -- npm install -g X"
   make_editor_stub code
   make_editor_stub cursor
+  make_editor_stub agy-ide
 
   # Guard: refuse to run if isolation didn't take.
   [[ "$HOME" == "$BATS_TEST_TMPDIR"* ]] || fail "HOME not isolated: $HOME"
