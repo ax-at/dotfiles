@@ -12,22 +12,41 @@
 #   identifiers. Adding a NEW plugin is new rows here, with NO new script code.
 #   Adding a new CLIENT is one new backend `case` branch in the script.
 #
-# Backends and the fields each one consumes:
-#   claude  { slug }               -> claude plugin install <slug>
-#                                     (resolves from claude's official marketplace)
-#   gemini  { source, name }       -> gemini extensions install <source>
-#                                     --consent --skip-settings; <name> = the
-#                                     installed extension name (list / uninstall)
-#   codex   { marketplace, slug }  -> codex plugin marketplace add <marketplace>;
-#                                     codex plugin add <slug>@<resolved-marketplace>
-#   cursor  { slug, url }          -> MANUAL. Cursor has no headless plugin CLI,
-#                                     so the script PRINTS the in-app step
-#                                     instead of running it (see docs/ai-plugins.md).
+# Two backend FAMILIES read this file, each in its own reconcile script:
+#
+#   NATIVE per-client CLIs -- run_onchange_after_66-ai-plugins.sh. One sub-table
+#   per client, each installed by that client's own plugin CLI:
+#     claude  { slug }               -> claude plugin install <slug>
+#                                       (resolves from claude's official marketplace)
+#     gemini  { source, name }       -> gemini extensions install <source>
+#                                       --consent --skip-settings; <name> = the
+#                                       installed extension name (list / uninstall)
+#     codex   { marketplace, slug }  -> codex plugin marketplace add <marketplace>;
+#                                       codex plugin add <slug>@<resolved-marketplace>
+#     cursor  { slug, url, enabled } -> MANUAL. Cursor has no headless plugin CLI.
+#                                       DEFAULT-OFF (`enabled = false`): Cursor
+#                                       auto-imports Claude-installed plugins (shows
+#                                       them as "imported"), so the manual step is
+#                                       redundant. Set `enabled = true` to opt in;
+#                                       the script then PRINTS the in-app step.
+#
+#   OPEN plugins (`npx plugins`) -- run_onchange_after_67-open-plugins.sh. One
+#   `open` sub-table = install via the universal `plugins` CLI (a sibling of
+#   `npx skills`), fanned across per-target entries. The CLI is INSTALL-ONLY (no
+#   list/remove); it lands the plugin in each target's NATIVE store, so verify/
+#   remove happen there:
+#     open { repo, targets = [ { target, id?, enabled? } ] }
+#       repo    owner/repo the `plugins` CLI clones (e.g. "vercel/vercel-plugin").
+#       target  install target (`plugins add -t <target>`): "claude-code", "cursor".
+#       id      native-store id for verify/uninstall. DEFAULTS to the plugin `name`.
+#       enabled per-target opt-out (default true). Cursor is set false here too.
+#     Requires node (mise) + bun. See docs/ai-plugins.md.
 #
 # Gating: the whole file is under the `ai-tools` module; each backend runs only
-# if its CLI is present (`command -v`); each plugin has its own `enabled` master
-# switch. Removals are scoped to a manifest (ai-plugins.applied), so a plugin
-# you installed by hand is NEVER touched -- only what this file installed.
+# if its CLI (or node+bun, for `open`) is present; each plugin has its own
+# `enabled` master switch, and cursor/open-targets have a per-entry `enabled`.
+# Removals are scoped to a per-script manifest (ai-plugins.applied /
+# open-plugins.applied), so a plugin you installed by hand is NEVER touched.
 #
 # Auth: installing a plugin does NOT authenticate it. Each client needs a
 # one-time manual OAuth step (browser). The script prints the per-client
@@ -42,4 +61,42 @@ repo = "https://github.com/PostHog/ai-plugin"
 claude = { slug = "posthog" }
 gemini = { source = "https://github.com/PostHog/ai-plugin", name = "posthog" }
 codex = { marketplace = "PostHog/ai-plugin", slug = "posthog" }
-cursor = { slug = "posthog", url = "https://cursor.com/marketplace" }
+# Cursor OFF: it auto-imports the Claude install (appears as "imported").
+cursor = { slug = "posthog", url = "https://cursor.com/marketplace", enabled = false }
+
+# ------------------------------------------------------------ vercel ----
+# HYBRID backend: claude-code via the OPEN backend (`npx plugins`, script 67);
+# codex via the NATIVE backend (script 66). For claude-code, `plugins add`
+# delegates to the official Claude marketplace (installs
+# `vercel@claude-plugins-official`), so verify/uninstall use the native claude
+# verbs. Cursor is off (auto-imported).
+#
+# WHY openai-curated and not the official vercel/vercel-plugin repo: on Codex the
+# official plugin can't be installed either way we tried --
+#   - `npx plugins -t codex` (the `open` path) writes a config entry Codex can't
+#     resolve (its ad-hoc `plugins-cli` marketplace roots at $HOME) -> the plugin
+#     reads back as "not installed": a phantom, so nothing actually lands.
+#   - Adding vercel/vercel-plugin as a standalone Codex marketplace fails too: the
+#     repo's plugin manifest is named `vercel` while Codex derives `vercel-plugin`
+#     from the repo path, and Codex hard-rejects the name mismatch.
+# OpenAI's built-in `openai-curated` marketplace ships the SAME upstream Vercel
+# plugin but packaged with a matching name (`vercel`), so it installs cleanly and
+# is fully reconcilable (codex plugin list / remove). It's bundled with Codex, so
+# there is no extra marketplace to provision. See docs/ai-plugins.md.
+[[plugins]]
+name = "vercel"
+enabled = true
+desc = "Vercel ecosystem — 30 skills, 5 commands, 3 agents, MCP (Next.js, AI SDK, deploy, storage, …)"
+repo = "https://github.com/vercel/vercel-plugin"
+# Codex: install `vercel` from the built-in `openai-curated` marketplace (the
+# official repo is broken for Codex -- see the WHY note above).
+codex = { marketplace = "openai-curated", slug = "vercel" }
+
+[plugins.open]
+repo = "vercel/vercel-plugin"
+[[plugins.open.targets]]
+target = "claude-code" # id defaults to name = "vercel"
+[[plugins.open.targets]]
+target = "cursor"
+id = "vercel-plugin"
+enabled = false

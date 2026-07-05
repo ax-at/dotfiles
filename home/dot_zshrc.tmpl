@@ -68,6 +68,9 @@ command -v mise >/dev/null 2>&1 && export JAVA_HOME="$(mise where java 2>/dev/nu
 # to the shell rc, but chezmoi owns this file and overwrites that on every apply,
 # so we set the PATH here instead. $HOME resolves at runtime — nothing hardcoded.
 export PATH="$HOME/.opencode/bin:$PATH"
+# Vercel plugin (ai-plugins.toml `open` backend) ships telemetry ON by default;
+# opt out to match the no-telemetry posture we keep for AI-client plugins.
+export VERCEL_PLUGIN_TELEMETRY=off
 {{ end -}}
 
 # >>> proton-pass-doctor >>>

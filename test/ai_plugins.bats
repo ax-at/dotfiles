@@ -27,11 +27,29 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   source "$BATS_TEST_TMPDIR/p.sh"
   run desired_rows
   assert_success
-  # posthog declares all four clients; each renders a pipe-delimited row.
+  # posthog declares claude/gemini/codex + a DISABLED cursor; each enabled
+  # client renders a pipe-delimited row.
   assert_line "claude|posthog|posthog||"
   assert_line "gemini|posthog|posthog|https://github.com/PostHog/ai-plugin|"
   assert_line "codex|posthog|posthog||PostHog/ai-plugin"
-  assert_line "cursor|posthog|posthog|https://cursor.com/marketplace|"
+  # vercel is hybrid: its native codex sub-table renders here (installed from the
+  # built-in openai-curated marketplace); claude-code goes via the open backend
+  # (script 67), so it does NOT render a claude row here.
+  assert_line "codex|vercel|vercel||openai-curated"
+}
+
+@test "desired_rows omits a cursor sub-table with enabled = false" {
+  render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/p.sh" full.toml
+  source "$BATS_TEST_TMPDIR/p.sh"
+  run desired_rows
+  assert_success
+  # posthog's cursor is off (auto-imported) -> no cursor row, no manual step.
+  refute_line --partial "cursor|posthog"
+  # vercel has only a codex native sub-table here (claude-code goes via the open
+  # backend, script 67); it must NOT render claude/gemini/cursor rows.
+  refute_line --partial "claude|vercel"
+  refute_line --partial "gemini|vercel"
+  refute_line --partial "cursor|vercel"
 }
 
 # ---- reconcile() branch logic ---------------------------------------------

@@ -536,7 +536,7 @@ desc = "All-in-one JS runtime & toolkit"
 cost = "free"
 license = "MIT"
 repo = "https://github.com/oven-sh/bun"
-enabled = false
+enabled = true
 platforms = ["macos", "linux"]
 macos = { method = "brew", pkg = "oven-sh/bun/bun" }
 linux = { method = "brew", pkg = "oven-sh/bun/bun" }

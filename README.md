@@ -108,7 +108,7 @@ Tracked here because Apple/vendor flows require a human:
 - [ ] Grant **Karabiner-Elements** and **LinearMouse** their permissions (Input Monitoring / Accessibility) when prompted.
 - [ ] **Karabiner**: open it → Complex Modifications → "Add Predefined Rule" → enable all "Windows Shortcuts" rules.
 - [ ] **VS Code / Cursor**: turn **off** the built-in Settings Sync (chezmoi manages `settings.json`).
-- [ ] **AI-client plugins**: authenticate PostHog once per client (browser OAuth) and add it in **Cursor** manually — see [docs/ai-plugins.md](./docs/ai-plugins.md#one-time-authentication-per-client).
+- [ ] **AI-client plugins**: authenticate **PostHog** and **Vercel** once per client (browser OAuth). Cursor is auto-imported from Claude — no manual add — see [docs/ai-plugins.md](./docs/ai-plugins.md).
 - [ ] **Log out / back in** so fast key-repeat + modifier changes fully apply.
 
 ---
@@ -146,10 +146,10 @@ Runs after `gh` login (step 65, below), so clones are GitHub-authenticated and d
 
 Plugins installed **into** the agent CLIs (Claude Code, Gemini CLI, Codex, Cursor), as opposed to the CLIs themselves. One plugin is declared once and fanned out across every supported client. Full details in [docs/ai-plugins.md](./docs/ai-plugins.md).
 
-- **Source of truth:** [`home/.chezmoidata/ai-plugins.toml`](./home/.chezmoidata/ai-plugins.toml) — one `[[plugins]]` block per upstream plugin, with a per-client sub-table (`claude` / `gemini` / `codex` / `cursor`) carrying only identifiers. Adding a **new plugin is data-only**; adding a new _client_ is one backend `case` in the script.
-- **Reconciles like skills:** [`run_onchange_after_66-ai-plugins`](./home/.chezmoiscripts/run_onchange_after_66-ai-plugins.sh.tmpl) installs what's declared and **uninstalls** what you drop — scoped by a manifest (`~/.local/state/dotfiles/ai-plugins.applied`), so a plugin you added by hand is never touched. Each backend runs only if its CLI is present.
-- **Ships today:** the [PostHog ai-plugin](https://github.com/PostHog/ai-plugin) (27+ tools + 30+ skills), **tool/skill access only** — session telemetry is intentionally not configured.
-- **Cursor is manual:** it has no headless plugin CLI, so `chezmoi apply` prints the in-app step instead of running it.
+- **Source of truth:** [`home/.chezmoidata/ai-plugins.toml`](./home/.chezmoidata/ai-plugins.toml) — one `[[plugins]]` block per upstream plugin. Two backend families read it: **native per-client** sub-tables (`claude` / `gemini` / `codex` / `cursor`) installed by each client's own CLI, and an **`open`** sub-table installed by the universal [`npx plugins`](https://github.com/vercel-labs/plugins) CLI (a sibling of `npx skills`, needs node + bun). Adding a **new plugin is data-only**.
+- **Reconciles like skills:** [`66-ai-plugins`](./home/.chezmoiscripts/run_onchange_after_66-ai-plugins.sh.tmpl) (native) and [`67-open-plugins`](./home/.chezmoiscripts/run_onchange_after_67-open-plugins.sh.tmpl) (`open`) each install what's declared and **uninstall** what you drop — scoped by a per-script manifest (`ai-plugins.applied` / `open-plugins.applied`), so a plugin you added by hand is never touched. Each backend runs only if its CLI (or node+bun) is present.
+- **Ships today:** the [PostHog ai-plugin](https://github.com/PostHog/ai-plugin) (27+ tools + 30+ skills) via the native backend, and the [Vercel plugin](https://github.com/vercel/vercel-plugin) (30 skills, 5 commands, 3 agents, MCP) via a **hybrid** backend — `open` for Claude Code, native for Codex (from Codex's built-in `openai-curated` marketplace, since the official repo won't install natively there) — **tool/skill access only**; PostHog session telemetry is left unconfigured and Vercel telemetry is turned off in `.zshrc`.
+- **Cursor is off by default:** it auto-imports Claude-installed plugins (shown as _imported_), so no manual step runs — flip an entry's `enabled = true` to opt into an explicit Cursor install.
 - **Auth is manual:** installing a plugin doesn't authenticate it — each client needs a one-time browser OAuth ([steps](./docs/ai-plugins.md#one-time-authentication-per-client)).
 
 ---
@@ -197,7 +197,7 @@ dotfiles/
     ├── .chezmoi.toml.tmpl    # init prompts (identity + module toggles)
     ├── .chezmoidata/registry.toml  # SINGLE SOURCE OF TRUTH (tools)
     ├── .chezmoidata/skills.toml     # curated global agent skills
-    ├── .chezmoidata/ai-plugins.toml # AI-client plugins (PostHog) per CLI
+    ├── .chezmoidata/ai-plugins.toml # AI-client plugins (PostHog native; Vercel hybrid: `npx plugins` + native)
     ├── .chezmoiexternal.toml        # fetches Karabiner ruleset
     ├── .chezmoiscripts/             # ordered provisioning steps
     ├── dot_zshrc.tmpl  dot_zsh_plugins.txt  dot_gitconfig.tmpl  dot_nanorc
