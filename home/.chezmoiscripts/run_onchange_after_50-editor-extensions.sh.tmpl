@@ -37,10 +37,8 @@ install_into() {
   command -v "$bin" >/dev/null 2>&1 || { echo "  ($label not on PATH — skipping)"; return; }
   echo "==> [extensions] $label"
   local installed; installed="$("$bin" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
-  # Collect only what's missing, then install it all in ONE invocation. These
-  # CLIs cold-start a full editor host per call (very slow on Antigravity IDE),
-  # so a single call with repeated --install-extension flags beats one call per
-  # extension by a wide margin.
+  # Install every missing extension in one call — each invocation cold-starts a
+  # full editor host (slow on Antigravity IDE), so per-extension calls add up.
   local ext missing=() args=()
   for ext in "${EXTENSIONS[@]}"; do
     if grep -qx "$(echo "$ext" | tr '[:upper:]' '[:lower:]')" <<<"$installed"; then
@@ -50,17 +48,11 @@ install_into() {
       args+=(--install-extension "$ext")
     fi
   done
-  [ "${#missing[@]}" -eq 0 ] && return 0
-  # stdout is just progress chatter — drop it. On stderr, strip only Antigravity
-  # IDE's benign "depends on antigravityAnalytics which is NOT registered" line
-  # (its telemetry service is GUI-only); real errors ("not found", "Failed
-  # Installing Extensions") still pass through. Exit status is unaffected.
-  if "$bin" "${args[@]}" --force >/dev/null \
-       2> >(grep -v 'antigravityAnalytics which is NOT registered' >&2); then
-    printf '  + %s\n' "${missing[@]}"
-  else
-    printf '  ! %s: one or more extensions failed to install (see above)\n' "$label" >&2
-  fi
+  [ "${#missing[@]}" -eq 0 ] && return
+  # Drop Antigravity IDE's benign "antigravityAnalytics ... NOT registered" noise.
+  "$bin" "${args[@]}" --force >/dev/null \
+    2> >(grep -v 'antigravityAnalytics which is NOT registered' >&2) \
+    && printf '  + %s\n' "${missing[@]}"
 }
 
 main() {
