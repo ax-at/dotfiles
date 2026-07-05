@@ -102,7 +102,8 @@
 | ✅ | **Pencil CLI** | Design-to-code CLI (Pencil.dev: canvas designs → code) | freemium | proprietary | — |
 | ✅ | **Claude Desktop** | Anthropic Claude desktop app (NOT the CLI) | freemium | proprietary | — |
 | ✅ | **ChatGPT Desktop** | OpenAI ChatGPT desktop app (also hosts Codex GUI) | freemium | proprietary | — |
-| ✅ | **Antigravity Desktop** | Google Antigravity agentic IDE (desktop app, NOT the CLI) | free | proprietary | — |
+| ✅ | **Antigravity** | Agent orchestration platform | free | proprietary | — |
+| ✅ | **Antigravity IDE** | AI Coding Agent IDE | free | proprietary | — |
 | ✅ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
 | ✅ | **Pencil Desktop** | Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI | freemium | proprietary | — |

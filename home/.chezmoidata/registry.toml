@@ -759,15 +759,26 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "chatgpt" }
 
 [[packages]]
-name = "Antigravity Desktop"
+name = "Antigravity"
 module = "ai-tools"
-desc = "Google Antigravity agentic IDE (desktop app, NOT the CLI)"
+desc = "Agent orchestration platform"
 cost = "free"
 license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "antigravity" }
+
+[[packages]]
+name = "Antigravity IDE"
+module = "ai-tools"
+desc = "AI Coding Agent IDE"
+cost = "free"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "antigravity-ide" }
 
 [[packages]]
 name = "opencode-desktop"
