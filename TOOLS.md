@@ -106,6 +106,12 @@
 | ✅ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
 
+## ai-assistants
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+| ✅ | **screenpipe** | Local, always-on screen + audio capture with AI search and MCP server (CLI) | freemium | proprietary | [repo](https://github.com/screenpipe/screenpipe) |
+
 ## productivity
 
 | | Tool | Description | Cost | License | Source |
