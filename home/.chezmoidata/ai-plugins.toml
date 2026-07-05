@@ -18,9 +18,6 @@
 #   per client, each installed by that client's own plugin CLI:
 #     claude  { slug }               -> claude plugin install <slug>
 #                                       (resolves from claude's official marketplace)
-#     gemini  { source, name }       -> gemini extensions install <source>
-#                                       --consent --skip-settings; <name> = the
-#                                       installed extension name (list / uninstall)
 #     codex   { marketplace, slug }  -> codex plugin marketplace add <marketplace>;
 #                                       codex plugin add <slug>@<resolved-marketplace>
 #     cursor  { slug, url, enabled } -> MANUAL. Cursor has no headless plugin CLI.
