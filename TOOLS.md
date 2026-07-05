@@ -97,6 +97,9 @@
 | ✅ | **Codex CLI** | OpenAI Codex agentic coding CLI | freemium | Apache-2.0 | [repo](https://github.com/openai/codex) |
 | ✅ | **Gemini CLI** | Google Gemini agentic coding CLI | free | Apache-2.0 | [repo](https://github.com/google-gemini/gemini-cli) |
 | ✅ | **opencode** | SST's open-source terminal AI agent | free | MIT | [repo](https://github.com/sst/opencode) |
+| ✅ | **Context7 CLI** | Fetches up-to-date library docs (Upstash Context7) | freemium | MIT | [repo](https://github.com/upstash/context7) |
+| ✅ | **Context Hub CLI** | Semantic code/context search CLI (Andrew Ng) | free | MIT | [repo](https://github.com/andrewyng/context-hub) |
+| ✅ | **Pencil CLI** | Design-to-code CLI (Pencil.dev: canvas designs → code) | freemium | proprietary | — |
 | ✅ | **Claude Desktop** | Anthropic Claude desktop app (NOT the CLI) | freemium | proprietary | — |
 | ✅ | **ChatGPT Desktop** | OpenAI ChatGPT desktop app (also hosts Codex GUI) | freemium | proprietary | — |
 | ✅ | **Google Gemini Desktop** | Official Gemini Mac app (NOT the 'gemini' cask) | freemium | proprietary | — |
