@@ -27,10 +27,9 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   source "$BATS_TEST_TMPDIR/p.sh"
   run desired_rows
   assert_success
-  # posthog declares claude/gemini/codex + a DISABLED cursor; each enabled
+  # posthog declares claude/codex + a DISABLED cursor; each enabled
   # client renders a pipe-delimited row.
   assert_line "claude|posthog|posthog||"
-  assert_line "gemini|posthog|posthog|https://github.com/PostHog/ai-plugin|"
   assert_line "codex|posthog|posthog||PostHog/ai-plugin"
   # vercel is hybrid: its native codex sub-table renders here (installed from the
   # built-in openai-curated marketplace); claude-code goes via the open backend

@@ -59,7 +59,6 @@ enabled = true
 desc = "PostHog analytics, feature flags, experiments, error tracking (27+ MCP tools + 30+ skills)"
 repo = "https://github.com/PostHog/ai-plugin"
 claude = { slug = "posthog" }
-gemini = { source = "https://github.com/PostHog/ai-plugin", name = "posthog" }
 codex = { marketplace = "PostHog/ai-plugin", slug = "posthog" }
 # Cursor OFF: it auto-imports the Claude install (appears as "imported").
 cursor = { slug = "posthog", url = "https://cursor.com/marketplace", enabled = false }

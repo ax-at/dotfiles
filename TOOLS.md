@@ -95,7 +95,7 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **Claude Code** | Anthropic's agentic coding CLI | freemium | proprietary | [repo](https://github.com/anthropics/claude-code) |
 | ✅ | **Codex CLI** | OpenAI Codex agentic coding CLI | freemium | Apache-2.0 | [repo](https://github.com/openai/codex) |
-| ✅ | **Gemini CLI** | Google Gemini agentic coding CLI | free | Apache-2.0 | [repo](https://github.com/google-gemini/gemini-cli) |
+| ✅ | **Antigravity CLI** | Google Antigravity agentic coding CLI | free | Apache-2.0 | [repo](https://github.com/google-antigravity/antigravity-cli) |
 | ✅ | **opencode** | SST's open-source terminal AI agent | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Context7 CLI** | Fetches up-to-date library docs (Upstash Context7) | freemium | MIT | [repo](https://github.com/upstash/context7) |
 | ✅ | **Context Hub CLI** | Semantic code/context search CLI (Andrew Ng) | free | MIT | [repo](https://github.com/andrewyng/context-hub) |

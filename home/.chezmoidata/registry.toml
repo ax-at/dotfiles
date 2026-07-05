@@ -676,16 +676,16 @@ macos = { method = "npm", pkg = "@openai/codex", check = "codex --version" }
 linux = { method = "npm", pkg = "@openai/codex", check = "codex --version" }
 
 [[packages]]
-name = "Gemini CLI"
+name = "Antigravity CLI"
 module = "ai-tools"
-desc = "Google Gemini agentic coding CLI"
+desc = "Google Antigravity agentic coding CLI"
 cost = "free"
 license = "Apache-2.0"
-repo = "https://github.com/google-gemini/gemini-cli"
+repo = "https://github.com/google-antigravity/antigravity-cli"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "@google/gemini-cli", check = "gemini --version" }
-linux = { method = "npm", pkg = "@google/gemini-cli", check = "gemini --version" }
+macos = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash" }
+linux = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash" }
 
 [[packages]]
 name = "opencode"
