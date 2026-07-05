@@ -40,4 +40,17 @@ cat "$BREWFILE"
 # of buffering it, so `chezmoi apply` shows real progress rather than a single
 # static "Fetching ..." line while large casks download.
 HOMEBREW_NO_REQUIRE_TAP_TRUST=1 brew bundle --verbose --file="$BREWFILE"
+
+# Persistently trust the third-party taps referenced above (recorded by
+# `brew trust` in trust.json). The bundle run bypasses the tap-trust gate for
+# itself, but this also lets *interactive* brew commands (brew list/info/upgrade)
+# load these casks/formulae without the "untrusted tap" refusal, in case a
+# future Homebrew enables HOMEBREW_REQUIRE_TAP_TRUST by default. Derived from the
+# full "org/tap/name" entries in the Brewfile; runs after bundle so the taps are
+# already tapped; per-tap failures are non-fatal.
+if brew trust --help >/dev/null 2>&1; then
+  grep -oE '"[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/[^"]+"' "$BREWFILE" |
+    tr -d '"' | sed 's#/[^/]*$##' | sort -u |
+    while read -r tap; do brew trust "$tap" 2>/dev/null || true; done
+fi
 echo "==> [packages] done"
