@@ -253,9 +253,11 @@ setup() {
     --promptString "GitHub username=ci" \
     --promptBool "Install the React Native / Expo native toolchain=false" \
     --promptBool "Install AI coding tools (Claude Code, Codex, etc.)=true" \
+    --promptBool "Install AI assistants (e.g. screenpipe, Dayflow)=true" \
     --promptBool "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)=true" \
     < "$SRC_DIR/.chezmoi.toml.tmpl"
   assert_success
-  assert_output --partial 'react-native = false'
-  assert_output --partial 'ai-tools     = true'
+  assert_output --partial 'react-native  = false'
+  assert_output --partial 'ai-tools      = true'
+  assert_output --partial 'ai-assistants = true'
 }

@@ -29,6 +29,7 @@ databases = true
 cloud = true
 react-native = true
 ai-tools = true
+ai-assistants = true
 productivity = true
 linux-feel = true
 macos-defaults = true
@@ -788,6 +789,19 @@ repo = ""
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "superset" }
+
+# -------------------------------------------------------- ai-assistants ----
+[[packages]]
+name = "screenpipe"
+module = "ai-assistants"
+desc = "Local, always-on screen + audio capture with AI search and MCP server (CLI)"
+cost = "freemium"
+license = "proprietary"
+repo = "https://github.com/screenpipe/screenpipe"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
+linux = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
 
 # --------------------------------------------------------- productivity ----
 [[packages]]
