@@ -18,8 +18,6 @@ command -v ghostty >/dev/null 2>&1 ||
 
 # `+list-themes --plain` prints "<name> (resources|user)". Keep only the
 # app-bundled built-ins (resources); user themes are per-machine, not portable.
-# `sed -n .../p` prints only the lines that matched, so the filter + tag-strip
-# happen in one pass.
 ghostty +list-themes --plain |
   sed -n -E 's/ \(resources\)$//p' |
   LC_ALL=C sort -u >"$out"
