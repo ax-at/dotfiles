@@ -36,8 +36,7 @@ setup() {
 @test "install_into: installs missing extensions in one batched editor CLI call" {
   CODE_INSTALLED_EXTS="" run install_into code "VS Code"
   assert_success
-  # All missing extensions ship in a single `code` invocation, so match the
-  # flag anywhere on the install line (only the first ext follows `code`).
+  # Batched into one call, so the ext isn't the first arg — match it anywhere.
   grep '^code ' "$CALLS_LOG" | grep -qF -- '--install-extension oxc.oxc-vscode'
 }
 
@@ -46,7 +45,6 @@ setup() {
   run install_into code "VS Code"
   assert_success
   assert_output --partial '✓ oxc.oxc-vscode'
-  # oxc was already present, so it must not appear in the batched install call.
   ! grep '^code ' "$CALLS_LOG" | grep -qF -- '--install-extension oxc.oxc-vscode'
 }
 
