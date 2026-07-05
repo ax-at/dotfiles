@@ -315,3 +315,30 @@ JSON
   run grep -c "reconcile()" "$BATS_TEST_TMPDIR/off.sh"
   assert_output "0"
 }
+
+# ---- store-fingerprint (out-of-band deletion self-heal) -------------------
+# The rendered script embeds a hash of the installed skill NAMES (~/.agents/skills)
+# so `run_onchange` re-runs when a skill is deleted out-of-band. These render with
+# a fabricated HOME to drive the render-time `output` digest.
+
+@test "65 drift heal: deleting a skill flips the store fingerprint (content changes)" {
+  HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME/.agents/skills/demo-skill"
+  run render_to_file "$(script_tmpl 65-agent-skills)" "$BATS_TEST_TMPDIR/with.sh" full.toml
+  assert_success
+  rm -rf "$HOME/.agents/skills/demo-skill"
+  run render_to_file "$(script_tmpl 65-agent-skills)" "$BATS_TEST_TMPDIR/without.sh" full.toml
+  assert_success
+  # Different rendered content -> chezmoi re-runs the onchange script -> heals.
+  run diff "$BATS_TEST_TMPDIR/with.sh" "$BATS_TEST_TMPDIR/without.sh"
+  assert_failure
+}
+
+@test "65 drift heal: absent skills store renders without aborting apply (fresh machine)" {
+  HOME="$BATS_TEST_TMPDIR/empty-home"
+  mkdir -p "$HOME" # no ~/.agents/skills yet
+  run render_to_file "$(script_tmpl 65-agent-skills)" "$BATS_TEST_TMPDIR/fresh.sh" full.toml
+  assert_success # a non-zero digest exit would abort the whole apply
+  run grep -c "reconcile()" "$BATS_TEST_TMPDIR/fresh.sh"
+  assert_success # the real script still rendered
+}

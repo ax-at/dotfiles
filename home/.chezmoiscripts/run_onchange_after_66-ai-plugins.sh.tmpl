@@ -35,6 +35,15 @@
 {{ if index .modules "ai-tools" }}
 # ai-plugins.toml hash (forces re-run when the declared set changes):
 # {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
+# store fingerprint (forces re-run when a plugin is deleted out-of-band -- drift
+# heal). Hashes installed plugin IDENTITIES from the same records each backend's
+# pm_is_installed reads -- claude's installed_plugins.json keys, gemini's
+# extension dirs, codex's config.toml [plugins."..."] sections (cursor excluded;
+# it is manual/auto-imported, nothing to auto-heal) -- computed at render time.
+# Identity-only (no timestamps) so plugin auto-updates don't churn it. A deleted
+# identity flips the hash -> reconcile re-runs. `2>/dev/null ...; :` keeps missing
+# records (fresh machine) from a non-zero exit that would abort the whole apply.
+# {{ output "bash" "-c" "{ cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"'; ls ~/.gemini/extensions 2>/dev/null; grep -oE '^\\[plugins\\.\"[^\"]+\"\\]' ~/.codex/config.toml 2>/dev/null; } | sort -u; :" | sha256sum }}
 
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/ai-plugins.applied"
 

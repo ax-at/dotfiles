@@ -34,6 +34,14 @@
 {{ if index .modules "ai-tools" }}
 # ai-plugins.toml hash (forces re-run when the declared set changes):
 # {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
+# store fingerprint (forces re-run when an open plugin is deleted out-of-band --
+# drift heal). The only reconcilable open target is claude-code, whose native
+# store is claude's installed_plugins.json (what its is_installed reads); other
+# targets are manifest-authoritative with no cheap store to probe. Identity-only
+# keys, computed at render time; a deleted key flips the hash -> reconcile re-runs.
+# `2>/dev/null ...; :` keeps a missing record (fresh machine) from a non-zero exit
+# that would abort the whole apply.
+# {{ output "bash" "-c" "cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"' | sort -u; :" | sha256sum }}
 
 PLUGINS_CLI="plugins@1"
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/open-plugins.applied"

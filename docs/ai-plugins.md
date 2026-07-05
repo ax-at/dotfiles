@@ -45,6 +45,25 @@ only where this repo installed it (tracked per-script in
 `~/.local/state/dotfiles/ai-plugins.applied` / `open-plugins.applied`) — a
 plugin you added by hand is never touched.
 
+### Drift heal (out-of-band deletion)
+
+Each script is `run_onchange`, keyed on a hash of its data file **plus** a
+render-time **store fingerprint**: a digest of the installed plugin/skill
+identities read straight from each backend's own record — Claude's
+`installed_plugins.json` keys, Gemini's `~/.gemini/extensions` dirs, Codex's
+`config.toml [plugins."…"]` sections, skills' `~/.agents/skills` names. So a
+plugin deleted **out-of-band** (a CLI upgrade, a manual uninstall, a corrupted
+store) — with the toml untouched — flips that fingerprint, and the **next
+`chezmoi apply` re-runs the reconcile and reinstalls it**. No toml edit needed.
+The fingerprint is identity-only (no timestamps), and computed with cheap
+`grep`/`ls` — **no `node`/`npx` spawn** — so a steady state with nothing deleted
+costs nothing and the script doesn't run at all.
+
+One consequence: because the fingerprint watches state the script itself
+mutates, the apply **immediately after** any real install/uninstall re-runs the
+reconcile once as a no-op before settling (bounded, converges in ≤2 applies —
+never a loop).
+
 ## What ships today: PostHog
 
 The [PostHog ai-plugin](https://github.com/PostHog/ai-plugin) gives the agent
@@ -118,3 +137,6 @@ no headless plugin CLI). Complete the OAuth prompt on first use either way.
   `https://mcp.posthog.com/mcp`. Self-hosted PostHog: set `POSTHOG_MCP_URL`.
 - Claude resolves `posthog` from its official marketplace, so no
   `marketplace add` step is needed there (Codex does need one).
+- Drift heal covers out-of-band **deletion**. To force a full re-reconcile
+  regardless (e.g. after a hand-edit the fingerprint can't see), run
+  `chezmoi state delete-bucket --bucket=scriptState && chezmoi apply`.
