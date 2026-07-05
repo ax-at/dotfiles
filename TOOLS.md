@@ -105,6 +105,7 @@
 | ✅ | **Google Gemini Desktop** | Official Gemini Mac app (NOT the 'gemini' cask) | freemium | proprietary | — |
 | ✅ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
+| ✅ | **Pencil Desktop** | Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI | freemium | proprietary | — |
 
 ## ai-assistants
 

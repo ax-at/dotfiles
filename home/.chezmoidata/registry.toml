@@ -790,6 +790,19 @@ enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "superset" }
 
+[[packages]]
+name = "Pencil Desktop"
+module = "ai-tools"
+desc = "Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+# Lives in a custom tap (ax-at/homebrew-tap); no official cask exists and the
+# 'pencil' token is the unrelated Evolus Pencil. The full tap path auto-taps.
+macos = { method = "cask", pkg = "ax-at/tap/pencil-dev" }
+
 # -------------------------------------------------------- ai-assistants ----
 [[packages]]
 name = "screenpipe"
