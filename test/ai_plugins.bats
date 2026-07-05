@@ -45,9 +45,8 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   # posthog's cursor is off (auto-imported) -> no cursor row, no manual step.
   refute_line --partial "cursor|posthog"
   # vercel has only a codex native sub-table here (claude-code goes via the open
-  # backend, script 67); it must NOT render claude/gemini/cursor rows.
+  # backend, script 67); it must NOT render claude/cursor rows.
   refute_line --partial "claude|vercel"
-  refute_line --partial "gemini|vercel"
   refute_line --partial "cursor|vercel"
 }
 
@@ -83,18 +82,18 @@ setup() {
   desired_rows() {
     printf '%s\n' \
       "claude|posthog|posthog||" \
-      "gemini|posthog|posthog|https://x|"
+      "codex|posthog|posthog||PostHog/ai-plugin"
   }
   printf 'claude\tposthog\n' >"$WORLD" # claude already installed
 
   run reconcile
   assert_success
-  grep -qxF "install gemini posthog" "$CALLS"
+  grep -qxF "install codex posthog" "$CALLS"
   ! grep -q "install claude" "$CALLS" # present -> not reinstalled
 
   run cat "$MANIFEST"
   assert_line "claude${TAB}posthog${TAB}posthog"
-  assert_line "gemini${TAB}posthog${TAB}posthog"
+  assert_line "codex${TAB}posthog${TAB}posthog"
 }
 
 @test "reconcile: a client whose CLI is absent is skipped (not installed, not tracked)" {
@@ -118,23 +117,23 @@ setup() {
 
 @test "reconcile: a plugin dropped from the toml is uninstalled (manifest-scoped)" {
   desired_rows() { printf '%s\n' "claude|posthog|posthog||"; }
-  # Reality + manifest: gemini/posthog was ours but is no longer desired.
-  printf 'claude\tposthog\ngemini\tposthog\n' >"$WORLD"
-  printf 'claude\tposthog\tposthog\ngemini\tposthog\tposthog\n' >"$MANIFEST"
+  # Reality + manifest: codex/posthog was ours but is no longer desired.
+  printf 'claude\tposthog\ncodex\tposthog\n' >"$WORLD"
+  printf 'claude\tposthog\tposthog\ncodex\tposthog\tposthog\n' >"$MANIFEST"
 
   run reconcile
   assert_success
-  grep -qxF "remove gemini posthog" "$CALLS"
+  grep -qxF "remove codex posthog" "$CALLS"
 
   run cat "$MANIFEST"
   assert_line "claude${TAB}posthog${TAB}posthog"
-  refute_line --partial "gemini"
+  refute_line --partial "codex"
 }
 
 @test "reconcile: a hand-installed plugin (not in manifest) is never removed" {
   desired_rows() { printf '%s\n' "claude|posthog|posthog||"; }
-  # Reality has a hand-added gemini plugin the user installed outside dotfiles.
-  printf 'claude\tposthog\ngemini\thandmade\n' >"$WORLD"
+  # Reality has a hand-added codex plugin the user installed outside dotfiles.
+  printf 'claude\tposthog\ncodex\thandmade\n' >"$WORLD"
   printf 'claude\tposthog\tposthog\n' >"$MANIFEST" # handmade was never ours
 
   run reconcile
@@ -150,36 +149,36 @@ setup() {
   desired_rows() {
     printf '%s\n' \
       "claude|posthog|posthog||" \
-      "gemini|posthog|posthog|https://x|"
+      "codex|posthog|posthog||PostHog/ai-plugin"
   }
   pm_install() {
     echo "install $1 $2" >>"$CALLS"
-    case "$1" in gemini) return 1 ;; esac
+    case "$1" in codex) return 1 ;; esac
     printf '%s\t%s\n' "$1" "$2" >>"$WORLD"
   }
 
   run reconcile
   assert_success # soft-fail: never aborts
-  assert_output --partial "FAILED install: posthog/gemini"
+  assert_output --partial "FAILED install: posthog/codex"
 
   run cat "$MANIFEST"
   assert_line "claude${TAB}posthog${TAB}posthog" # good persisted
-  refute_line "gemini${TAB}posthog${TAB}posthog" # failed one excluded
+  refute_line "codex${TAB}posthog${TAB}posthog" # failed one excluded
 }
 
 @test "reconcile: a failed remove keeps the plugin tracked for retry" {
   desired_rows() { printf '%s\n' "claude|posthog|posthog||"; }
-  printf 'claude\tposthog\ngemini\tposthog\n' >"$WORLD"
-  printf 'claude\tposthog\tposthog\ngemini\tposthog\tposthog\n' >"$MANIFEST"
+  printf 'claude\tposthog\ncodex\tposthog\n' >"$WORLD"
+  printf 'claude\tposthog\tposthog\ncodex\tposthog\tposthog\n' >"$MANIFEST"
   pm_uninstall() { echo "remove $1 $2" >>"$CALLS"; return 1; }
 
   run reconcile
   assert_success
-  assert_output --partial "FAILED remove: posthog/gemini"
+  assert_output --partial "FAILED remove: posthog/codex"
 
   run cat "$MANIFEST"
   assert_line "claude${TAB}posthog${TAB}posthog"
-  assert_line "gemini${TAB}posthog${TAB}posthog" # kept because removal failed
+  assert_line "codex${TAB}posthog${TAB}posthog" # kept because removal failed
 }
 
 @test "reconcile: set -e safe on a total no-op (all present, nothing stale)" {
@@ -215,7 +214,7 @@ setup() {
 
 # ---- store-fingerprint (out-of-band deletion self-heal) -------------------
 # The rendered script embeds a hash of installed plugin IDENTITIES (claude's
-# installed_plugins.json keys, gemini dirs, codex config sections) so
+# installed_plugins.json keys, codex config sections) so
 # `run_onchange` re-runs when a plugin is deleted out-of-band. These render with a
 # fabricated HOME to drive the render-time `output` digest; claude's record-file
 # is the representative shape (a JSON key vanishing must flip the hash).
@@ -238,7 +237,7 @@ JSON
 
 @test "66 drift heal: absent plugin records render without aborting apply (fresh machine)" {
   HOME="$BATS_TEST_TMPDIR/empty-home"
-  mkdir -p "$HOME" # no ~/.claude, ~/.gemini, ~/.codex yet
+  mkdir -p "$HOME" # no ~/.claude, ~/.codex yet
   run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/fresh.sh" full.toml
   assert_success # a non-zero digest exit would abort the whole apply
   run grep -c "reconcile()" "$BATS_TEST_TMPDIR/fresh.sh"

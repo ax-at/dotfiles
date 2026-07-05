@@ -24,15 +24,6 @@
               "slug": { "type": "string", "minLength": 1 }
             }
           },
-          "gemini": {
-            "type": "object",
-            "required": ["source", "name"],
-            "additionalProperties": false,
-            "properties": {
-              "source": { "type": "string", "minLength": 1 },
-              "name": { "type": "string", "minLength": 1 }
-            }
-          },
           "codex": {
             "type": "object",
             "required": ["marketplace", "slug"],

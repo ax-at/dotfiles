@@ -12,13 +12,12 @@ verbs; the data file owns only identifiers. **Adding a new plugin is data-only.*
 
 ### Native per-client CLIs — [`run_onchange_after_66-ai-plugins`](../home/.chezmoiscripts/run_onchange_after_66-ai-plugins.sh.tmpl)
 
-A per-client sub-table (`claude` / `gemini` / `codex` / `cursor`) installed by
+A per-client sub-table (`claude` / `codex` / `cursor`) installed by
 that client's own plugin CLI. Adding a new _client_ is one new backend `case`.
 
 | Client      | Install (automated)                                          | Detected via                      | Auth  |
 | ----------- | ------------------------------------------------------------ | --------------------------------- | ----- |
 | Claude Code | `claude plugin install <slug>`                               | `claude plugin list --json` `.id` | OAuth |
-| Gemini CLI  | `gemini extensions install <url> --consent --skip-settings`  | `gemini extensions list`          | OAuth |
 | Codex       | `codex plugin marketplace add <repo>` + `codex plugin add …` | `codex plugin list --json`        | OAuth |
 | Cursor      | **manual**, and **off by default** (see below)               | `~/.cursor/plugins` probe         | OAuth |
 
@@ -50,8 +49,8 @@ plugin you added by hand is never touched.
 Each script is `run_onchange`, keyed on a hash of its data file **plus** a
 render-time **store fingerprint**: a digest of the installed plugin/skill
 identities read straight from each backend's own record — Claude's
-`installed_plugins.json` keys, Gemini's `~/.gemini/extensions` dirs, Codex's
-`config.toml [plugins."…"]` sections, skills' `~/.agents/skills` names. So a
+`installed_plugins.json` keys, Codex's `config.toml [plugins."…"]` sections,
+skills' `~/.agents/skills` names. So a
 plugin deleted **out-of-band** (a CLI upgrade, a manual uninstall, a corrupted
 store) — with the toml untouched — flips that fingerprint, and the **next
 `chezmoi apply` re-runs the reconcile and reinstalls it**. No toml edit needed.
@@ -78,8 +77,6 @@ Installing a plugin does **not** authenticate it. Do this once per client:
 
 - **Claude Code** — run `claude`, then `/mcp`, select `plugin:posthog:posthog`,
   and follow the browser prompt to log into PostHog.
-- **Gemini CLI** — invoke any PostHog tool in `gemini`; follow the browser OAuth
-  prompt on first use.
 - **Codex** — invoke any PostHog tool in `codex`; follow the browser OAuth
   prompt on first use.
 
@@ -132,9 +129,6 @@ no headless plugin CLI). Complete the OAuth prompt on first use either way.
 
 ## Notes
 
-- Gemini's `--skip-settings` is required so a headless apply doesn't hang on the
-  extension's interactive "PostHog MCP URL" prompt; the endpoint defaults to
-  `https://mcp.posthog.com/mcp`. Self-hosted PostHog: set `POSTHOG_MCP_URL`.
 - Claude resolves `posthog` from its official marketplace, so no
   `marketplace add` step is needed there (Codex does need one).
 - Drift heal covers out-of-band **deletion**. To force a full re-reconcile

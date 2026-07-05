@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run_onchange_after_66-ai-plugins.sh
 # Installs AI-client plugins from .chezmoidata/ai-plugins.toml INTO the agent
-# CLIs (Claude Code, Gemini CLI, Codex, Cursor) and keeps them RECONCILED
+# CLIs (Claude Code, Codex, Cursor) and keeps them RECONCILED
 # against on-disk reality. Runs AFTER 40-ai-tools (the CLIs exist) and after
 # 60-ssh-github / 65-agent-skills (git/gh ready) -- plugin installs only need
 # public repos, so no token is required.
@@ -14,7 +14,6 @@
 #
 #   kind      install verb                         list / check              uninstall
 #   claude    claude plugin install <slug>         plugin list --json .id    plugin uninstall
-#   gemini    gemini extensions install <url> ...  extensions list           extensions uninstall
 #   codex     plugin marketplace add + plugin add  plugin list --json        plugin remove
 #   cursor    MANUAL (prints in-app step)          ~/.cursor/plugins probe   MANUAL (prints step)
 #
@@ -37,13 +36,13 @@
 # {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
 # store fingerprint (forces re-run when a plugin is deleted out-of-band -- drift
 # heal). Hashes installed plugin IDENTITIES from the same records each backend's
-# pm_is_installed reads -- claude's installed_plugins.json keys, gemini's
-# extension dirs, codex's config.toml [plugins."..."] sections (cursor excluded;
-# it is manual/auto-imported, nothing to auto-heal) -- computed at render time.
+# pm_is_installed reads -- claude's installed_plugins.json keys and codex's
+# config.toml [plugins."..."] sections (cursor excluded; it is manual/auto-
+# imported, nothing to auto-heal) -- computed at render time.
 # Identity-only (no timestamps) so plugin auto-updates don't churn it. A deleted
 # identity flips the hash -> reconcile re-runs. `2>/dev/null ...; :` keeps missing
 # records (fresh machine) from a non-zero exit that would abort the whole apply.
-# {{ output "bash" "-c" "{ cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"'; ls ~/.gemini/extensions 2>/dev/null; grep -oE '^\\[plugins\\.\"[^\"]+\"\\]' ~/.codex/config.toml 2>/dev/null; } | sort -u; :" | sha256sum }}
+# {{ output "bash" "-c" "{ cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"'; grep -oE '^\\[plugins\\.\"[^\"]+\"\\]' ~/.codex/config.toml 2>/dev/null; } | sort -u; :" | sha256sum }}
 
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/ai-plugins.applied"
 
@@ -57,7 +56,6 @@ desired_rows() {
   cat <<'DESIRED'
 {{ range $p := .plugins }}{{ if $p.enabled -}}
 {{ if hasKey $p "claude" }}claude|{{ $p.name }}|{{ $p.claude.slug }}||
-{{ end }}{{ if hasKey $p "gemini" }}gemini|{{ $p.name }}|{{ $p.gemini.name }}|{{ $p.gemini.source }}|
 {{ end }}{{ if hasKey $p "codex" }}codex|{{ $p.name }}|{{ $p.codex.slug }}||{{ $p.codex.marketplace }}
 {{ end }}{{ if hasKey $p "cursor" }}{{ if or (not (hasKey $p.cursor "enabled")) $p.cursor.enabled }}cursor|{{ $p.name }}|{{ $p.cursor.slug }}|{{ $p.cursor.url }}|
 {{ end }}{{ end }}{{- end }}{{ end -}}
@@ -70,7 +68,7 @@ DESIRED
 # pm_cli_present KIND -- 0 if that client's CLI is usable on this machine.
 pm_cli_present() {
   case "$1" in
-    claude | gemini | codex | cursor) command -v "$1" >/dev/null 2>&1 ;;
+    claude | codex | cursor) command -v "$1" >/dev/null 2>&1 ;;
     *) return 1 ;;
   esac
 }
@@ -82,11 +80,6 @@ pm_is_installed() {
     claude)
       claude plugin list --json 2>/dev/null \
         | jq -e --arg s "$id" 'any(.[]?; (.id // "") | startswith($s + "@"))' >/dev/null 2>&1
-      ;;
-    gemini)
-      # `gemini extensions list` prints to STDERR, so fold it into stdout (2>&1).
-      gemini extensions list </dev/null 2>&1 \
-        | grep -qiE "(^|[^[:alnum:]-])${id}([^[:alnum:]-]|\$)"
       ;;
     codex)
       codex plugin list --json </dev/null 2>/dev/null \
@@ -106,11 +99,6 @@ pm_install() {
   case "$kind" in
     claude)
       claude plugin install "$id" </dev/null
-      ;;
-    gemini)
-      # --consent skips the third-party warning; --skip-settings avoids the
-      # interactive per-setting prompt that otherwise hangs a headless apply.
-      gemini extensions install "$source" --consent --skip-settings </dev/null
       ;;
     codex)
       # marketplace add is idempotent-ish; swallow "already added". Then resolve
@@ -134,7 +122,6 @@ pm_uninstall() {
   local kind="$1" id="$2" pid
   case "$kind" in
     claude) claude plugin uninstall "$id" --yes </dev/null ;;
-    gemini) gemini extensions uninstall "$id" </dev/null ;;
     codex)
       pid="$(codex plugin list --json </dev/null 2>/dev/null \
         | jq -r --arg s "$id" 'first(.installed[]? | select(.name == $s) | .pluginId) // empty')"
@@ -165,7 +152,6 @@ pm_cursor_manual() {
 pm_auth_note() {
   case "$1" in
     claude) echo "     ↳ auth: run 'claude', then /mcp and select plugin:posthog:posthog (browser OAuth)" ;;
-    gemini) echo "     ↳ auth: invoke a PostHog tool in 'gemini' and follow the browser OAuth prompt" ;;
     codex) echo "     ↳ auth: invoke a plugin's MCP tool in 'codex' and follow the browser OAuth prompt (once per plugin)" ;;
   esac
 }
