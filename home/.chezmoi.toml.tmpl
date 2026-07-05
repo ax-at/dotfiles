@@ -7,10 +7,11 @@
 {{- $ghUser      := promptStringOnce . "github.user"     "GitHub username" -}}
 
 {{/* Module toggles. These override the defaults baked into registry.toml. */}}
-{{- $rn   := promptBoolOnce . "modules.react-native" "Install the React Native / Expo native toolchain" -}}
-{{- $ai   := promptBoolOnce . "modules.ai-tools"      "Install AI coding tools (Claude Code, Codex, etc.)" -}}
-{{- $aa   := promptBoolOnce . "modules.ai-assistants" "Install AI assistants (e.g. screenpipe, Dayflow)" -}}
-{{- $lf   := promptBoolOnce . "modules.linux-feel"    "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)" -}}
+{{- $rn   := promptBoolOnce . "modules.react-native"          "Install the React Native / Expo native toolchain" -}}
+{{- $ai   := promptBoolOnce . "modules.ai-tools"               "Install AI coding tools (Claude Code, Codex, etc.)" -}}
+{{- $aa   := promptBoolOnce . "modules.ai-assistants"          "Install AI assistants (e.g. screenpipe, Dayflow)" -}}
+{{- $apt  := promptBoolOnce . "modules.ai-productivity-tools"  "Install AI productivity tools (e.g. FluidVoice)" -}}
+{{- $lf   := promptBoolOnce . "modules.linux-feel"             "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)" -}}
 
 encryption = ""
 
@@ -23,7 +24,8 @@ encryption = ""
   [data.github]
     user = {{ $ghUser | quote }}
   [data.modules]
-    react-native  = {{ $rn }}
-    ai-tools      = {{ $ai }}
-    ai-assistants = {{ $aa }}
-    linux-feel    = {{ $lf }}
+    react-native          = {{ $rn }}
+    ai-tools              = {{ $ai }}
+    ai-assistants         = {{ $aa }}
+    ai-productivity-tools = {{ $apt }}
+    linux-feel            = {{ $lf }}

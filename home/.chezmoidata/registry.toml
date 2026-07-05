@@ -30,6 +30,7 @@ cloud = true
 react-native = true
 ai-tools = true
 ai-assistants = true
+ai-productivity-tools = true
 productivity = true
 linux-feel = true
 macos-defaults = true
@@ -813,6 +814,18 @@ repo = "https://github.com/JerryZLiu/Dayflow"
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "dayflow" }
+
+# ------------------------------------------------- ai-productivity-tools ----
+[[packages]]
+name = "FluidVoice"
+module = "ai-productivity-tools"
+desc = "Open-source on-device voice-to-text dictation with AI enhancement for macOS"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/altic-dev/FluidVoice"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "fluidvoice" }
 
 # --------------------------------------------------------- productivity ----
 [[packages]]
