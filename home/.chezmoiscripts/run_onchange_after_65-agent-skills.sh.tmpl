@@ -32,6 +32,12 @@
 {{ if index .modules "ai-tools" }}
 # skills.toml hash (forces re-run when the curated set changes):
 # {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/skills.toml") | sha256sum }}
+# store fingerprint (forces re-run when a skill is deleted out-of-band -- drift
+# heal). Hashes the installed skill NAMES in the canonical ~/.agents/skills store
+# (what `skills list -g` reads), computed at render time. A vanished skill dir
+# flips this hash -> reconcile re-runs. `2>/dev/null ...; :` keeps a missing store
+# (fresh machine) from a non-zero exit, which would abort the whole apply.
+# {{ output "bash" "-c" "ls ~/.agents/skills 2>/dev/null | sort; :" | sha256sum }}
 
 SKILLS_CLI="skills@1"
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/skills.applied"

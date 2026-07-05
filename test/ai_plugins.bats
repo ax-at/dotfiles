@@ -213,3 +213,35 @@ setup() {
   run grep -c "reconcile()" "$BATS_TEST_TMPDIR/off.sh"
   assert_output "0"
 }
+
+# ---- store-fingerprint (out-of-band deletion self-heal) -------------------
+# The rendered script embeds a hash of installed plugin IDENTITIES (claude's
+# installed_plugins.json keys, gemini dirs, codex config sections) so
+# `run_onchange` re-runs when a plugin is deleted out-of-band. These render with a
+# fabricated HOME to drive the render-time `output` digest; claude's record-file
+# is the representative shape (a JSON key vanishing must flip the hash).
+
+@test "66 drift heal: deleting a claude plugin flips the store fingerprint (content changes)" {
+  HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$HOME/.claude/plugins"
+  cat >"$HOME/.claude/plugins/installed_plugins.json" <<'JSON'
+{ "version": 2, "plugins": { "demo@market": [ { "scope": "user" } ] } }
+JSON
+  run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/with.sh" full.toml
+  assert_success
+  # Same file, plugin key removed (what an uninstall does).
+  printf '%s\n' '{ "version": 2, "plugins": {} }' >"$HOME/.claude/plugins/installed_plugins.json"
+  run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/without.sh" full.toml
+  assert_success
+  run diff "$BATS_TEST_TMPDIR/with.sh" "$BATS_TEST_TMPDIR/without.sh"
+  assert_failure
+}
+
+@test "66 drift heal: absent plugin records render without aborting apply (fresh machine)" {
+  HOME="$BATS_TEST_TMPDIR/empty-home"
+  mkdir -p "$HOME" # no ~/.claude, ~/.gemini, ~/.codex yet
+  run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/fresh.sh" full.toml
+  assert_success # a non-zero digest exit would abort the whole apply
+  run grep -c "reconcile()" "$BATS_TEST_TMPDIR/fresh.sh"
+  assert_success
+}
