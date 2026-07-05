@@ -697,6 +697,42 @@ platforms = ["macos", "linux"]
 macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
 linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
 
+[[packages]]
+name = "Context7 CLI"
+module = "ai-tools"
+desc = "Fetches up-to-date library docs (Upstash Context7)"
+cost = "freemium"
+license = "MIT"
+repo = "https://github.com/upstash/context7"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "ctx7", check = "ctx7 --version" }
+linux = { method = "npm", pkg = "ctx7", check = "ctx7 --version" }
+
+[[packages]]
+name = "Context Hub CLI"
+module = "ai-tools"
+desc = "Semantic code/context search CLI (Andrew Ng)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/andrewyng/context-hub"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "@aisuite/chub", check = "chub --version" }
+linux = { method = "npm", pkg = "@aisuite/chub", check = "chub --version" }
+
+[[packages]]
+name = "Pencil CLI"
+module = "ai-tools"
+desc = "Design-to-code CLI (Pencil.dev: canvas designs → code)"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "npm", pkg = "@pencil.dev/cli", check = "pencil --version" }
+linux = { method = "npm", pkg = "@pencil.dev/cli", check = "pencil --version" }
+
 # ------------------------------------------------ ai-tools (desktop) -------
 [[packages]]
 name = "Claude Desktop"

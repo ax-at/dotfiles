@@ -121,7 +121,7 @@ Everything is driven by the registry and module toggles.
 - **Remove a tool:** set `enabled = false` (stays documented, won't install).
 - **Toggle a whole group:** edit `[modules]` in the registry (or answer the init prompts).
 - **Switch an install method** (e.g. AI tool from `brew` → official installer): change the `method` for that entry.
-- **Regenerate the catalog:** `./scripts/gen-tools.sh` (CI enforces it stays current).
+- **Regenerate the catalog:** `make update-golden` (CI enforces it stays current).
 
 After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatically when their content changes.
 
