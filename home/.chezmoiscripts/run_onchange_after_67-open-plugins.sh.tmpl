@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+# run_onchange_after_67-open-plugins.sh
+# Installs "open" plugins -- those distributed via the universal `npx plugins`
+# CLI (https://github.com/vercel-labs/plugins, a sibling of `npx skills`) -- from
+# the `open` sub-tables in .chezmoidata/ai-plugins.toml, and keeps them
+# RECONCILED. Runs AFTER 66-ai-plugins (native per-client backends); both read
+# the same data file but never touch the same rows.
+#
+# Why a SEPARATE script from 66:
+#   The `plugins` CLI is INSTALL-ONLY (`add` / `discover` / `targets`; no `list`,
+#   no `remove`). It is a front-end: `plugins add -t <target>` lands the plugin in
+#   that target's NATIVE store (for claude-code it runs `claude plugin install
+#   vercel@claude-plugins-official`). So the CLI can't be reconciled through, and
+#   verify/remove must go through the target's native store instead. That model
+#   differs enough from 66's per-client-CLI backends that it lives on its own,
+#   with its own manifest keyed by name<TAB>target (66 keys by kind<TAB>name).
+#
+#   target      install verb                       verify (is_installed)     uninstall
+#   claude-code plugins add -t claude-code          claude plugin list --json  claude plugin uninstall
+#   <other>     plugins add -t <target>             manifest-authoritative     MANUAL (prints step)
+#
+# Reconcile model (mirrors 66):
+#   desired  = (name,target) rows from ai-plugins.toml (enabled plugins x their
+#              enabled open.targets). id defaults to the plugin name.
+#   installed= queried per target (native store where available, else manifest).
+#   ADD    = desired & node+bun+client present & not-installed -> install.
+#   REMOVE = manifest (open-plugins.applied) & not-desired -> uninstall. The
+#            manifest scopes removals, so hand-installed plugins are never touched.
+#            It is rebuilt from reality each run. Soft-fail throughout (exit 0).
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (BASH_SOURCE guard at the bottom). Written for
+# bash 3.2 (macOS system bash): no associative arrays, no mapfile.
+{{ if index .modules "ai-tools" }}
+# ai-plugins.toml hash (forces re-run when the declared set changes):
+# {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
+
+PLUGINS_CLI="plugins@1"
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/open-plugins.applied"
+
+# desired_rows -- the desired install set, one "name|target|repo|id" line per
+# (enabled plugin x enabled open.target). id defaults to the plugin name. Pipe-
+# delimited (owner/repo carries '/' and ':' but never '|'). Tests override this.
+# A target with `enabled = false` (e.g. cursor -- auto-imported from Claude) emits
+# no row; a plugin with only native sub-tables has no `open` key, so emits nothing.
+desired_rows() {
+  cat <<'DESIRED'
+{{ range $p := .plugins }}{{ if and $p.enabled (hasKey $p "open") -}}
+{{ $name := $p.name }}{{ $repo := $p.open.repo }}{{ range $t := $p.open.targets }}{{ if or (not (hasKey $t "enabled")) $t.enabled }}{{ $name }}|{{ $t.target }}|{{ $repo }}|{{ if hasKey $t "id" }}{{ $t.id }}{{ else }}{{ $name }}{{ end }}
+{{ end }}{{ end }}{{- end }}{{ end -}}
+DESIRED
+}
+
+# run_npx ARGS... -- invoke the pinned plugins CLI via mise's node. stdin is
+# denied so an add can't swallow a reconcile here-doc.
+run_npx() {
+  mise exec node -- npx -y "$PLUGINS_CLI" "$@" </dev/null
+}
+
+# ---- backends -------------------------------------------------------------
+# Each is dispatched on TARGET. Tests stub these to model reality without CLIs.
+
+# pm_cli_present TARGET -- 0 if this target is installable here. The `plugins`
+# CLI needs node (mise) + bun; the target client itself must also be present.
+pm_cli_present() {
+  command -v bun >/dev/null 2>&1 || return 1
+  mise exec node -- node --version >/dev/null 2>&1 || return 1
+  case "$1" in
+    claude-code) command -v claude >/dev/null 2>&1 ;;
+    cursor) command -v cursor >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# pm_is_installed TARGET ID -- 0 if the plugin is already installed for TARGET.
+pm_is_installed() {
+  local target="$1" id="$2"
+  case "$target" in
+    claude-code)
+      # `plugins add -t claude-code` lands as <id>@<marketplace> in claude's
+      # native store, so query it live (self-heals if removed by hand).
+      claude plugin list --json 2>/dev/null \
+        | jq -e --arg s "$id" 'any(.[]?; (.id // "") | startswith($s + "@"))' >/dev/null 2>&1
+      ;;
+    *)
+      # No live probe for this target: trust the manifest (name<TAB>target<TAB>id)
+      # as the record of what we installed.
+      awk -F'\t' -v t="$target" -v i="$id" '$2==t && $3==i{f=1} END{exit !f}' \
+        "$MANIFEST" 2>/dev/null
+      ;;
+  esac
+}
+
+# pm_install TARGET REPO ID -- install via the plugins CLI; nonzero on failure.
+# ID is accepted for symmetry with the other backends but unused here: the CLI
+# installs by REPO (it discovers the plugin id itself).
+pm_install() {
+  local target="$1" repo="$2"
+  run_npx add "$repo" -t "$target" -y
+}
+
+# pm_uninstall TARGET ID -- remove; nonzero on failure. Native uninstall where
+# the target has one; otherwise the CLI has no `remove`, so print a manual step.
+pm_uninstall() {
+  local target="$1" id="$2"
+  case "$target" in
+    claude-code) claude plugin uninstall "$id" --yes </dev/null ;;
+    *)
+      echo "  ⚠ ${target}: the 'plugins' CLI has no headless remove -- remove"
+      echo "     '${id}' manually in ${target}. See docs/ai-plugins.md."
+      return 0
+      ;;
+  esac
+}
+
+# pm_auth_note TARGET -- one-time OAuth reminder printed after a fresh install.
+# The plugin's bundled MCP server authenticates on first use, not at install.
+pm_auth_note() {
+  case "$1" in
+    claude-code) echo "     ↳ auth: run 'claude', /mcp, and authorize the plugin's MCP server (browser OAuth)" ;;
+    cursor) echo "     ↳ auth: invoke a plugin tool in Cursor and follow the browser OAuth prompt" ;;
+  esac
+}
+
+# reconcile -- diff desired (ai-plugins.toml open backend) against reality;
+# install what is missing, remove manifest-tracked rows no longer desired, then
+# rebuild the manifest from what is actually ours. Uses desired_rows + the pm_*
+# backends + $MANIFEST, so tests can stub those.
+reconcile() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local desired manifest_prev desired_keys failures auth_targets
+  local name target repo id key
+  desired="$(desired_rows)"
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  # grep -v '^$' exits 1 on an all-blank set; `|| true` keeps that from tripping
+  # `set -e`/pipefail when nothing is desired or tracked.
+  failures=0
+  auth_targets=""
+  desired_keys=""
+  : >"$MANIFEST.tmp"
+
+  # ADD / ensure: install desired rows whose CLI is present and that aren't
+  # already installed; record every desired+ours row (name<TAB>target<TAB>id).
+  while IFS='|' read -r name target repo id; do
+    [ -n "$name" ] || continue
+    key="$name"$'\t'"$target"
+    desired_keys="$desired_keys$key"$'\n'
+    if ! pm_cli_present "$target"; then
+      echo "  -- ${name}/${target}: node/bun or ${target} not present, skipping"
+      continue
+    fi
+    if pm_is_installed "$target" "$id"; then
+      echo "  ✓ ${name} already installed in ${target}"
+    else
+      echo "  -> installing ${name} into ${target}"
+      if pm_install "$target" "$repo" "$id"; then
+        auth_targets="${auth_targets}${target}"$'\n'
+      else
+        echo "  !! FAILED install: ${name}/${target}" >&2
+        failures=$((failures + 1))
+        continue
+      fi
+    fi
+    printf '%s\t%s\t%s\n' "$name" "$target" "$id" >>"$MANIFEST.tmp"
+  done <<EOF
+$desired
+EOF
+
+  # REMOVE: manifest rows no longer desired. Manifest holds name<TAB>target<TAB>id;
+  # compare on name<TAB>target, uninstall by the stored id.
+  desired_keys="$(printf '%s' "$desired_keys" | grep -v '^$' | sort -u || true)"
+  while IFS=$'\t' read -r name target id; do
+    [ -n "$name" ] || continue
+    key="$name"$'\t'"$target"
+    if printf '%s\n' "$desired_keys" | grep -qxF "$key"; then continue; fi
+    if pm_cli_present "$target" && pm_is_installed "$target" "$id"; then
+      echo "  -> removing ${name} from ${target}"
+      if ! pm_uninstall "$target" "$id"; then
+        echo "  !! FAILED remove: ${name}/${target}" >&2
+        failures=$((failures + 1))
+        printf '%s\t%s\t%s\n' "$name" "$target" "$id" >>"$MANIFEST.tmp" # keep for retry
+      fi
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  # Auth reminders, one per unique target freshly installed this run.
+  if [ -n "$auth_targets" ]; then
+    echo "==> [open-plugins] one-time authentication (per target):"
+    local t
+    for t in $(printf '%s' "$auth_targets" | grep -v '^$' | sort -u); do pm_auth_note "$t"; done
+  fi
+
+  local n_tracked
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [open-plugins] summary: ${n_tracked} plugin install(s) tracked"
+  if [ "$failures" -gt 0 ]; then
+    echo "==> [open-plugins] ${failures} operation(s) FAILED (see above); continuing (exit 0)" >&2
+  fi
+}
+
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+  command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
+  command -v jq >/dev/null 2>&1 || { echo "jq not found; ensure core packages installed" >&2; exit 1; }
+
+  echo "==> [open-plugins] reconciling npx-plugins ('open') plugins"
+  reconcile
+  echo "==> [open-plugins] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi
+{{ end }}

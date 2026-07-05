@@ -41,14 +41,17 @@ MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/ai-plugins.applied"
 # desired_rows -- the desired install set, one "kind|name|id|source|marketplace"
 # line per (enabled plugin x its per-client sub-table). Pipe-delimited (URLs and
 # owner/repo carry '/' and ':' but never '|'). Tests override this.
+# A `cursor` sub-table with `enabled = false` emits NO row (Cursor auto-imports
+# the Claude install). A plugin with only an `open` sub-table (the `npx plugins`
+# backend, handled by 67-open-plugins) has none of these keys, so it emits nothing.
 desired_rows() {
   cat <<'DESIRED'
 {{ range $p := .plugins }}{{ if $p.enabled -}}
 {{ if hasKey $p "claude" }}claude|{{ $p.name }}|{{ $p.claude.slug }}||
 {{ end }}{{ if hasKey $p "gemini" }}gemini|{{ $p.name }}|{{ $p.gemini.name }}|{{ $p.gemini.source }}|
 {{ end }}{{ if hasKey $p "codex" }}codex|{{ $p.name }}|{{ $p.codex.slug }}||{{ $p.codex.marketplace }}
-{{ end }}{{ if hasKey $p "cursor" }}cursor|{{ $p.name }}|{{ $p.cursor.slug }}|{{ $p.cursor.url }}|
-{{ end }}{{- end }}{{ end -}}
+{{ end }}{{ if hasKey $p "cursor" }}{{ if or (not (hasKey $p.cursor "enabled")) $p.cursor.enabled }}cursor|{{ $p.name }}|{{ $p.cursor.slug }}|{{ $p.cursor.url }}|
+{{ end }}{{ end }}{{- end }}{{ end -}}
 DESIRED
 }
 
@@ -139,9 +142,10 @@ pm_uninstall() {
 pm_cursor_manual() {
   local action="$1" id="$2" url="$3"
   if [ "$action" = add ]; then
-    echo "  ⚠ cursor: install '${id}' manually -- in Cursor, open the plugin"
-    echo "     picker (Settings > Plugins${url:+ / ${url}}) and add PostHog,"
-    echo "     or run '/add-plugin ${id}' in a Cursor chat. See docs/ai-plugins.md."
+    echo "  ⚠ cursor: '${id}' is usually auto-imported from the Claude install"
+    echo "     (shown as 'imported'). If not, add it manually -- in Cursor open the"
+    echo "     plugin picker (Settings > Plugins${url:+ / ${url}}), or run"
+    echo "     '/add-plugin ${id}' in a Cursor chat. See docs/ai-plugins.md."
   else
     echo "  ⚠ cursor: remove '${id}' manually via Cursor Settings > Plugins."
   fi
@@ -153,7 +157,7 @@ pm_auth_note() {
   case "$1" in
     claude) echo "     ↳ auth: run 'claude', then /mcp and select plugin:posthog:posthog (browser OAuth)" ;;
     gemini) echo "     ↳ auth: invoke a PostHog tool in 'gemini' and follow the browser OAuth prompt" ;;
-    codex) echo "     ↳ auth: invoke a PostHog tool in 'codex' and follow the browser OAuth prompt" ;;
+    codex) echo "     ↳ auth: invoke a plugin's MCP tool in 'codex' and follow the browser OAuth prompt (once per plugin)" ;;
   esac
 }
 
