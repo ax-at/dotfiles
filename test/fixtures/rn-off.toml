@@ -11,4 +11,5 @@ user = "ci"
 [data.modules]
 react-native = false
 ai-tools = true
+ai-assistants = true
 linux-feel = true

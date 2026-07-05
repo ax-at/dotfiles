@@ -84,5 +84,6 @@ jobs:
             --promptString "GitHub username=ci" \
             --promptBool "Install the React Native / Expo native toolchain=true" \
             --promptBool "Install AI coding tools (Claude Code, Codex, etc.)=true" \
+            --promptBool "Install AI assistants (e.g. screenpipe, Dayflow)=true" \
             --promptBool "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)=true"
           chezmoi verify --source "$GITHUB_WORKSPACE/home" --exclude scripts
