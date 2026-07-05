@@ -86,6 +86,18 @@ setup() {
   fi
 }
 
+@test "ai-productivity-tools: toggling the module gates fluidvoice cask" {
+  if [ "$OS" = "darwin" ]; then
+    run render "$PKGS" full.toml
+    assert_output --partial 'cask "fluidvoice"'
+    run render "$PKGS" ai-productivity-tools-off.toml
+    refute_output --partial 'cask "fluidvoice"'
+  else
+    run render "$PKGS" full.toml
+    refute_output --partial 'cask "fluidvoice"'
+  fi
+}
+
 @test "mise: npm CLIs render as npm_install_if_missing calls" {
   run render "$MISE" full.toml
   assert_success
@@ -266,10 +278,12 @@ setup() {
     --promptBool "Install the React Native / Expo native toolchain=false" \
     --promptBool "Install AI coding tools (Claude Code, Codex, etc.)=true" \
     --promptBool "Install AI assistants (e.g. screenpipe, Dayflow)=true" \
+    --promptBool "Install AI productivity tools (e.g. FluidVoice)=true" \
     --promptBool "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)=true" \
     < "$SRC_DIR/.chezmoi.toml.tmpl"
   assert_success
-  assert_output --partial 'react-native  = false'
-  assert_output --partial 'ai-tools      = true'
-  assert_output --partial 'ai-assistants = true'
+  assert_output --partial 'react-native          = false'
+  assert_output --partial 'ai-tools              = true'
+  assert_output --partial 'ai-assistants         = true'
+  assert_output --partial 'ai-productivity-tools = true'
 }

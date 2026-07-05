@@ -1,0 +1,16 @@
+# full.toml with ai-productivity-tools OFF.
+[data.git]
+workName = "CI"
+workEmail = "ci@example.com"
+personName = "CI"
+personEmail = "ci@example.com"
+
+[data.github]
+user = "ci"
+
+[data.modules]
+react-native = true
+ai-tools = true
+ai-assistants = true
+ai-productivity-tools = false
+linux-feel = true

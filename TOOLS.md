@@ -113,6 +113,12 @@
 | ✅ | **screenpipe** | Local, always-on screen + audio capture with AI search and MCP server (CLI) | freemium | proprietary | [repo](https://github.com/screenpipe/screenpipe) |
 | ✅ | **Dayflow** | Automatic work journal — privately turns your screen activity into a daily timeline | freemium | MIT | [repo](https://github.com/JerryZLiu/Dayflow) |
 
+## ai-productivity-tools
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+| ✅ | **FluidVoice** | Open-source on-device voice-to-text dictation with AI enhancement for macOS | free | GPL-3.0 | [repo](https://github.com/altic-dev/FluidVoice) |
+
 ## productivity
 
 | | Tool | Description | Cost | License | Source |
