@@ -304,9 +304,9 @@
         font-size: clamp(0.8rem, 0.92vw, 0.94rem);
         line-height: 1.6;
         color: var(--text);
-        /* one line on desktop (fits the full width); wraps cleanly at the <wbr>
-       hints on narrow screens — the hostname never splits mid-token */
-        white-space: pre-wrap;
+        /* wraps only at the <wbr> hints on narrow screens; source newlines
+           from the formatter are collapsed and never rendered */
+        white-space: normal;
         overflow-wrap: break-word;
       }
       .command .p {
