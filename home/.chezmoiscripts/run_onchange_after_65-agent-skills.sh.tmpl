@@ -103,8 +103,7 @@ reconcile() {
   manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
   # grep -v '^$' exits 1 when every line is blank; the trailing `|| true` keeps
   # these substitutions from tripping `set -e`/pipefail on an empty set (e.g. no
-  # skills desired, or nothing stale). This is the fix for the crash where the
-  # run aborted before rebuilding the manifest or printing its summary.
+  # skills desired, or nothing stale).
   desired_keys="$(printf '%s\n' "$desired" | grep -v '^$' | cut -f1,2 | sort -u || true)"
   failures=0
   added_ok=""   # repos whose batched add succeeded
