@@ -27,9 +27,15 @@ setup_brew() {
   source "$BATS_TEST_TMPDIR/b.sh"
   run removal_rows
   assert_success
+  # deno is disabled but cross-platform, so it is a removal candidate everywhere.
   assert_line "brew|deno"
-  assert_line "cask|figma"
-  assert_line "brew|wix/brew/applesimutils"
+  # figma (cask) and applesimutils (tap formula) are macos-only: a removal
+  # candidate only where it has an install table. removal_rows renders against
+  # the native OS, so these appear on darwin and are absent on linux.
+  if [ "$(uname)" = "Darwin" ]; then
+    assert_line "cask|figma"
+    assert_line "brew|wix/brew/applesimutils"
+  fi
   # The footgun: enabled tap formulae must NEVER be removal candidates.
   refute_output --partial "hunk"
   refute_output --partial "oven-sh/bun"

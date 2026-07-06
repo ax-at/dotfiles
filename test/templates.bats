@@ -32,7 +32,10 @@ setup() {
   if [ "$OS" = "darwin" ]; then
     assert_output --partial 'cask "ghostty"'
   else
-    refute_output --partial 'cask "'
+    # No cask *package* line is emitted into the Brewfile on linux. Anchor to the
+    # line start so the backend helpers' `brew … --cask "$2"` shell code (which
+    # renders on every OS) isn't mistaken for a cask entry.
+    refute_line --regexp '^cask "'
   fi
 }
 
