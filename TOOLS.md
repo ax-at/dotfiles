@@ -108,6 +108,12 @@
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
 | ✅ | **Pencil Desktop** | Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI | freemium | proprietary | — |
 
+## nanoclaw
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+| ✅ | **nanoclaw** | Self-hosted AI agent host — Claude agents in isolated containers, paired to messaging channels | free | MIT | [repo](https://github.com/nanocoai/nanoclaw) |
+
 ## ai-assistants
 
 | | Tool | Description | Cost | License | Source |

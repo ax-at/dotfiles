@@ -43,6 +43,7 @@ react-native = true
 ai-tools = true
 ai-assistants = true
 ai-productivity-tools = true
+nanoclaw = false
 productivity = true
 linux-feel = true
 macos-defaults = true
@@ -826,6 +827,21 @@ platforms = ["macos"]
 # Lives in a custom tap (ax-at/homebrew-tap); no official cask exists and the
 # 'pencil' token is the unrelated Evolus Pencil. The full tap path auto-taps.
 macos = { method = "cask", pkg = "ax-at/tap/pencil-dev" }
+
+# ------------------------------------------------------------- nanoclaw ----
+[[packages]]
+name = "nanoclaw"
+module = "nanoclaw"
+desc = "Self-hosted AI agent host — Claude agents in isolated containers, paired to messaging channels"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/nanocoai/nanoclaw"
+enabled = true
+platforms = ["macos", "linux"]
+# Clone only (idempotent via `test -d`); the interactive `nanoclaw.sh` onboarding
+# is deferred to run_once_after_90-nanoclaw-onboarding, which runs dead-last.
+macos = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2" }
+linux = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2" }
 
 # -------------------------------------------------------- ai-assistants ----
 [[packages]]
