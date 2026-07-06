@@ -283,6 +283,7 @@ setup() {
     --promptBool "Install AI assistants (e.g. screenpipe, Dayflow)=true" \
     --promptBool "Install AI productivity tools (e.g. FluidVoice)=true" \
     --promptBool "Install nanoclaw self-hosted agent host=false" \
+    --promptBool "Install openclaw self-hosted personal AI assistant=false" \
     --promptBool "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)=true" \
     < "$SRC_DIR/.chezmoi.toml.tmpl"
   assert_success

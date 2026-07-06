@@ -110,6 +110,7 @@ Tracked here because Apple/vendor flows require a human:
 - [ ] **VS Code / Cursor**: turn **off** the built-in Settings Sync (chezmoi manages `settings.json`).
 - [ ] **AI-client plugins**: authenticate **PostHog** and **Vercel** once per client (browser OAuth). Cursor is auto-imported from Claude — no manual add — see [docs/ai-plugins.md](./docs/ai-plugins.md).
 - [ ] **nanoclaw onboarding** (only if `modules.nanoclaw` is enabled): if you deferred it during `chezmoi apply`, finish it with `cd ~/nanoclaw-v2 && bash nanoclaw.sh`.
+- [ ] **openclaw onboarding** (only if `modules.openclaw` is enabled): if you deferred it during `chezmoi apply`, finish it with `openclaw onboard`.
 - [ ] **Log out / back in** so fast key-repeat + modifier changes fully apply.
 
 ---
@@ -219,6 +220,7 @@ dotfiles/
 | `run_onchange_after_66-ai-plugins`        | reconcile AI-client plugins into the agent CLIs |
 | `run_onchange_after_70-macos-defaults`    | dev defaults + Ubuntu-feel tweaks               |
 | `run_once_after_90-nanoclaw-onboarding`   | prompt to onboard nanoclaw now/later (opt-in)   |
+| `run_once_after_95-openclaw-onboarding`   | prompt to onboard openclaw now/later (opt-in)   |
 
 ---
 

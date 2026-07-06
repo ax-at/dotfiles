@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# run_once_after_95-openclaw-onboarding.sh
+# openclaw is installed earlier (registry script entry, install-cli.sh -> run_onchange_after_40-ai-tools).
+# Runs dead-last (after nanoclaw's 90). Offers the interactive `openclaw onboard`
+# now, or prints how to run it later. Deferrable; it never fails the apply.
+# Idempotent: skips when ~/.openclaw/openclaw.json exists (already onboarded),
+# which also makes it safe to re-fire if the script's content ever changes
+# (run_once keys on the script's SHA). Gated on the openclaw module.
+set -euo pipefail
+
+{{ if .modules.openclaw -}}
+# openclaw's self-contained CLI wrapper lives in ~/.local/bin (install-cli.sh
+# --prefix "$HOME/.local"; it bundles its own node). A fresh bootstrap's chezmoi
+# process hasn't sourced the login profile, so put ~/.local/bin on PATH here.
+export PATH="$HOME/.local/bin:$PATH"
+
+# Install gated off or failed earlier -> nothing to onboard.
+if ! command -v openclaw >/dev/null 2>&1; then
+  echo "==> [openclaw] not installed; skipping onboarding"
+  exit 0
+fi
+
+# Already configured (onboarding wrote the config) -> leave it untouched.
+if [ -f "$HOME/.openclaw/openclaw.json" ]; then
+  echo "==> [openclaw] already onboarded (~/.openclaw/openclaw.json present); skipping"
+  exit 0
+fi
+
+print_later() {
+  echo ""
+  echo "==> [openclaw] onboarding deferred. Finish it any time with:"
+  echo "      openclaw onboard"
+  echo ""
+}
+
+# Non-interactive apply (CI, piped) -> never block; defer with instructions.
+if [ ! -t 0 ]; then
+  echo "==> [openclaw] non-interactive shell; deferring onboarding"
+  print_later
+  exit 0
+fi
+
+printf '==> [openclaw] Run onboarding now? Interactive, may take a while. [y/N] '
+read -r ans || ans="n"
+case "$ans" in
+  y | Y | yes | Yes | YES)
+    echo "==> [openclaw] launching: openclaw onboard (Ctrl-C to abort)"
+    if ! openclaw onboard; then
+      {
+        echo ""
+        echo "==> [openclaw] onboarding did not finish. Resume any time with:"
+        echo "      openclaw onboard"
+        echo ""
+      } >&2
+    fi
+    ;;
+  *)
+    print_later
+    ;;
+esac
+{{ else -}}
+exit 0
+{{ end -}}

@@ -16,4 +16,5 @@ ai-tools = true
 ai-assistants = true
 ai-productivity-tools = true
 nanoclaw = true
+openclaw = true
 linux-feel = true

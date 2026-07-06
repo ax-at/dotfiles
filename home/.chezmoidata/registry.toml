@@ -44,6 +44,7 @@ ai-tools = true
 ai-assistants = true
 ai-productivity-tools = true
 nanoclaw = false
+openclaw = false
 productivity = true
 linux-feel = true
 macos-defaults = true
@@ -846,6 +847,30 @@ platforms = ["macos", "linux"]
 # place. This entry is stateful/user-owned, so every uncertainty fails to PRESERVE.
 macos = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2", uninstall_cmd = '[ -n "$(git -C $HOME/nanoclaw-v2 status --porcelain --ignored 2>/dev/null || echo x)" ] || rm -rf $HOME/nanoclaw-v2' }
 linux = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2", uninstall_cmd = '[ -n "$(git -C $HOME/nanoclaw-v2 status --porcelain --ignored 2>/dev/null || echo x)" ] || rm -rf $HOME/nanoclaw-v2' }
+
+# --------------------------------------------------------------- openclaw ----
+[[packages]]
+name = "openclaw"
+module = "openclaw"
+desc = "Self-hosted personal AI assistant — autonomous agent paired to chat platforms (WhatsApp, Telegram, Discord)"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/openclaw/openclaw"
+enabled = true
+platforms = ["macos", "linux"]
+# Upstream's recommended installer (install-cli.sh) over a bare `npm install -g`:
+# it bundles a pinned, verified node and clears npm freshness gates, so it needs no
+# mise. --prefix "$HOME/.local" lands the self-contained wrapper at ~/.local/bin/openclaw
+# (on PATH via dot_zprofile), like the other script tools; it runs in
+# run_onchange_after_40-ai-tools. Install-only (install-cli.sh does not auto-onboard) —
+# the interactive `openclaw onboard` is deferred to run_once_after_95-openclaw-onboarding,
+# dead-last (after nanoclaw's 90). Uninstall on module-off is deliberately PARTIAL +
+# REVERSIBLE: stop the Gateway service and rm the CLI wrapper, but PRESERVE ~/.openclaw
+# (state/creds) + workspace (--state would `rm -rf ~/.openclaw`). `openclaw uninstall`
+# never removes the CLI itself, so we rm the wrapper; `|| true` keeps reconcile's set -e
+# happy. (`||` is safe: uninstall_cmd is the trailing pipe-delimited field — same as nanoclaw.)
+macos = { method = "script", pkg = "openclaw", check = "openclaw --version", cmd = 'curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --prefix "$HOME/.local"', uninstall_cmd = 'command -v openclaw >/dev/null 2>&1 && openclaw uninstall --service --yes --non-interactive || true; rm -f "$HOME/.local/bin/openclaw"' }
+linux = { method = "script", pkg = "openclaw", check = "openclaw --version", cmd = 'curl -fsSL https://openclaw.ai/install-cli.sh | bash -s -- --prefix "$HOME/.local"', uninstall_cmd = 'command -v openclaw >/dev/null 2>&1 && openclaw uninstall --service --yes --non-interactive || true; rm -f "$HOME/.local/bin/openclaw"' }
 
 # -------------------------------------------------------- ai-assistants ----
 [[packages]]

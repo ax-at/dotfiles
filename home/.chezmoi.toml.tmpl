@@ -12,6 +12,7 @@
 {{- $aa   := promptBoolOnce . "modules.ai-assistants"          "Install AI assistants (e.g. screenpipe, Dayflow)" -}}
 {{- $apt  := promptBoolOnce . "modules.ai-productivity-tools"  "Install AI productivity tools (e.g. FluidVoice)" -}}
 {{- $ncl  := promptBoolOnce . "modules.nanoclaw"               "Install nanoclaw self-hosted agent host" -}}
+{{- $ocl  := promptBoolOnce . "modules.openclaw"               "Install openclaw self-hosted personal AI assistant" -}}
 {{- $lf   := promptBoolOnce . "modules.linux-feel"             "Install the Ubuntu/Linux-feel layer (Karabiner, LinearMouse)" -}}
 
 encryption = ""
@@ -30,4 +31,5 @@ encryption = ""
     ai-assistants         = {{ $aa }}
     ai-productivity-tools = {{ $apt }}
     nanoclaw              = {{ $ncl }}
+    openclaw              = {{ $ocl }}
     linux-feel            = {{ $lf }}

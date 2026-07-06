@@ -114,6 +114,12 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **nanoclaw** | Self-hosted AI agent host — Claude agents in isolated containers, paired to messaging channels | free | MIT | [repo](https://github.com/nanocoai/nanoclaw) |
 
+## openclaw
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+| ✅ | **openclaw** | Self-hosted personal AI assistant — autonomous agent paired to chat platforms (WhatsApp, Telegram, Discord) | free | MIT | [repo](https://github.com/openclaw/openclaw) |
+
 ## ai-assistants
 
 | | Tool | Description | Cost | License | Source |
