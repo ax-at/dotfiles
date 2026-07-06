@@ -775,13 +775,24 @@ macos = { method = "cask", pkg = "claude" }
 [[packages]]
 name = "ChatGPT Desktop"
 module = "ai-tools"
-desc = "OpenAI ChatGPT desktop app (also hosts Codex GUI)"
+desc = "OpenAI ChatGPT desktop app"
 cost = "freemium"
 license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "chatgpt" }
+
+[[packages]]
+name = "Codex Desktop"
+module = "ai-tools"
+desc = "OpenAI Codex desktop app"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "codex-app" }
 
 [[packages]]
 name = "Antigravity"
