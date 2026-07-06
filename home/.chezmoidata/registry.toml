@@ -2,19 +2,31 @@
 # registry.toml  --  single source of truth for this machine
 # ----------------------------------------------------------------------------
 # Every package is one [[packages]] block. To add a tool: append a block.
-# To drop a tool: set enabled = false (it stays documented in TOOLS.md).
+# To drop a tool: set enabled = false, OR delete the block. The apply scripts then
+# UNINSTALL it (it stays documented in TOOLS.md only while the block exists).
+# enabled = false means "ensure removed", not just "don't install" — same for
+# turning its [modules] toggle off. Deleting a block also uninstalls, provided the
+# entry was present on a prior apply: brew/cask/npm/script each record what they
+# installed in per-method state manifests, so a deleted entry can still be removed.
+# The one gap: an entry added AND deleted between two applies was never recorded, so
+# it lingers (remove by hand). mas apps are never auto-uninstalled (no headless
+# uninstall) — remove them manually.
 #
 # Fields:
-#   name      display name
-#   module    grouping; installed only if [modules].<module> is true
-#   desc      one-line description (used in TOOLS.md)
-#   cost      free | freemium | paid   (free-first: paid defaults to disabled)
-#   license   SPDX id or "proprietary"
-#   repo      GitHub URL if OSS, else ""
-#   enabled   master on/off for this tool
-#   platforms subset of ["macos","linux"]
-#   <os>      per-OS install table: { method, pkg | cmd | id, check? }
-#             method = brew | cask | mas | npm | script | apt | dnf
+#   name          display name
+#   module        grouping; installed only if [modules].<module> is true
+#   desc          one-line description (used in TOOLS.md)
+#   cost          free | freemium | paid   (free-first: paid defaults to disabled)
+#   license       SPDX id or "proprietary"
+#   repo          GitHub URL if OSS, else ""
+#   enabled       master on/off; false => uninstall on next apply
+#   platforms     subset of ["macos","linux"]
+#   <os>          per-OS install table: { method, pkg | cmd | id, check?, uninstall_cmd? }
+#                 method = brew | cask | mas | npm | script | apt | dnf
+#                 uninstall_cmd  REQUIRED for method = script (brew/npm/cask
+#                   uninstall generically). Single-line shell, eval'd to remove
+#                   the tool. Artifacts-only: delete the binary/install dir, leave
+#                   user config/data. Not templated ({{ }} won't render here).
 #
 # Module toggles below are DEFAULTS; .chezmoi.toml.tmpl init-prompts can
 # override react-native / ai-tools / linux-feel per machine.
@@ -420,8 +432,8 @@ repo = "https://github.com/protonpass/pass-cli"
 enabled = true
 platforms = ["macos", "linux"]
 # Official installer (no Homebrew formula exists).
-macos = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash" }
-linux = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash" }
+macos = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/pass-cli" }
+linux = { method = "script", pkg = "pass-cli", check = "pass-cli --version", cmd = "curl -fsSL https://proton.me/download/pass-cli/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/pass-cli" }
 
 [[packages]]
 name = "findutils"
@@ -671,8 +683,8 @@ license = "proprietary"
 repo = "https://github.com/anthropics/claude-code"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash" }
-linux = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash" }
+macos = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude" }
+linux = { method = "script", pkg = "claude-code", check = "claude --version", cmd = "curl -fsSL https://claude.ai/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/claude && rm -rf ~/.local/share/claude" }
 
 [[packages]]
 name = "Codex CLI"
@@ -695,8 +707,8 @@ license = "Apache-2.0"
 repo = "https://github.com/google-antigravity/antigravity-cli"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash" }
-linux = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash" }
+macos = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/agy && rm -rf ~/.cache/antigravity" }
+linux = { method = "script", pkg = "antigravity-cli", check = "agy --version", cmd = "curl -fsSL https://antigravity.google/cli/install.sh | bash", uninstall_cmd = "rm -f ~/.local/bin/agy && rm -rf ~/.cache/antigravity" }
 
 [[packages]]
 name = "opencode"
@@ -707,8 +719,8 @@ license = "MIT"
 repo = "https://github.com/sst/opencode"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
-linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash" }
+macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash", uninstall_cmd = "rm -rf ~/.opencode/bin" }
+linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash", uninstall_cmd = "rm -rf ~/.opencode/bin" }
 
 [[packages]]
 name = "Context7 CLI"

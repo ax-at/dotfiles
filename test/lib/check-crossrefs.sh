@@ -4,7 +4,7 @@
 # to JSON via chezmoi (same engine the real templates use) and checks it with jq:
 #   1. every package's `module` exists in [modules]
 #   2. every declared platform has a matching [os] table with a `method`
-#   3. npm/script methods have `check`; script also has `cmd`
+#   3. npm/script methods have `check`; script also has `cmd` + `uninstall_cmd`
 #   4. no duplicate package `name`
 # Prints one line per violation and exits non-zero if any are found.
 # Deps: chezmoi + jq only.
@@ -33,6 +33,8 @@ errors="$(printf '%s' "$data" | jq -r '
               then "\($p.name)/\($os): method \($t.method) requires a check"
             elif ($t.method == "script" and ($t.cmd | type) != "string")
               then "\($p.name)/\($os): method script requires a cmd"
+            elif ($t.method == "script" and ($t.uninstall_cmd | type) != "string")
+              then "\($p.name)/\($os): method script requires an uninstall_cmd"
             else empty end )
     ]
   + ( [ .packages[].name ] | group_by(.) | map(select(length > 1))

@@ -1,21 +1,32 @@
 #!/usr/bin/env bash
 # run_onchange_after_20-packages.sh
-# Generates a Brewfile from the enabled registry entries and runs `brew bundle`.
-# Re-runs automatically whenever the rendered package list below changes.
-set -euo pipefail
+# Generates a Brewfile from the enabled registry entries, runs `brew bundle`,
+# then UNINSTALLS registry entries that are no longer wanted (disabled, module
+# off, or platform-mismatch) but are still installed. Re-runs automatically
+# whenever the rendered install/removal lists below change.
+#
+# The disable-path is registry-driven: brew itself proves a package is present, and
+# only packages the registry *names* are ever disable candidates, so hand-installed
+# formulae/casks are never touched. A small state manifest (packages-brew.applied)
+# additionally lets a DELETED entry be uninstalled: it records what we installed
+# (name + method + pkg), so once an entry is removed from the registry entirely we
+# can still uninstall it — provided it was recorded on a prior apply. The tap-name
+# footgun is avoided by keying the manifest on the registry's stable name and
+# normalizing every "still wanted?" compare to a basename (a type-scoped collision
+# guard covers the rest). mas is never auto-uninstalled (no headless uninstall).
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
 
-if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
-elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
-elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
-fi
-command -v brew >/dev/null 2>&1 || { echo "brew not found; run prerequisites first" >&2; exit 1; }
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/packages-brew.applied"
 
-BREWFILE="$(mktemp)"
-trap 'rm -f "$BREWFILE"' EXIT
-
-cat >"$BREWFILE" <<'BREWFILE_EOF'
+# brewfile_rows -- the desired Brewfile (enabled ∩ module-on ∩ platform-match).
+# Tests override this.
+brewfile_rows() {
+  cat <<'BREWFILE_EOF'
 # Generated from registry.toml — do not edit by hand.
 {{ range .packages -}}
 {{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
@@ -27,29 +38,233 @@ cat >"$BREWFILE" <<'BREWFILE_EOF'
 {{- end -}}
 {{- end -}}
 BREWFILE_EOF
+}
 
-echo "==> [packages] brew bundle:"
-cat "$BREWFILE"
-# HOMEBREW_NO_REQUIRE_TAP_TRUST: some registry entries live in third-party taps
-# (e.g. hunk in modem-dev/tap). Homebrew's tap-trust check refuses to load
-# formulae from untrusted taps non-interactively, which aborts the whole bundle.
-# These taps are intentional, curated entries in registry.toml, so we opt into
-# trusting them for this bundle run. (Scoped to the command, not exported.)
-# --verbose: stream each formula/cask's download + install output live instead
-# of buffering it, so `chezmoi apply` shows real progress rather than a single
-# static "Fetching ..." line while large casks download.
-HOMEBREW_NO_REQUIRE_TAP_TRUST=1 brew bundle --verbose --file="$BREWFILE"
+# removal_rows -- "method|pkg" for every brew-family entry that is NOT desired
+# (the exact negation of the brewfile_rows predicate) yet has an install table for
+# this OS. These are the uninstall candidates. Tests override this.
+removal_rows() {
+  cat <<'REMOVAL_EOF'
+{{ range .packages -}}
+{{- if and (hasKey . $os) (not (and .enabled (index $.modules .module) (has $os .platforms))) -}}
+{{- $p := index . $os -}}
+{{- if or (eq $p.method "brew") (eq $p.method "cask") (eq $p.method "mas") }}{{ $p.method }}|{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+REMOVAL_EOF
+}
 
-# Persistently trust the third-party taps referenced above (recorded by
-# `brew trust` in trust.json). The bundle run bypasses the tap-trust gate for
-# itself, but this also lets *interactive* brew commands (brew list/info/upgrade)
-# load these casks/formulae without the "untrusted tap" refusal, in case a
-# future Homebrew enables HOMEBREW_REQUIRE_TAP_TRUST by default. Derived from the
-# full "org/tap/name" entries in the Brewfile; runs after bundle so the taps are
-# already tapped; per-tap failures are non-fatal.
-if brew trust --help >/dev/null 2>&1; then
-  grep -oE '"[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/[^"]+"' "$BREWFILE" |
-    tr -d '"' | sed 's#/[^/]*$##' | sort -u |
-    while read -r tap; do brew trust "$tap" 2>/dev/null || true; done
-fi
-echo "==> [packages] done"
+# ---- manifest emitters (rendered from the registry) -----------------------
+
+# brew_desired_rows -- "name|method|pkg" for every DESIRED brew/cask entry
+# (enabled ∩ module-on ∩ platform). Drives RECORD. Tests override this.
+brew_desired_rows() {
+  cat <<'BREW_DESIRED_EOF'
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if or (eq $p.method "brew") (eq $p.method "cask") }}{{ .name }}|{{ $p.method }}|{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+BREW_DESIRED_EOF
+}
+
+# brew_registry_names -- every brew-family entry's name that still exists in the
+# registry (enabled or not). A manifest name absent from this set is a deleted
+# entry. Names are unique across the registry. Tests override this.
+brew_registry_names() {
+  cat <<'BREW_NAMES_EOF'
+{{ range .packages -}}
+{{- if hasKey . $os -}}
+{{- $p := index . $os -}}
+{{- if or (eq $p.method "brew") (eq $p.method "cask") (eq $p.method "mas") }}{{ .name }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+BREW_NAMES_EOF
+}
+
+# brew_present_rows -- "method|pkg" for every present brew/cask entry, any enabled
+# state. The delete-path normalizes these to per-type basename sets: a basename a
+# live entry still claims is never delete-uninstalled. Tests override this.
+brew_present_rows() {
+  cat <<'BREW_PRESENT_EOF'
+{{ range .packages -}}
+{{- if hasKey . $os -}}
+{{- $p := index . $os -}}
+{{- if or (eq $p.method "brew") (eq $p.method "cask") }}{{ $p.method }}|{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+BREW_PRESENT_EOF
+}
+
+# ---- backends (stubbed by tests) ------------------------------------------
+
+# list_installed_formulae / list_installed_casks -- one-shot installed snapshots
+# (one brew call each, not one per package). Tests override these.
+list_installed_formulae() { brew list --formula 2>/dev/null; }
+list_installed_casks() { brew list --cask 2>/dev/null; }
+
+# brew_installed TYPE NAME -- 0 if that formula/cask is installed.
+brew_installed() {
+  case "$1" in
+    cask) brew list --cask "$2" >/dev/null 2>&1 ;;
+    *) brew list --formula "$2" >/dev/null 2>&1 ;;
+  esac
+}
+
+# brew_remove TYPE NAME -- uninstall; non-zero on failure (e.g. still a dependency
+# of a kept formula, which is correct — we leave it and soft-fail).
+brew_remove() {
+  case "$1" in
+    cask) brew uninstall --cask "$2" ;;
+    *) brew uninstall --formula "$2" ;;
+  esac
+}
+
+# remove_stale -- uninstall each removal candidate that is currently installed.
+# Never runs `brew autoremove` and never uses `--zap` (removing the app, not the
+# user's data). Soft-fails: a failed uninstall warns and the run still exits 0.
+remove_stale() {
+  local method pkg base failures=0
+  while IFS='|' read -r method pkg; do
+    [ -n "$method" ] || continue
+    if [ "$method" = mas ]; then
+      echo "  ⚠ ${pkg}: Mac App Store app — remove manually (no headless uninstall)"
+      continue
+    fi
+    base="${pkg##*/}" # tap path org/tap/name -> short name for list/uninstall
+    if brew_installed "$method" "$base"; then
+      echo "  -> removing ${base} (${method})"
+      if ! brew_remove "$method" "$base"; then
+        echo "  !! FAILED remove: ${base} (still required by a kept formula?)" >&2
+        failures=$((failures + 1))
+      fi
+    fi
+  done <<EOF
+$(removal_rows)
+EOF
+  [ "$failures" -eq 0 ] || echo "==> [packages] ${failures} removal(s) FAILED (see above); continuing" >&2
+}
+
+# reconcile_brew_manifest -- RECORD every desired∩installed entry into the manifest,
+# then uninstall tracked packages whose registry entry was DELETED entirely (name no
+# longer in the registry) and are still installed. The collision guard skips (and
+# drops) any delete whose basename is still claimed by a present same-type registry
+# entry. Atomic rebuild; a row is kept only when its own uninstall actually fails.
+# Runs after remove_stale so the installed snapshot reflects post-disable reality.
+reconcile_brew_manifest() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local manifest_prev registry_names present_formulae present_casks
+  local installed_formulae installed_casks failures TAB
+  local name method pkg base
+  TAB="$(printf '\t')"
+
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  registry_names="$(brew_registry_names | grep -v '^$' | sort -u || true)"
+  present_formulae="$(brew_present_rows | grep '^brew|' | sed -e 's/^brew|//' -e 's#.*/##' | sort -u || true)"
+  present_casks="$(brew_present_rows | grep '^cask|' | sed -e 's/^cask|//' -e 's#.*/##' | sort -u || true)"
+  installed_formulae="$(list_installed_formulae || true)"
+  installed_casks="$(list_installed_casks || true)"
+  failures=0
+  : >"$MANIFEST.tmp"
+
+  # RECORD: adopt every desired brew/cask entry that is currently installed.
+  while IFS='|' read -r name method pkg; do
+    [ -n "$name" ] || continue
+    base="${pkg##*/}"
+    if [ "$method" = cask ]; then
+      printf '%s\n' "$installed_casks" | grep -qxF "$base" || continue
+    else
+      printf '%s\n' "$installed_formulae" | grep -qxF "$base" || continue
+    fi
+    printf '%s\t%s\t%s\n' "$name" "$method" "$pkg" >>"$MANIFEST.tmp"
+  done <<EOF
+$(brew_desired_rows)
+EOF
+
+  # DELETE-path: a tracked package whose registry entry is gone from the registry.
+  while IFS="$TAB" read -r name method pkg; do
+    [ -n "$name" ] || continue
+    if printf '%s\n' "$registry_names" | grep -qxF "$name"; then continue; fi
+    base="${pkg##*/}"
+    if [ "$method" = cask ]; then
+      if printf '%s\n' "$present_casks" | grep -qxF "$base"; then continue; fi
+      printf '%s\n' "$installed_casks" | grep -qxF "$base" || continue
+    else
+      if printf '%s\n' "$present_formulae" | grep -qxF "$base"; then continue; fi
+      printf '%s\n' "$installed_formulae" | grep -qxF "$base" || continue
+    fi
+    echo "  -> removing ${base} (${method}, deleted from registry)"
+    if ! brew_remove "$method" "$base"; then
+      echo "  !! FAILED remove: ${base} (still required by a kept formula?)" >&2
+      failures=$((failures + 1))
+      printf '%s\t%s\t%s\n' "$name" "$method" "$pkg" >>"$MANIFEST.tmp" # keep for retry
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  local n_tracked
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [packages] manifest: ${n_tracked} tracked; ${failures} delete removal(s) FAILED"
+}
+
+main() {
+  set -euo pipefail
+
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+  command -v brew >/dev/null 2>&1 || { echo "brew not found; run prerequisites first" >&2; exit 1; }
+
+  local BREWFILE
+  BREWFILE="$(mktemp)"
+  trap 'rm -f "$BREWFILE"' EXIT
+  brewfile_rows >"$BREWFILE"
+
+  echo "==> [packages] brew bundle:"
+  cat "$BREWFILE"
+  # HOMEBREW_NO_REQUIRE_TAP_TRUST: some registry entries live in third-party taps
+  # (e.g. hunk in modem-dev/tap). Homebrew's tap-trust check refuses to load
+  # formulae from untrusted taps non-interactively, which aborts the whole bundle.
+  # These taps are intentional, curated entries in registry.toml, so we opt into
+  # trusting them for this bundle run. (Scoped to the command, not exported.)
+  # --verbose: stream each formula/cask's download + install output live instead
+  # of buffering it, so `chezmoi apply` shows real progress rather than a single
+  # static "Fetching ..." line while large casks download.
+  HOMEBREW_NO_REQUIRE_TAP_TRUST=1 brew bundle --verbose --file="$BREWFILE"
+
+  # Persistently trust the third-party taps referenced above (recorded by
+  # `brew trust` in trust.json). The bundle run bypasses the tap-trust gate for
+  # itself, but this also lets *interactive* brew commands (brew list/info/upgrade)
+  # load these casks/formulae without the "untrusted tap" refusal, in case a
+  # future Homebrew enables HOMEBREW_REQUIRE_TAP_TRUST by default. Derived from the
+  # full "org/tap/name" entries in the Brewfile; runs after bundle so the taps are
+  # already tapped; per-tap failures are non-fatal.
+  if brew trust --help >/dev/null 2>&1; then
+    grep -oE '"[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/[^"]+"' "$BREWFILE" |
+      tr -d '"' | sed 's#/[^/]*$##' | sort -u |
+      while read -r tap; do brew trust "$tap" 2>/dev/null || true; done
+  fi
+
+  echo "==> [packages] reconciling removals (disabled / module-off entries)"
+  remove_stale
+
+  echo "==> [packages] recording state + removing deleted entries"
+  reconcile_brew_manifest
+
+  echo "==> [packages] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi

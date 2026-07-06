@@ -1,14 +1,39 @@
 #!/usr/bin/env bash
 # run_onchange_after_40-ai-tools.sh
-# Installs registry entries whose method is "script" (official installers):
-# AI CLIs, fallow, pass-cli, etc. Skips any already present via its `check`.
+# Installs registry entries whose method is "script" (official curl|bash
+# installers: AI CLIs, pass-cli, etc.), then UNINSTALLS ones no longer wanted.
 #
-# Logic lives in functions + main() so the rendered script can be sourced by
-# the test suite without executing side effects (see the BASH_SOURCE guard at
-# the bottom). `set -euo pipefail` is inside main() for the same reason.
+# Unlike brew/npm, a curl|bash tool leaves no package-manager record, so removal
+# is manifest-scoped: we track what we installed in a self-describing manifest
+#   ${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/packages-script.applied
+# with one "name<TAB>check<TAB>uninstall_cmd" line per tool. The manifest is the
+# ownership proof (a tool the registry names but that we never installed is never
+# removed) AND the only place a tool's uninstall recipe survives if its entry is
+# deleted from the registry.
+#
+# Reconcile model (mirrors 66-ai-plugins):
+#   RECORD  = desired ∩ installed        -> adopt into the manifest (enabled tools
+#             only, so a differently-installed tool is never clobbered).
+#   REMOVE-disabled = not-desired, still in registry, in manifest, installed
+#             -> uninstall via the registry's current recipe.
+#   REMOVE-deleted  = in manifest, entry gone from registry, installed
+#             -> uninstall via the recipe STORED in the manifest.
+#   Soft-fail: a failed op warns and the run still exits 0.
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2
+# (macOS system bash): no associative arrays, no mapfile.
+#
+# Rows below are pipe-delimited; the install `cmd` (which contains a '|' from the
+# curl pipe) is NOT carried in a row — it is emitted quoted into the install loop.
+# check/uninstall_cmd/name must not contain '|'.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
 
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/packages-script.applied"
+
+# install_one NAME CHECK CMD -- install only if CHECK fails. Unchanged.
 install_one() {
   local name="$1" check="$2" cmd="$3"
   if eval "$check" >/dev/null 2>&1; then
@@ -19,12 +44,131 @@ install_one() {
   fi
 }
 
+# script_desired_rows -- "name|check|uninstall_cmd" for DESIRED script tools
+# (enabled ∩ module-on ∩ platform). Drives RECORD. Tests override this.
+script_desired_rows() {
+  cat <<'DESIRED_EOF'
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "script" }}{{ .name }}|{{ $p.check }}|{{ $p.uninstall_cmd }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+DESIRED_EOF
+}
+
+# script_removal_rows -- "name|check|uninstall_cmd" for NOT-desired script tools
+# still present in the registry (the exact negation of the desired predicate).
+# Drives REMOVE-disabled. Tests override this.
+script_removal_rows() {
+  cat <<'REMOVAL_EOF'
+{{ range .packages -}}
+{{- if and (hasKey . $os) (not (and .enabled (index $.modules .module) (has $os .platforms))) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "script" }}{{ .name }}|{{ $p.check }}|{{ $p.uninstall_cmd }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+REMOVAL_EOF
+}
+
+# script_registry_names -- every script tool's name that still exists in the
+# registry (enabled or not). A manifest name absent from this set is a deleted
+# entry. Tests override this.
+script_registry_names() {
+  cat <<'NAMES_EOF'
+{{ range .packages -}}
+{{- if hasKey . $os -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "script" }}{{ .name }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NAMES_EOF
+}
+
+# ---- backends (stubbed by tests) ------------------------------------------
+script_installed() { eval "$1" >/dev/null 2>&1; } # $1 = check
+script_do_remove() { eval "$1"; }                 # $1 = uninstall_cmd
+
+# reconcile_script -- record desired∩installed, uninstall disabled/deleted tools,
+# rebuild the manifest from reality. Uses the script_*_rows emitters + backends +
+# $MANIFEST, so tests can stub those.
+reconcile_script() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local manifest_prev manifest_names registry_names failures TAB
+  local name check uninstall
+  TAB="$(printf '\t')"
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  manifest_names="$(printf '%s\n' "$manifest_prev" | cut -f1 | grep -v '^$' || true)"
+  registry_names="$(script_registry_names | grep -v '^$' | sort -u || true)"
+  failures=0
+  : >"$MANIFEST.tmp"
+
+  # RECORD: adopt every desired tool that is installed. Enabled tools only, so a
+  # tool the registry doesn't want that happens to be present is never adopted
+  # (and thus never removed on a future disable).
+  while IFS='|' read -r name check uninstall; do
+    [ -n "$name" ] || continue
+    if script_installed "$check"; then
+      printf '%s\t%s\t%s\n' "$name" "$check" "$uninstall" >>"$MANIFEST.tmp"
+    fi
+  done <<EOF
+$(script_desired_rows)
+EOF
+
+  # REMOVE-disabled: not-desired, still in registry, ours (in manifest), present.
+  while IFS='|' read -r name check uninstall; do
+    [ -n "$name" ] || continue
+    if ! printf '%s\n' "$manifest_names" | grep -qxF "$name"; then continue; fi
+    if script_installed "$check"; then
+      echo "  -> removing $name"
+      if ! script_do_remove "$uninstall"; then
+        echo "  !! FAILED remove: $name" >&2
+        failures=$((failures + 1))
+        printf '%s\t%s\t%s\n' "$name" "$check" "$uninstall" >>"$MANIFEST.tmp" # keep for retry
+      fi
+    fi
+  done <<EOF
+$(script_removal_rows)
+EOF
+
+  # REMOVE-deleted: tracked tool whose entry is gone from the registry entirely;
+  # uninstall via the recipe stored in the manifest (its only surviving copy).
+  while IFS="$TAB" read -r name check uninstall; do
+    [ -n "$name" ] || continue
+    if printf '%s\n' "$registry_names" | grep -qxF "$name"; then continue; fi
+    if script_installed "$check"; then
+      echo "  -> removing $name (deleted from registry)"
+      if ! script_do_remove "$uninstall"; then
+        echo "  !! FAILED remove: $name" >&2
+        failures=$((failures + 1))
+        printf '%s\t%s\t%s\n' "$name" "$check" "$uninstall" >>"$MANIFEST.tmp" # keep for retry
+      fi
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  local n_tracked
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [script-installers] ${n_tracked} tool(s) tracked"
+  [ "$failures" -eq 0 ] || echo "==> [script-installers] ${failures} removal(s) FAILED; continuing" >&2
+}
+
 main() {
   set -euo pipefail
 
-  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
-  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
-  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+  if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)"
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   fi
 
   echo "==> [script-installers]"
@@ -36,6 +180,8 @@ main() {
 {{ end -}}
 {{- end -}}
 {{- end }}
+  echo "==> [script-installers] reconciling (record + remove disabled/deleted)"
+  reconcile_script
   echo "==> [script-installers] done"
 }
 
