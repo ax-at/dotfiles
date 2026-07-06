@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # run_onchange_after_30-mise.sh
-# Installs language runtimes via mise, then npm-global CLIs from the registry.
-# Re-runs when mise config or the npm package list below changes.
+# Installs language runtimes via mise, then npm-global CLIs from the registry,
+# then UNINSTALLS npm CLIs no longer wanted (disabled / module-off / deleted).
+# Re-runs when mise config or the npm install/removal lists below change. The
+# disable-path is registry-driven (npm itself proves presence); a state manifest
+# (packages-npm.applied) additionally uninstalls a package whose entry was DELETED
+# from the registry, if it was recorded on a prior apply. Scoped npm names
+# (@scope/name) are stable across ls/uninstall, so there is no tap-name footgun and
+# no collision guard is needed. Only registry-named packages are ever touched.
 #
 # Logic lives in functions + main() so the rendered script can be sourced by
 # the test suite without executing side effects (see the BASH_SOURCE guard at
 # the bottom). `set -euo pipefail` is inside main() for the same reason.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
+
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/packages-npm.applied"
 
 # npm_install_if_missing PKG CHECK-CMD
 # Installs a global npm CLI only when CHECK-CMD fails (i.e. it isn't present).
@@ -17,6 +25,124 @@ npm_install_if_missing() {
     echo "  -> $pkg"
     mise exec node -- npm install -g "$pkg"
   fi
+}
+
+# npm_removal_rows -- global npm packages no longer wanted (the exact negation of
+# the install predicate) that still have a this-OS table. Keyed on the PACKAGE
+# name (never the binary: eas-cli != eas). Tests override this.
+npm_removal_rows() {
+  cat <<'NPM_REMOVAL_EOF'
+{{ range .packages -}}
+{{- if and (hasKey . $os) (not (and .enabled (index $.modules .module) (has $os .platforms))) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NPM_REMOVAL_EOF
+}
+
+# npm_desired_rows -- "name|pkg" for every DESIRED npm entry (enabled ∩ module-on ∩
+# platform). Drives RECORD. Tests override this.
+npm_desired_rows() {
+  cat <<'NPM_DESIRED_EOF'
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}{{ .name }}|{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NPM_DESIRED_EOF
+}
+
+# npm_registry_names -- every npm entry's name that still exists in the registry
+# (enabled or not). A manifest name absent from this set is a deleted entry. Tests
+# override this.
+npm_registry_names() {
+  cat <<'NPM_NAMES_EOF'
+{{ range .packages -}}
+{{- if hasKey . $os -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}{{ .name }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NPM_NAMES_EOF
+}
+
+# npm_installed PKG / npm_remove PKG -- backends (stubbed by tests).
+npm_installed() { mise exec node -- npm ls -g "$1" >/dev/null 2>&1; }
+npm_remove() { mise exec node -- npm uninstall -g "$1"; }
+
+# remove_stale_npm -- uninstall every removal candidate that is currently present.
+# Soft-fails: a failed uninstall warns and the run still exits 0.
+remove_stale_npm() {
+  local pkg failures=0
+  while IFS= read -r pkg; do
+    [ -n "$pkg" ] || continue
+    if npm_installed "$pkg"; then
+      echo "  -> removing $pkg"
+      if ! npm_remove "$pkg"; then
+        echo "  !! FAILED remove: $pkg" >&2
+        failures=$((failures + 1))
+      fi
+    fi
+  done <<EOF
+$(npm_removal_rows)
+EOF
+  [ "$failures" -eq 0 ] || echo "==> [mise] ${failures} npm removal(s) FAILED; continuing" >&2
+}
+
+# reconcile_npm_manifest -- RECORD every desired∩installed npm package into the
+# manifest, then uninstall tracked packages whose registry entry was DELETED
+# entirely (name no longer in the registry) and are still installed. No collision
+# guard: scoped npm names are unique identifiers used verbatim by npm ls/uninstall.
+# Atomic rebuild; a row is kept only when its own uninstall actually fails.
+reconcile_npm_manifest() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local manifest_prev registry_names failures TAB name pkg
+  TAB="$(printf '\t')"
+  manifest_prev="$(grep -v '^$' "$MANIFEST" || true)"
+  registry_names="$(npm_registry_names | grep -v '^$' | sort -u || true)"
+  failures=0
+  : >"$MANIFEST.tmp"
+
+  # RECORD: adopt every desired npm package that is currently installed.
+  while IFS='|' read -r name pkg; do
+    [ -n "$name" ] || continue
+    if npm_installed "$pkg"; then
+      printf '%s\t%s\n' "$name" "$pkg" >>"$MANIFEST.tmp"
+    fi
+  done <<EOF
+$(npm_desired_rows)
+EOF
+
+  # DELETE-path: a tracked package whose registry entry is gone from the registry.
+  while IFS="$TAB" read -r name pkg; do
+    [ -n "$name" ] || continue
+    if printf '%s\n' "$registry_names" | grep -qxF "$name"; then continue; fi
+    if npm_installed "$pkg"; then
+      echo "  -> removing $pkg (deleted from registry)"
+      if ! npm_remove "$pkg"; then
+        echo "  !! FAILED remove: $pkg" >&2
+        failures=$((failures + 1))
+        printf '%s\t%s\n' "$name" "$pkg" >>"$MANIFEST.tmp" # keep for retry
+      fi
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  local n_tracked
+  n_tracked="$(grep -c . "$MANIFEST" || true)"
+  echo "==> [mise] npm manifest: ${n_tracked} tracked; ${failures} delete removal(s) FAILED"
 }
 
 main() {
@@ -43,6 +169,10 @@ main() {
 {{ end -}}
 {{- end -}}
 {{- end }}
+  echo "==> [mise] reconciling npm removals (disabled / module-off entries)"
+  remove_stale_npm
+  echo "==> [mise] recording state + removing deleted npm entries"
+  reconcile_npm_manifest
   echo "==> [mise] done"
 }
 

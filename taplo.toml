@@ -1,3 +1,10 @@
 # taplo owns TOML formatting for `make lint`; oxfmt is configured to skip *.toml.
 # Exclude chezmoi templates: their `{{ ... }}` directives aren't valid TOML.
-exclude = ["**/*.tmpl", "home/.chezmoiexternal.toml"]
+# Exclude .claude/ — untracked agent state (incl. sibling git worktrees under
+# .claude/worktrees/, which carry their own copies of these template TOMLs).
+exclude = [
+  "**/*.tmpl",
+  "home/.chezmoiexternal.toml",
+  ".claude/**",
+  "**/.claude/**",
+]

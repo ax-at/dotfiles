@@ -40,8 +40,11 @@
         "pkg": { "type": "string" },
         "id": {},
         "check": { "type": "string" },
-        "cmd": { "type": "string" }
-      }
+        "cmd": { "type": "string" },
+        "uninstall_cmd": { "type": "string" }
+      },
+      "if": { "required": ["method"], "properties": { "method": { "const": "script" } } },
+      "then": { "required": ["uninstall_cmd"] }
     }
   }
 }
