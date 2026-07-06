@@ -320,7 +320,7 @@ setup_script() {
   script_do_remove() { echo "remove $1" >>"$CALLS"; }
 }
 
-@test "script: rendered desired rows carry name|check|uninstall_cmd for the 4 tools" {
+@test "script: rendered desired rows carry name|check|uninstall_cmd for each enabled script tool" {
   render_to_file "$(script_tmpl 40-ai-tools)" "$BATS_TEST_TMPDIR/s.sh" full.toml
   source "$BATS_TEST_TMPDIR/s.sh"
   run script_desired_rows

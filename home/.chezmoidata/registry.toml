@@ -840,8 +840,12 @@ enabled = true
 platforms = ["macos", "linux"]
 # Clone only (idempotent via `test -d`); the interactive `nanoclaw.sh` onboarding
 # is deferred to run_once_after_90-nanoclaw-onboarding, which runs dead-last.
-macos = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2" }
-linux = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2" }
+# Uninstall is git-guarded, not a blind rm: reconcile removes ~/nanoclaw-v2 ONLY if it
+# is a pristine checkout (empty `git status --porcelain --ignored`). Any local change,
+# untracked/ignored file (onboarding .env, DBs, groups/), or non-repo dir => left in
+# place. This entry is stateful/user-owned, so every uncertainty fails to PRESERVE.
+macos = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2", uninstall_cmd = '[ -n "$(git -C $HOME/nanoclaw-v2 status --porcelain --ignored 2>/dev/null || echo x)" ] || rm -rf $HOME/nanoclaw-v2' }
+linux = { method = "script", pkg = "nanoclaw", check = "test -d $HOME/nanoclaw-v2", cmd = "git clone https://github.com/nanocoai/nanoclaw.git $HOME/nanoclaw-v2", uninstall_cmd = '[ -n "$(git -C $HOME/nanoclaw-v2 status --porcelain --ignored 2>/dev/null || echo x)" ] || rm -rf $HOME/nanoclaw-v2' }
 
 # -------------------------------------------------------- ai-assistants ----
 [[packages]]
