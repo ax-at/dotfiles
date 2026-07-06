@@ -18,6 +18,7 @@ react-native = false
 ai-tools = false
 ai-assistants = false
 nanoclaw = false
+openclaw = false
 productivity = false
 linux-feel = false
 macos-defaults = false
