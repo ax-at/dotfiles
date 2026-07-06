@@ -102,7 +102,8 @@
 | ✅ | **Context Hub CLI** | Semantic code/context search CLI (Andrew Ng) | free | MIT | [repo](https://github.com/andrewyng/context-hub) |
 | ✅ | **Pencil CLI** | Design-to-code CLI (Pencil.dev: canvas designs → code) | freemium | proprietary | — |
 | ✅ | **Claude Desktop** | Anthropic Claude desktop app (NOT the CLI) | freemium | proprietary | — |
-| ✅ | **ChatGPT Desktop** | OpenAI ChatGPT desktop app (also hosts Codex GUI) | freemium | proprietary | — |
+| ✅ | **ChatGPT Desktop** | OpenAI ChatGPT desktop app | freemium | proprietary | — |
+| ✅ | **Codex Desktop** | OpenAI Codex desktop app | freemium | proprietary | — |
 | ✅ | **Antigravity** | Agent orchestration platform | free | proprietary | — |
 | ✅ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
 | ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
