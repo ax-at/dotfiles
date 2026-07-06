@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# run_once_after_90-nanoclaw-onboarding.sh
+# nanoclaw-v2 is cloned earlier (registry entry -> run_onchange_after_40-ai-tools).
+# This runs dead-last and offers to run the interactive onboarding (nanoclaw.sh)
+# now, or prints how to run it later. Deferrable; it never fails the apply.
+# Idempotent: a checkout that already has a .env (onboarded) is left untouched,
+# which also makes this safe to re-fire if the script's content ever changes
+# (run_once keys on the script's SHA). Gated on the nanoclaw module.
+set -euo pipefail
+
+{{ if .modules.nanoclaw -}}
+DIR="$HOME/nanoclaw-v2"
+
+# Clone gated off or failed earlier -> nothing to onboard.
+if [ ! -d "$DIR" ]; then
+  echo "==> [nanoclaw] $DIR not present; skipping onboarding"
+  exit 0
+fi
+
+# Already configured (.env written during onboarding) -> leave it untouched.
+if [ -f "$DIR/.env" ]; then
+  echo "==> [nanoclaw] already onboarded ($DIR/.env present); skipping"
+  exit 0
+fi
+
+print_later() {
+  echo ""
+  echo "==> [nanoclaw] onboarding deferred. Finish it any time with:"
+  echo "      cd $DIR && bash nanoclaw.sh"
+  echo ""
+}
+
+# Non-interactive apply (CI, piped) -> never block; defer with instructions.
+if [ ! -t 0 ]; then
+  echo "==> [nanoclaw] non-interactive shell; deferring onboarding"
+  print_later
+  exit 0
+fi
+
+printf '==> [nanoclaw] Run onboarding now? Interactive, may take a while. [y/N] '
+read -r ans || ans="n"
+case "$ans" in
+  y | Y | yes | Yes | YES)
+    echo "==> [nanoclaw] launching nanoclaw.sh (resumable; Ctrl-C to abort)"
+    if ! bash "$DIR/nanoclaw.sh"; then
+      {
+        echo ""
+        echo "==> [nanoclaw] onboarding did not finish. Resume any time with:"
+        echo "      cd $DIR && bash nanoclaw.sh"
+        echo ""
+      } >&2
+    fi
+    ;;
+  *)
+    print_later
+    ;;
+esac
+{{ else -}}
+exit 0
+{{ end -}}

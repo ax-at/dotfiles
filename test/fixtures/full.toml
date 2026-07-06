@@ -15,4 +15,5 @@ react-native = true
 ai-tools = true
 ai-assistants = true
 ai-productivity-tools = true
+nanoclaw = true
 linux-feel = true
