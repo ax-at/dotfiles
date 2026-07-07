@@ -206,6 +206,33 @@ setup_brew_manifest() {
   ! grep -q . "$MANIFEST"
 }
 
+# main() lifecycle — every test above sources the script and drives an individual
+# function, so the BASH_SOURCE guard keeps main() (and its EXIT cleanup trap) from
+# ever running. chezmoi EXECUTES the rendered script, so main() and the trap are
+# exactly the path that runs on a live machine. This test drives that path with
+# brew + the installed-snapshot backends stubbed, catching lifecycle regressions
+# the function-level tests structurally cannot — e.g. a `local BREWFILE` read by
+# the EXIT trap aborting with "unbound variable" under set -u after main returns,
+# which failed the whole apply *after* printing "done".
+@test "brew: main() runs end-to-end and its EXIT cleanup trap is set -u safe" {
+  render_to_file "$(script_tmpl 20-packages)" "$BATS_TEST_TMPDIR/b.sh" full.toml
+  # Run it as a program (not sourced): source to load defs, override MANIFEST and
+  # stub every brew touchpoint to a no-op, then invoke main(). When this bash
+  # process exits, the EXIT trap fires — the regression surface.
+  cat >"$BATS_TEST_TMPDIR/drive.sh" <<'DRIVE'
+source "$1"
+MANIFEST="$2"                      # top-level assignment in the script; re-point after source
+brew() { return 0; }               # bundle / trust / list / uninstall — all no-ops
+list_installed_formulae() { :; }
+list_installed_casks() { :; }
+main
+DRIVE
+  run bash "$BATS_TEST_TMPDIR/drive.sh" "$BATS_TEST_TMPDIR/b.sh" "$BATS_TEST_TMPDIR/manifest"
+  assert_success
+  refute_output --partial "unbound variable"
+  assert_output --partial "==> [packages] done"
+}
+
 # ========================================================================= npm
 setup_npm() {
   render_to_file "$(script_tmpl 30-mise)" "$BATS_TEST_TMPDIR/n.sh" full.toml
