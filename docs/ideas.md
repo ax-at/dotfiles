@@ -15,7 +15,7 @@ Recording, Full Disk Access, Input Monitoring, Automation.
 **Why not just force-launch the apps.** Opening an app does **not** grant
 [TCC](https://developer.apple.com/documentation/devicemanagement/privacypreferencespolicycontrol)
 permissions — at most it surfaces a prompt the user must still approve. And most
-prompts are **lazy**: they fire on first *use* of the capability, not on launch,
+prompts are **lazy**: they fire on first _use_ of the capability, not on launch,
 so a cold `open` frequently surfaces nothing. Mass-launching also steals focus,
 registers unwanted login items / menu-bar agents, and triggers system-extension
 approvals all at once. The only true pre-grant path is a **signed PPPC

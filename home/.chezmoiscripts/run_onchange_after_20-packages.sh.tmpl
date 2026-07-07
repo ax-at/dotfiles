@@ -228,9 +228,12 @@ main() {
   fi
   command -v brew >/dev/null 2>&1 || { echo "brew not found; run prerequisites first" >&2; exit 1; }
 
-  local BREWFILE
+  # NB: not `local`. This is read by the EXIT trap, which fires at top-level
+  # scope *after* main() returns — a function-local would already be destroyed
+  # by then, and with `set -u` still active that trap would abort with
+  # "BREWFILE: unbound variable" (and leak the temp file).
   BREWFILE="$(mktemp)"
-  trap 'rm -f "$BREWFILE"' EXIT
+  trap 'rm -f "${BREWFILE:-}"' EXIT
   brewfile_rows >"$BREWFILE"
 
   echo "==> [packages] brew bundle:"
