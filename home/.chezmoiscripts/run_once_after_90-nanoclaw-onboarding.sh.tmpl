@@ -90,6 +90,26 @@ case "$ans" in
       echo ""
       echo "==> [nanoclaw] Docker engine is up."
     fi
+    # nanoclaw's launchd/systemd service uses a HARDCODED PATH
+    # (/usr/local/bin:/usr/bin:/bin:~/.local/bin -- setup/service.ts) and calls
+    # `docker` by bare name for its container-runtime check. That assumes Docker
+    # Desktop (which symlinks docker into /usr/local/bin); OrbStack keeps docker
+    # at ~/.orbstack/bin, which that PATH omits -- so the service hard-exits with
+    # "Container runtime failed to start" even while the engine is up. Bridge it:
+    # if the docker we resolve isn't already on the service PATH, symlink it into
+    # ~/.local/bin (which IS on it). Survives plist regen; only created when
+    # ~/.local/bin/docker is free, so a user-placed docker is never clobbered.
+    docker_bin="$(command -v docker 2>/dev/null || true)"
+    case "$docker_bin" in
+      "" | /usr/local/bin/docker | /usr/bin/docker | /bin/docker | "$HOME/.local/bin/docker") : ;;
+      *)
+        if [ ! -e "$HOME/.local/bin/docker" ]; then
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "$docker_bin" "$HOME/.local/bin/docker"
+          echo "==> [nanoclaw] linked $docker_bin -> ~/.local/bin/docker (for the service's PATH)"
+        fi
+        ;;
+    esac
 {{ end -}}
     # Pin node for the onboarding (see header). brew installs mise (core pkg), so
     # put mise on PATH cross-platform via the repo idiom (cf. run_onchange_after_30
