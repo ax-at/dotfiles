@@ -544,19 +544,6 @@ macos = { method = "brew", pkg = "cloudflared" }
 linux = { method = "brew", pkg = "cloudflared" }
 
 [[packages]]
-name = "fallow"
-module = "web"
-desc = "Rust-native codebase intelligence for TS/JS (dead code, deps, complexity)"
-cost = "freemium"
-license = "proprietary"
-repo = "https://github.com/fallow-rs/fallow"
-enabled = true
-platforms = ["macos", "linux"]
-# Official recommended install (npm global); also commonly a project devDependency.
-macos = { method = "npm", pkg = "fallow", check = "fallow --version" }
-linux = { method = "npm", pkg = "fallow", check = "fallow --version" }
-
-[[packages]]
 name = "bun"
 module = "web"
 desc = "All-in-one JS runtime & toolkit"
