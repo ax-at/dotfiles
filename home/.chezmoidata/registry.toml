@@ -965,6 +965,30 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "orbstack" }
 
 [[packages]]
+name = "Tailscale"
+module = "productivity"
+desc = "Mesh VPN (WireGuard-based) for private device networking"
+cost = "freemium"
+license = "BSD-3-Clause"
+repo = "https://github.com/tailscale/tailscale"
+enabled = true
+platforms = ["macos"]
+# GUI menu-bar cask (the 'tailscale' token now redirects here); bundles the
+# `tailscale` CLI and manages the daemon, so no sudo/system-daemon scripting.
+macos = { method = "cask", pkg = "tailscale-app" }
+
+[[packages]]
+name = "RustDesk"
+module = "productivity"
+desc = "Open-source remote desktop (self-hostable TeamViewer alternative)"
+cost = "free"
+license = "AGPL-3.0"
+repo = "https://github.com/rustdesk/rustdesk"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "rustdesk" }
+
+[[packages]]
 name = "Bruno"
 module = "productivity"
 desc = "Offline, git-friendly API client"
