@@ -815,6 +815,17 @@ platforms = ["macos"]
 macos = { method = "cask", pkg = "superset" }
 
 [[packages]]
+name = "cmux"
+module = "ai-tools"
+desc = "Ghostty-based terminal with vertical tabs for running AI coding agents"
+cost = "free"
+license = "GPL-3.0"
+repo = "https://github.com/manaflow-ai/cmux"
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "cmux" }
+
+[[packages]]
 name = "Pencil Desktop"
 module = "ai-tools"
 desc = "Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI"
