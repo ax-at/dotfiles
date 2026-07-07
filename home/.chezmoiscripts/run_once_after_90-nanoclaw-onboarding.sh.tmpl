@@ -6,6 +6,9 @@
 # Idempotent: a checkout that already has a .env (onboarded) is left untouched,
 # which also makes this safe to re-fire if the script's content ever changes
 # (run_once keys on the script's SHA). Gated on the nanoclaw module.
+# On macOS, before handing off, it ensures the Docker engine is actually running
+# (starts OrbStack/Docker and waits) -- nanoclaw's container step hard-requires a
+# live engine and its own auto-start only knows Docker Desktop, not OrbStack.
 set -euo pipefail
 
 {{ if .modules.nanoclaw -}}
@@ -41,6 +44,47 @@ printf '==> [nanoclaw] Run onboarding now? Interactive, may take a while. [y/N] 
 read -r ans || ans="n"
 case "$ans" in
   y | Y | yes | Yes | YES)
+{{ if eq .chezmoi.os "darwin" -}}
+    # nanoclaw's container step REQUIRES a running Docker engine and hard-exits
+    # (runtime_not_available) without one. Its own auto-start is hardcoded
+    # `open -a Docker` (Docker Desktop), so on an OrbStack machine the engine
+    # never comes up and onboarding aborts with "Couldn't prepare the sandbox".
+    # Bring the engine up ourselves first, then hand off. PATH is augmented
+    # because a fresh (non-login) chezmoi apply hasn't sourced the profile that
+    # puts OrbStack's docker (~/.orbstack/bin) on PATH -- and the child
+    # nanoclaw.sh calls `docker` by bare name, so it inherits this PATH too.
+    export PATH="$HOME/.orbstack/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+    if ! docker info >/dev/null 2>&1; then
+      app=""
+      if [ -d "/Applications/OrbStack.app" ]; then
+        app="OrbStack"
+      elif [ -d "/Applications/Docker.app" ]; then
+        app="Docker"
+      fi
+      if [ -z "$app" ]; then
+        echo "==> [nanoclaw] no Docker runtime found (OrbStack/Docker Desktop)." >&2
+        echo "==> [nanoclaw] install or start one, then resume onboarding." >&2
+        print_later
+        exit 0
+      fi
+      echo "==> [nanoclaw] Docker engine not running; starting $app and waiting..."
+      open -a "$app" || true
+      i=0
+      until docker info >/dev/null 2>&1; do
+        i=$((i + 1))
+        if [ "$i" -ge 30 ]; then # 30 x 2s = ~60s
+          echo "" >&2
+          echo "==> [nanoclaw] $app didn't come up in time; deferring onboarding." >&2
+          print_later
+          exit 0
+        fi
+        printf '.'
+        sleep 2
+      done
+      echo ""
+      echo "==> [nanoclaw] Docker engine is up."
+    fi
+{{ end -}}
     echo "==> [nanoclaw] launching nanoclaw.sh (resumable; Ctrl-C to abort)"
     if ! bash "$DIR/nanoclaw.sh"; then
       {
