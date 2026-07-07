@@ -20,6 +20,21 @@
           "license": { "type": "string" },
           "repo": { "type": "string" },
           "enabled": { "type": "boolean" },
+          "start_at_login": {
+            "description": "macOS only. true = add to login items (bundle <name>.app, hidden). A string overrides the bundle name. An object may set { bundle, hidden }.",
+            "oneOf": [
+              { "type": "boolean" },
+              { "type": "string", "minLength": 1 },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "bundle": { "type": "string", "minLength": 1 },
+                  "hidden": { "type": "boolean" }
+                }
+              }
+            ]
+          },
           "platforms": {
             "type": "array",
             "minItems": 1,

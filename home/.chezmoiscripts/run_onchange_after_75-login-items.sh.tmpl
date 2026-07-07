@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+# run_onchange_after_75-login-items.sh
+# Reconciles the macOS "Open at Login" list (System Settings -> General ->
+# Login Items) against the per-package `start_at_login` flag in registry.toml.
+# Runs after 20-packages (apps installed) and 70-macos-defaults. Re-runs
+# automatically whenever the rendered desired-list below changes.
+#
+# The flag is macOS-only. Accepted forms per package:
+#   start_at_login = true                                 # bundle <name>.app, hidden
+#   start_at_login = "Bundle Name.app"                    # explicit bundle, hidden
+#   start_at_login = { bundle = "X.app", hidden = false } # overrides
+# Default hidden = true (menu-bar apps boot without stealing focus).
+#
+# Mechanism: `osascript` -> System Events login items. This is the first (and
+# only) osascript in the repo. It needs a one-time Automation (TCC) consent the
+# first time it controls System Events; on a machine/session where that consent
+# is missing the call fails with error -1743, which we detect and warn about
+# instead of failing the whole apply.
+#
+# Reconcile model mirrors 20-packages: a state manifest records the login items
+# THIS script created, so removal (when a flag is dropped) is scoped strictly to
+# what we added and never touches items the user or an app registered itself.
+#
+# Logic lives in functions + main() so the rendered script can be sourced by the
+# test suite without side effects (see the BASH_SOURCE guard at the bottom).
+# `set -euo pipefail` is inside main() for the same reason. Written for bash 3.2.
+# osascript backends are separate functions so tests can stub them. login items
+# are macOS-only, so rows are always emitted for the macos platform (the script
+# is a no-op on non-macOS via the uname guard in main).
+
+{{- $os := "macos" }}
+
+MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/login-items.applied"
+
+# login_desired_rows -- "bundle|hidden" for every flagged, installed-or-not app
+# (enabled ∩ module-on ∩ macos-platform ∩ start_at_login truthy). Only these
+# projected fields are emitted, so unrelated registry edits don't perturb the
+# run_onchange hash. Tests override this.
+login_desired_rows() {
+  cat <<'ROWS_EOF'
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) (hasKey . "start_at_login") .start_at_login -}}
+{{- $bundle := printf "%s.app" .name -}}{{- $hidden := true -}}{{- $sal := .start_at_login -}}
+{{- if kindIs "string" $sal }}{{ $bundle = $sal }}{{ else if kindIs "map" $sal }}{{ if hasKey $sal "bundle" }}{{ $bundle = $sal.bundle }}{{ end }}{{ if hasKey $sal "hidden" }}{{ $hidden = $sal.hidden }}{{ end }}{{ end -}}
+{{ $bundle }}|{{ $hidden }}
+{{ end -}}
+{{- end -}}
+ROWS_EOF
+}
+
+# li_list_names -- names of existing login items, one per line. Exits non-zero
+# with the osascript error on stderr when Automation access is blocked (-1743).
+# Tests override this.
+li_list_names() {
+  osascript <<'OSA'
+tell application "System Events"
+  set out to ""
+  repeat with li in login items
+    set out to out & (name of li) & linefeed
+  end repeat
+  return out
+end tell
+OSA
+}
+
+# li_add PATH HIDDEN -- add a login item (HIDDEN is the string "true"/"false").
+# Path/flag passed via argv to avoid quoting issues with spaces. Tests override.
+li_add() {
+  osascript - "$1" "$2" >/dev/null <<'OSA'
+on run argv
+  set p to item 1 of argv
+  set h to ((item 2 of argv) is "true")
+  tell application "System Events"
+    make login item at end with properties {path:p, hidden:h}
+  end tell
+end run
+OSA
+}
+
+# li_delete NAME -- remove every login item with NAME. Tests override this.
+li_delete() {
+  osascript - "$1" >/dev/null <<'OSA'
+on run argv
+  tell application "System Events"
+    delete (every login item whose name is (item 1 of argv))
+  end tell
+end run
+OSA
+}
+
+# resolve_bundle BUNDLE -- print the install path of BUNDLE if present, else
+# nothing. Casks land in /Applications; ~/Applications covers user installs.
+resolve_bundle() {
+  if [ -d "/Applications/$1" ]; then
+    printf '%s\n' "/Applications/$1"
+  elif [ -d "$HOME/Applications/$1" ]; then
+    printf '%s\n' "$HOME/Applications/$1"
+  fi
+}
+
+# reconcile_login_items -- add flagged+installed apps, remove ones we previously
+# added but that are no longer flagged. Records the managed set in $MANIFEST.
+reconcile_login_items() {
+  mkdir -p "$(dirname "$MANIFEST")"
+  [ -f "$MANIFEST" ] || : >"$MANIFEST"
+
+  local existing manifest_prev desired_names name bundle hidden path added removed
+
+  # Consent probe: this first osascript both reads state and triggers the
+  # one-time Automation consent. Nothing is possible without it, so bail cleanly.
+  if ! existing="$(li_list_names 2>&1)"; then
+    if printf '%s' "$existing" | grep -q -- '-1743\|Not authorized'; then
+      echo "==> [login-items] SKIPPED: macOS blocked Automation access to System Events." >&2
+      echo "    Grant it under System Settings -> Privacy & Security -> Automation" >&2
+      echo "    (allow your terminal to control 'System Events'), then re-run 'chezmoi apply'." >&2
+    else
+      echo "==> [login-items] SKIPPED: could not read login items:" >&2
+      printf '%s\n' "$existing" >&2
+    fi
+    return 0
+  fi
+
+  manifest_prev="$(grep -v '^$' "$MANIFEST" 2>/dev/null || true)"
+  desired_names=""
+  : >"$MANIFEST.tmp"
+  added=0
+  removed=0
+
+  # ADD-path: ensure every flagged+installed app is a login item; record it as
+  # managed. desired_names accumulates ALL flagged names (installed or not) so
+  # the removal pass never deletes a still-flagged-but-uninstalled app.
+  while IFS='|' read -r bundle hidden; do
+    [ -n "$bundle" ] || continue
+    name="${bundle%.app}"
+    desired_names="${desired_names}${name}
+"
+    path="$(resolve_bundle "$bundle")" || path=""
+    if [ -z "$path" ]; then
+      echo "  -> skip ${name} (not installed)"
+      continue
+    fi
+    printf '%s\n' "$name" >>"$MANIFEST.tmp"
+    if printf '%s\n' "$existing" | grep -qxF "$name"; then
+      continue
+    fi
+    echo "  -> adding ${name} (hidden=${hidden})"
+    if li_add "$path" "$hidden"; then
+      added=$((added + 1))
+    else
+      echo "  !! FAILED to add ${name}" >&2
+    fi
+  done <<EOF
+$(login_desired_rows)
+EOF
+
+  # DELETE-path: a name we previously managed that is no longer flagged.
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if printf '%s' "$desired_names" | grep -qxF "$name"; then continue; fi
+    printf '%s\n' "$existing" | grep -qxF "$name" || continue
+    echo "  -> removing ${name} (no longer flagged)"
+    if li_delete "$name"; then
+      removed=$((removed + 1))
+    else
+      echo "  !! FAILED to remove ${name}" >&2
+      printf '%s\n' "$name" >>"$MANIFEST.tmp" # keep for retry
+    fi
+  done <<EOF
+$manifest_prev
+EOF
+
+  sort -u "$MANIFEST.tmp" -o "$MANIFEST.tmp" 2>/dev/null \
+    || { sort -u "$MANIFEST.tmp" >"$MANIFEST.tmp2" && mv "$MANIFEST.tmp2" "$MANIFEST.tmp"; }
+  mv "$MANIFEST.tmp" "$MANIFEST"
+
+  echo "==> [login-items] ${added} added, ${removed} removed, $(grep -c . "$MANIFEST" 2>/dev/null || echo 0) managed"
+}
+
+main() {
+  set -euo pipefail
+  if [ "$(uname -s)" != "Darwin" ]; then
+    echo "==> [login-items] not macOS; skipping"
+    return 0
+  fi
+  echo "==> [login-items] reconciling"
+  reconcile_login_items
+  echo "==> [login-items] done"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then main "$@"; fi
