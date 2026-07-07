@@ -63,7 +63,6 @@
 | ✅ | **eas-cli** | Expo Application Services CLI (cloud builds/submits/updates) | free | MIT | [repo](https://github.com/expo/eas-cli) |
 | ✅ | **vercel** | Vercel CLI | free | Apache-2.0 | [repo](https://github.com/vercel/vercel) |
 | ✅ | **cloudflared** | Cloudflare Tunnel client | free | Apache-2.0 | [repo](https://github.com/cloudflare/cloudflared) |
-| ✅ | **fallow** | Rust-native codebase intelligence for TS/JS (dead code, deps, complexity) | freemium | proprietary | [repo](https://github.com/fallow-rs/fallow) |
 | ✅ | **bun** | All-in-one JS runtime & toolkit | free | MIT | [repo](https://github.com/oven-sh/bun) |
 | ⬜ | **deno** | Secure runtime for JavaScript and TypeScript | free | MIT | [repo](https://github.com/denoland/deno) |
 
