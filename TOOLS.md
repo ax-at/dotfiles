@@ -142,6 +142,8 @@
 | ✅ | **Proton Pass** | Password manager (secret source for this setup) | freemium | GPL-3.0 | [repo](https://github.com/protonpass) |
 | ✅ | **Google Chrome** | Web browser | free | proprietary | — |
 | ✅ | **OrbStack** | Fast, light Docker & Linux VMs (Docker Desktop alternative) | freemium | proprietary | — |
+| ✅ | **Tailscale** | Mesh VPN (WireGuard-based) for private device networking | freemium | BSD-3-Clause | [repo](https://github.com/tailscale/tailscale) |
+| ✅ | **RustDesk** | Open-source remote desktop (self-hostable TeamViewer alternative) | free | AGPL-3.0 | [repo](https://github.com/rustdesk/rustdesk) |
 | ✅ | **Bruno** | Offline, git-friendly API client | free | MIT | [repo](https://github.com/usebruno/bruno) |
 | ✅ | **Obsidian** | Markdown knowledge base / notes | freemium | proprietary | — |
 | ✅ | **Slack** | Team chat | freemium | proprietary | — |
