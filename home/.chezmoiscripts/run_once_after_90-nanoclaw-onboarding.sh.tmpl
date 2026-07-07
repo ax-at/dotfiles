@@ -9,6 +9,12 @@
 # On macOS, before handing off, it ensures the Docker engine is actually running
 # (starts OrbStack/Docker and waits) -- nanoclaw's container step hard-requires a
 # live engine and its own auto-start only knows Docker Desktop, not OrbStack.
+# It also runs the whole onboarding under the mise-resolved, .nvmrc-pinned node
+# (via `mise exec`): nanoclaw compiles a native module (better-sqlite3) and bakes
+# `command -v node` into its launchd/systemd service, so the BUILD node and the
+# SERVICE node must match. A bare `node` on a fresh non-login apply resolves to
+# Homebrew's floating node (a transitive oxfmt dep) and mismatches nanoclaw's
+# pin -> ERR_DLOPEN_FAILED at boot.
 set -euo pipefail
 
 {{ if .modules.nanoclaw -}}
@@ -29,7 +35,7 @@ fi
 print_later() {
   echo ""
   echo "==> [nanoclaw] onboarding deferred. Finish it any time with:"
-  echo "      cd $DIR && bash nanoclaw.sh"
+  echo "      cd $DIR && mise install node && mise exec -- bash nanoclaw.sh"
   echo ""
 }
 
@@ -85,12 +91,50 @@ case "$ans" in
       echo "==> [nanoclaw] Docker engine is up."
     fi
 {{ end -}}
+    # Pin node for the onboarding (see header). brew installs mise (core pkg), so
+    # put mise on PATH cross-platform via the repo idiom (cf. run_onchange_after_30
+    # -mise). Every miss soft-fails (defer + exit 0) -- this script never fails the
+    # apply. This block is OUTSIDE the darwin guard above: the ABI split hits Linux
+    # too. The darwin PATH export (OrbStack first, for docker) already ran and the
+    # engine is up; brew shellenv here is benign and mise exec prepends node anyway.
+    if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)";
+    elif [ -x /usr/local/bin/brew ]; then eval "$(/usr/local/bin/brew shellenv)";
+    elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
+    fi
+    if ! command -v mise >/dev/null 2>&1; then
+      echo "==> [nanoclaw] mise not on PATH; cannot pin node -- deferring." >&2
+      print_later
+      exit 0
+    fi
+    # cd so mise resolves nanoclaw's .nvmrc. Install the pinned node
+    # (not_found_auto_install=false won't auto-fetch). pnpm is NOT installed here:
+    # nanoclaw's setup.sh runs `corepack enable`, and under `mise exec` pnpm
+    # resolves to node's corepack shim (matching nanoclaw's packageManager pin).
+    cd "$DIR" || { print_later; exit 0; }
+    if ! mise install node; then
+      echo "==> [nanoclaw] 'mise install node' failed -- deferring." >&2
+      print_later
+      exit 0
+    fi
+    # Light guard: require a REAL mise-managed node path (not a shim / brew
+    # fallthrough). Assert resolution, not a specific major -- .nvmrc stays the
+    # source of truth, so an upstream .nvmrc bump is followed automatically.
+    node_bin="$(mise which node 2>/dev/null || true)"
+    case "$node_bin" in
+      */installs/node/*) : ;;
+      *)
+        echo "==> [nanoclaw] mise did not resolve a project node (.nvmrc) -- deferring." >&2
+        print_later
+        exit 0
+        ;;
+    esac
+    echo "==> [nanoclaw] onboarding under node: $node_bin"
     echo "==> [nanoclaw] launching nanoclaw.sh (resumable; Ctrl-C to abort)"
-    if ! bash "$DIR/nanoclaw.sh"; then
+    if ! mise exec -- bash "$DIR/nanoclaw.sh"; then
       {
         echo ""
         echo "==> [nanoclaw] onboarding did not finish. Resume any time with:"
-        echo "      cd $DIR && bash nanoclaw.sh"
+        echo "      cd $DIR && mise install node && mise exec -- bash nanoclaw.sh"
         echo ""
       } >&2
     fi
