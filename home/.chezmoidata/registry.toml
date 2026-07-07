@@ -421,6 +421,7 @@ license = "MIT"
 repo = "https://github.com/ghostty-org/ghostty"
 enabled = true
 platforms = ["macos", "linux"]
+start_at_login = { bundle = "Ghostty.app", hidden = false }
 macos = { method = "cask", pkg = "ghostty" }
 linux = { method = "brew", pkg = "ghostty" }
 
@@ -823,6 +824,7 @@ license = "GPL-3.0"
 repo = "https://github.com/manaflow-ai/cmux"
 enabled = true
 platforms = ["macos"]
+start_at_login = { hidden = false }
 macos = { method = "cask", pkg = "cmux" }
 
 [[packages]]
@@ -903,6 +905,7 @@ license = "MIT"
 repo = "https://github.com/JerryZLiu/Dayflow"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "dayflow" }
 
 # ------------------------------------------------- ai-productivity-tools ----
@@ -915,6 +918,7 @@ license = "GPL-3.0"
 repo = "https://github.com/altic-dev/FluidVoice"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "fluidvoice" }
 
 # --------------------------------------------------------- productivity ----
@@ -927,6 +931,7 @@ license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "raycast" }
 
 [[packages]]
@@ -938,6 +943,7 @@ license = "GPL-3.0"
 repo = "https://github.com/protonpass"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "proton-pass" }
 
 [[packages]]
@@ -960,6 +966,7 @@ license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "orbstack" }
 
 [[packages]]
@@ -973,6 +980,7 @@ enabled = true
 platforms = ["macos"]
 # GUI menu-bar cask (the 'tailscale' token now redirects here); bundles the
 # `tailscale` CLI and manages the daemon, so no sudo/system-daemon scripting.
+start_at_login = true
 macos = { method = "cask", pkg = "tailscale-app" }
 
 [[packages]]
@@ -984,6 +992,7 @@ license = "AGPL-3.0"
 repo = "https://github.com/rustdesk/rustdesk"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "rustdesk" }
 
 [[packages]]
@@ -1017,6 +1026,7 @@ license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "slack" }
 
 [[packages]]
@@ -1028,6 +1038,7 @@ license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "discord" }
 
 [[packages]]
@@ -1039,6 +1050,7 @@ license = "MIT"
 repo = "https://github.com/rxhanson/Rectangle"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "rectangle" }
 
 [[packages]]
@@ -1050,6 +1062,7 @@ license = "MIT"
 repo = "https://github.com/exelban/stats"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "stats" }
 
 [[packages]]
@@ -1072,6 +1085,7 @@ license = "proprietary"
 repo = ""
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "shottr" }
 
 [[packages]]
@@ -1083,6 +1097,7 @@ license = "MIT"
 repo = "https://github.com/wulkano/Kap"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "kap" }
 
 [[packages]]
@@ -1150,6 +1165,7 @@ license = "Unlicense"
 repo = "https://github.com/pqrs-org/Karabiner-Elements"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "karabiner-elements" }
 
 [[packages]]
@@ -1161,6 +1177,7 @@ license = "MIT"
 repo = "https://github.com/linearmouse/linearmouse"
 enabled = true
 platforms = ["macos"]
+start_at_login = true
 macos = { method = "cask", pkg = "linearmouse" }
 
 [[packages]]

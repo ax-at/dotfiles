@@ -123,6 +123,7 @@ Everything is driven by the registry and module toggles.
 - **Remove a tool:** set `enabled = false` (stays documented, won't install).
 - **Toggle a whole group:** edit `[modules]` in the registry (or answer the init prompts).
 - **Switch an install method** (e.g. AI tool from `brew` → official installer): change the `method` for that entry.
+- **Start an app at login (macOS):** add `start_at_login = true` to a `[[packages]]` block. [`75-login-items`](./home/.chezmoiscripts/run_onchange_after_75-login-items.sh.tmpl) reconciles the macOS “Open at Login” list against every flagged app — adding what you flag, removing what you un-flag (scoped by `~/.local/state/dotfiles/login-items.applied`, so hand-added login items are never touched). `true` uses `<name>.app` and starts hidden; use `start_at_login = "Bundle.app"` for a different bundle name, or `start_at_login = { bundle = "Ghostty.app", hidden = false }` to override the bundle and/or launch visible. **First apply needs a one-time macOS Automation consent** — approve the “control System Events” dialog (once per terminal app); a headless run without it is skipped with a warning rather than failing.
 - **Regenerate the catalog:** `make update-golden` (CI enforces it stays current).
 
 After editing, apply with `chezmoi apply`. Provisioning scripts re-run automatically when their content changes.
@@ -219,6 +220,7 @@ dotfiles/
 | `run_onchange_after_65-agent-skills`      | reconcile global agent skills via `npx skills`  |
 | `run_onchange_after_66-ai-plugins`        | reconcile AI-client plugins into the agent CLIs |
 | `run_onchange_after_70-macos-defaults`    | dev defaults + Ubuntu-feel tweaks               |
+| `run_onchange_after_75-login-items`       | reconcile macOS “start at login” apps           |
 | `run_once_after_90-nanoclaw-onboarding`   | prompt to onboard nanoclaw now/later (opt-in)   |
 | `run_once_after_95-openclaw-onboarding`   | prompt to onboard openclaw now/later (opt-in)   |
 
