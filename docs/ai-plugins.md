@@ -118,18 +118,53 @@ list` / `remove`). It's bundled with Codex — no marketplace to provision.
   vercel-plugin repo — consumers receive the pre-built skills in the versioned
   plugin, so there is nothing to run here.
 
+## What ships (Claude Code only): Supabase
+
+The [Supabase plugin](https://github.com/supabase-community/supabase-plugin)
+bundles the **Supabase MCP server** (query the database, manage migrations,
+deploy Edge Functions, manage projects/auth/storage) with two **agent skills** —
+`supabase` (core product guidance) and `supabase-postgres-best-practices` (query
+optimization, schema design, connection management, RLS patterns).
+
+| Client      | Backend         | How                                                     |
+| ----------- | --------------- | ------------------------------------------------------- |
+| Claude Code | **native (66)** | `claude plugin install supabase` (official marketplace) |
+| Codex       | — (unsupported) | no installable package upstream (see below)             |
+| Cursor      | —               | auto-imported from the Claude Code install (see below)  |
+
+**Why no Codex.** Both Codex paths that work for other plugins are closed here.
+Codex's built-in `openai-curated` marketplace does **not** carry supabase, so the
+Vercel escape hatch (a matching-name repackage in a bundled marketplace) isn't
+available. And adding `supabase-community/supabase-plugin` as a standalone Codex
+marketplace hits the **same name mismatch as Vercel**: the plugin manifest is
+named `supabase` while Codex derives `supabase-plugin` from the repo path and
+rejects it. So the plugin declares no `codex` sub-table — `desired_rows` emits no
+codex row and Codex is simply skipped. Revisit when upstream ships a
+Codex-installable package.
+
+**Why not the `open` backend** (as Vercel uses for Claude Code): `npx plugins add
+-t claude-code` merely delegates to Claude's official marketplace, which is
+exactly where `claude plugin install supabase` already resolves from — the native
+verb reaches the same place without the node + bun prerequisite.
+
+- **Auth:** run `claude`, then `/mcp`, select `plugin:supabase:supabase`, and
+  follow the browser prompt to log into Supabase.
+
 ### Cursor (off by default — auto-imported)
 
 Cursor **auto-imports** plugins installed into Claude Code (they appear in
 Cursor's plugin list as _imported_), so installing into `claude-code` covers
-Cursor too. Both plugins therefore set Cursor to `enabled = false` — no manual
+Cursor too. Every plugin here therefore sets Cursor to `enabled = false` — no manual
 step runs. To force an explicit Cursor-native install instead, set the Cursor
 entry's `enabled = true`; `chezmoi apply` then prints the in-app step (Cursor has
 no headless plugin CLI). Complete the OAuth prompt on first use either way.
 
+(Vercel's Cursor target lives under `[[plugins.open.targets]]`; PostHog's and
+Supabase's under a `cursor` sub-table. Both are `enabled = false`.)
+
 ## Notes
 
-- Claude resolves `posthog` from its official marketplace, so no
+- Claude resolves `posthog` and `supabase` from its official marketplace, so no
   `marketplace add` step is needed there (Codex does need one).
 - Drift heal covers out-of-band **deletion**. To force a full re-reconcile
   regardless (e.g. after a hand-edit the fingerprint can't see), run

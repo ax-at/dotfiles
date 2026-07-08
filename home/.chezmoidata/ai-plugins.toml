@@ -96,3 +96,32 @@ target = "claude-code" # id defaults to name = "vercel"
 target = "cursor"
 id = "vercel-plugin"
 enabled = false
+
+# ---------------------------------------------------------- supabase ----
+# NATIVE claude backend only -- the same shape as posthog, minus codex.
+#
+# WHY no codex sub-table: neither codex path works, and both failure modes are
+# already documented above under vercel --
+#   - Codex's built-in `openai-curated` marketplace does NOT carry supabase, so
+#     the vercel escape hatch (a matching-name package in a bundled marketplace)
+#     is unavailable.
+#   - Adding supabase-community/supabase-plugin as a standalone Codex marketplace
+#     hits the exact name-mismatch vercel hits: the plugin manifest is named
+#     `supabase` while Codex derives `supabase-plugin` from the repo path, and
+#     Codex hard-rejects the mismatch.
+# A codex row would therefore fail every reconcile. Omitting the key emits no
+# row (see desired_rows), so codex is simply skipped until upstream ships a
+# codex-installable package.
+#
+# WHY not the `open` backend (as vercel uses for claude-code): `plugins add -t
+# claude-code` just delegates to the official Claude marketplace, which is where
+# `claude plugin install supabase` already resolves from. The native verb gets
+# the identical result without the node+bun gate.
+[[plugins]]
+name = "supabase"
+enabled = true
+desc = "Supabase MCP (database, auth, storage, edge functions, migrations) + supabase & postgres-best-practices skills"
+repo = "https://github.com/supabase-community/supabase-plugin"
+claude = { slug = "supabase" }
+# Cursor OFF: it auto-imports the Claude install (appears as "imported").
+cursor = { slug = "supabase", url = "https://cursor.com/marketplace", enabled = false }
