@@ -1030,6 +1030,18 @@ start_at_login = true
 macos = { method = "cask", pkg = "slack" }
 
 [[packages]]
+name = "Linear"
+module = "productivity"
+desc = "Issue tracking and project management for software teams"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+start_at_login = true
+macos = { method = "cask", pkg = "linear" }
+
+[[packages]]
 name = "Discord"
 module = "productivity"
 desc = "Voice, video, and text chat for communities"
