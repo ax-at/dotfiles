@@ -35,6 +35,8 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   # built-in openai-curated marketplace); claude-code goes via the open backend
   # (script 67), so it does NOT render a claude row here.
   assert_line "codex|vercel|vercel||openai-curated"
+  # supabase is claude-only (no codex-installable package upstream).
+  assert_line "claude|supabase|supabase||"
 }
 
 @test "desired_rows omits a cursor sub-table with enabled = false" {
@@ -48,6 +50,9 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   # backend, script 67); it must NOT render claude/cursor rows.
   refute_line --partial "claude|vercel"
   refute_line --partial "cursor|vercel"
+  # supabase's cursor is off (auto-imported); it declares no codex sub-table.
+  refute_line --partial "cursor|supabase"
+  refute_line --partial "codex|supabase"
 }
 
 # ---- reconcile() branch logic ---------------------------------------------

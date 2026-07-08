@@ -151,7 +151,7 @@ pm_cursor_manual() {
 # pm_auth_note KIND -- one-time OAuth reminder printed after a fresh install.
 pm_auth_note() {
   case "$1" in
-    claude) echo "     ↳ auth: run 'claude', then /mcp and select plugin:posthog:posthog (browser OAuth)" ;;
+    claude) echo "     ↳ auth: run 'claude', then /mcp and select the plugin's MCP server (e.g. plugin:posthog:posthog, plugin:supabase:supabase) for browser OAuth" ;;
     codex) echo "     ↳ auth: invoke a plugin's MCP tool in 'codex' and follow the browser OAuth prompt (once per plugin)" ;;
   esac
 }

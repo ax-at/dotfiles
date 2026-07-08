@@ -22,8 +22,9 @@ load 'lib/helpers'
   assert_line "vercel|claude-code|vercel/vercel-plugin|vercel"
   # cursor target is enabled = false (auto-imported from Claude) -> no row.
   refute_line --partial "|cursor|"
-  # posthog has no `open` sub-table, so it never appears in this backend.
+  # posthog/supabase have no `open` sub-table, so they never appear in this backend.
   refute_line --partial "posthog"
+  refute_line --partial "supabase"
 }
 
 @test "open backend requires bun enabled in registry.toml (cross-file invariant)" {
