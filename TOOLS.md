@@ -147,6 +147,7 @@
 | ✅ | **Bruno** | Offline, git-friendly API client | free | MIT | [repo](https://github.com/usebruno/bruno) |
 | ✅ | **Obsidian** | Markdown knowledge base / notes | freemium | proprietary | — |
 | ✅ | **Slack** | Team chat | freemium | proprietary | — |
+| ✅ | **Linear** | Issue tracking and project management for software teams | freemium | proprietary | — |
 | ✅ | **Discord** | Voice, video, and text chat for communities | freemium | proprietary | — |
 | ✅ | **Rectangle** | Keyboard-driven window snapping (Linux-like) | free | MIT | [repo](https://github.com/rxhanson/Rectangle) |
 | ✅ | **Stats** | Menu-bar system monitor | free | MIT | [repo](https://github.com/exelban/stats) |
