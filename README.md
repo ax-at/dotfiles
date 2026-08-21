@@ -12,7 +12,7 @@ One-command setup for a **highly opinionated** Mac (and, later, Linux) developme
 On a brand-new Mac with **nothing** installed (no git, no Homebrew), paste this single line:
 
 ```sh
-sh -c "$(curl -fsSL https://ax-at.github.io/dotfiles/install)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/GauravSharma23/dotfiles/main/install)"
 ```
 
 It installs [chezmoi](https://www.chezmoi.io) if it's missing (a self-contained static binary — no git/brew required), then clones this repo and applies it.
@@ -23,9 +23,18 @@ It installs [chezmoi](https://www.chezmoi.io) if it's missing (a self-contained 
 The URL serves [`install`](./install), which:
 
 1. installs chezmoi to `~/.local/bin` via `get.chezmoi.io` (only if not already present), then
-2. runs `chezmoi init --apply ax-at` — chezmoi's **built-in git** clones `https://github.com/ax-at/dotfiles.git` (no system git needed) and applies everything.
+2. runs `chezmoi init --apply --use-builtin-git=true GauravSharma23` — chezmoi's **built-in git** clones `https://github.com/GauravSharma23/dotfiles.git` and applies everything.
 
-Prefer to skip the wrapper? Run `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply ax-at` directly, or — with Homebrew + git already installed — `brew install chezmoi && chezmoi init --apply ax-at`.
+> ⚠️ **`--use-builtin-git=true` is load-bearing on macOS — don't drop it.** chezmoi's `useBuiltinGit` default is `"auto"`, which means *"use the builtin git only if `git` is absent from `$PATH`"*. On macOS `/usr/bin/git` **always** exists as an Xcode stub, so `auto` picks the stub, the stub pops the *"install command line developer tools?"* dialog, and chezmoi aborts with:
+>
+> ```
+> xcode-select: note: No developer tools were found, requesting install.
+> chezmoi: git: exit status 1
+> ```
+>
+> That happens at **clone** time — before `run_once_before_10-prerequisites` (the script that installs the CLT and Homebrew) has any chance to run. Forcing the builtin git for the clone is what makes the bare-Mac bootstrap actually self-contained.
+
+Prefer to skip the wrapper? Run `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply --use-builtin-git=true GauravSharma23` directly, or — with Homebrew + git already installed — `brew install chezmoi && chezmoi init --apply GauravSharma23`.
 
 </details>
 
@@ -51,14 +60,14 @@ You'll be **prompted once** for your git identity (work + personal) and a few mo
 chezmoi **overwrites** files it manages. Before the first apply on a machine you care about, install chezmoi **without** applying, then review:
 
 ```sh
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init ax-at   # install + clone, DON'T apply
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --use-builtin-git=true GauravSharma23   # install + clone, DON'T apply
 chezmoi diff                                                   # review every change
 chezmoi apply --dry-run --verbose                             # see what scripts would run
 # happy? then:
 chezmoi apply
 ```
 
-(Drop the `--apply` and it clones only. If chezmoi is already installed, just `chezmoi init ax-at`.)
+(Drop the `--apply` and it clones only. If chezmoi is already installed, just `chezmoi init GauravSharma23`.)
 
 Back up any existing `~/.zshrc`, `~/.gitconfig`, etc. that you want to keep.
 
@@ -186,7 +195,7 @@ update-all     # brew upgrade + mise upgrade + chezmoi update   (alias in .zshrc
 
 ```
 dotfiles/
-├── install                   # one-line bootstrap (served at ax-at.github.io/dotfiles/install)
+├── install                   # one-line bootstrap (curl'd from raw.githubusercontent.com)
 ├── .nojekyll                 # serve Pages as static files (don't run Jekyll/Liquid)
 ├── README.md                 # this guide
 ├── TOOLS.md                  # generated tool catalog
