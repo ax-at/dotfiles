@@ -713,6 +713,20 @@ macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd
 linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash", uninstall_cmd = "rm -rf ~/.opencode/bin" }
 
 [[packages]]
+name = "herdr"
+module = "ai-tools"
+desc = "Persistent background runtime/multiplexer for coding agents"
+cost = "free"
+license = "Apache-2.0"
+repo = "https://github.com/herdrdev/herdr"
+enabled = true
+platforms = ["macos", "linux"]
+# homebrew/core formula (bottled, autobump) -- no curl|bash installer needed, so
+# brew stays the ownership oracle for reconcile and `brew upgrade` keeps it current.
+macos = { method = "brew", pkg = "herdr" }
+linux = { method = "brew", pkg = "herdr" }
+
+[[packages]]
 name = "Context7 CLI"
 module = "ai-tools"
 desc = "Fetches up-to-date library docs (Upstash Context7)"

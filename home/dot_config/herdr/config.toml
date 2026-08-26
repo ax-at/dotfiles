@@ -1,0 +1,20 @@
+# herdr config (managed by chezmoi).  https://github.com/herdrdev/herdr
+#
+# Only config.toml is managed here — herdr keeps its runtime state (session.json,
+# sockets, logs) in the same ~/.config/herdr directory and chezmoi never touches
+# those. `herdr --default-config` prints every key with its default.
+#
+# Theme kept in sync with Ghostty (see home/dot_config/ghostty/config.tmpl,
+# which sets `theme = "Catppuccin Mocha"`). `catppuccin` is herdr's built-in
+# Mocha variant; `catppuccin-latte` is the light one.
+
+# Adopted from the pre-existing hand-written config so a first apply is not a
+# regression: suppresses the first-run onboarding flow.
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[ui]
+# Also adopted from the pre-existing config.
+agent_panel_sort = "priority"

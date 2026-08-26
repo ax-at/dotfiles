@@ -97,6 +97,7 @@
 | ⬜ | **Codex CLI** | OpenAI Codex agentic coding CLI | freemium | Apache-2.0 | [repo](https://github.com/openai/codex) |
 | ⬜ | **Antigravity CLI** | Google Antigravity agentic coding CLI | free | Apache-2.0 | [repo](https://github.com/google-antigravity/antigravity-cli) |
 | ⬜ | **opencode** | SST's open-source terminal AI agent | free | MIT | [repo](https://github.com/sst/opencode) |
+| ✅ | **herdr** | Persistent background runtime/multiplexer for coding agents | free | Apache-2.0 | [repo](https://github.com/herdrdev/herdr) |
 | ⬜ | **Context7 CLI** | Fetches up-to-date library docs (Upstash Context7) | freemium | MIT | [repo](https://github.com/upstash/context7) |
 | ⬜ | **Context Hub CLI** | Semantic code/context search CLI (Andrew Ng) | free | MIT | [repo](https://github.com/andrewyng/context-hub) |
 | ⬜ | **Pencil CLI** | Design-to-code CLI (Pencil.dev: canvas designs → code) | freemium | proprietary | — |

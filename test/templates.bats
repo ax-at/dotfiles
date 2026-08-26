@@ -59,6 +59,27 @@ setup() {
   assert_output --partial 'HOMEBREW_NO_REQUIRE_TAP_TRUST=1 brew bundle'
 }
 
+# herdr is the runtime the agent CLIs (Claude Code, Codex, opencode) live in, and
+# unlike them it comes from homebrew/core rather than a curl|bash installer — so
+# it must reach the *Brewfile*, not 40-ai-tools' install_one list. It shares the
+# ai-tools module with those CLIs, so the gate is asserted in both directions.
+@test "packages: herdr is a brew formula gated on the ai-tools module" {
+  run render "$PKGS" full.toml
+  assert_success
+  assert_output --partial 'brew "herdr"'
+  run render "$PKGS" ai-off.toml
+  assert_success
+  refute_output --partial 'brew "herdr"'
+}
+
+@test "packages: ai-tools off makes herdr a removal candidate" {
+  render_to_file "$PKGS" "$BATS_TEST_TMPDIR/off.sh" ai-off.toml
+  source "$BATS_TEST_TMPDIR/off.sh"
+  run removal_rows
+  assert_success
+  assert_line "brew|herdr"
+}
+
 @test "packages: the test/lint toolchain is installed by the setup" {
   # These are what `make test` / `make lint` / CI depend on — a fresh machine
   # must get them so the suite is runnable after install.
@@ -291,4 +312,24 @@ setup() {
   assert_output --partial 'ai-tools              = true'
   assert_output --partial 'ai-assistants         = true'
   assert_output --partial 'ai-productivity-tools = true'
+}
+
+# ---- theme coupling -------------------------------------------------------
+
+# Ghostty is the theme source of truth (test/ghostty_theme.bats validates the
+# name against the app itself); hunk and herdr are configured to match it. This
+# guards the coupling that both of those configs only note in a comment: change
+# Ghostty's theme and this fails until the followers are updated too.
+@test "theme: hunk and herdr configs track Ghostty's Catppuccin Mocha" {
+  run render "$SRC_DIR/dot_config/ghostty/config.tmpl" full.toml
+  assert_success
+  assert_output --partial 'theme = "Catppuccin Mocha"'
+  # hunk uses the hyphenated built-in id, herdr the bare family name (its
+  # Mocha variant) — both are the dark Catppuccin, spelled per each tool.
+  run cat "$SRC_DIR/dot_config/hunk/config.toml"
+  assert_success
+  assert_output --partial 'theme = "catppuccin-mocha"'
+  run cat "$SRC_DIR/dot_config/herdr/config.toml"
+  assert_success
+  assert_output --partial 'name = "catppuccin"'
 }
