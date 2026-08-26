@@ -25,7 +25,7 @@ The URL serves [`install`](./install), which:
 1. installs chezmoi to `~/.local/bin` via `get.chezmoi.io` (only if not already present), then
 2. runs `chezmoi init --apply --use-builtin-git=true GauravSharma23` — chezmoi's **built-in git** clones `https://github.com/GauravSharma23/dotfiles.git` and applies everything.
 
-> ⚠️ **`--use-builtin-git=true` is load-bearing on macOS — don't drop it.** chezmoi's `useBuiltinGit` default is `"auto"`, which means *"use the builtin git only if `git` is absent from `$PATH`"*. On macOS `/usr/bin/git` **always** exists as an Xcode stub, so `auto` picks the stub, the stub pops the *"install command line developer tools?"* dialog, and chezmoi aborts with:
+> ⚠️ **`--use-builtin-git=true` is load-bearing on macOS — don't drop it.** chezmoi's `useBuiltinGit` default is `"auto"`, which means _"use the builtin git only if `git` is absent from `$PATH`"_. On macOS `/usr/bin/git` **always** exists as an Xcode stub, so `auto` picks the stub, the stub pops the _"install command line developer tools?"_ dialog, and chezmoi aborts with:
 >
 > ```
 > xcode-select: note: No developer tools were found, requesting install.
