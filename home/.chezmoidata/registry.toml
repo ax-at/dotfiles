@@ -975,9 +975,29 @@ license = "BSD-3-Clause"
 repo = "https://github.com/tailscale/tailscale"
 enabled = true
 platforms = ["macos"]
-# GUI menu-bar cask (the 'tailscale' token now redirects here); bundles the
-# `tailscale` CLI and manages the daemon, so no sudo/system-daemon scripting.
-start_at_login = true
+# Open-source CLI + tailscaled, NOT the GUI cask. The cask's bundled network
+# system extension is sandboxed, and Tailscale's own build gate refuses to run
+# the SSH server there ("The Tailscale SSH server does not run in sandboxed
+# Tailscale GUI builds") even though that extension runs as root -- so
+# `tailscale set --ssh` can never work from the cask. tailscaled has to be
+# installed as a root LaunchDaemon by hand; run_once_after_92-tailscale-onboarding
+# prints how (no chezmoiscript here runs sudo).
+macos = { method = "brew", pkg = "tailscale" }
+
+[[packages]]
+name = "Tailscale GUI (deprecated)"
+module = "productivity"
+desc = "Superseded by the Tailscale CLI formula; entry kept only so existing machines uninstall the cask"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = false
+platforms = ["macos"]
+# Load-bearing until every machine has applied once: the brew manifest is keyed
+# on `name`, so editing the entry above in place would have orphaned this cask
+# forever. Disabled-but-present is what makes remove_stale uninstall it. Delete
+# this entry (and its `macos` table, which removal_rows requires) only after
+# every machine has converged.
 macos = { method = "cask", pkg = "tailscale-app" }
 
 [[packages]]

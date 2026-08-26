@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# run_once_after_92-tailscale-onboarding.sh
+# The `tailscale` formula is installed earlier (registry entry -> brew bundle in
+# run_onchange_after_20-packages), but the formula ships only the binaries: the
+# daemon has to be registered as a ROOT LaunchDaemon before anything works, and
+# that needs sudo. No chezmoiscript in this repo runs sudo (an apply must never
+# block on a password prompt), so this script only DETECTS the missing daemon and
+# prints the two commands to run by hand. Deferrable; it never fails the apply.
+#
+# Why the formula and not the GUI cask: the cask's bundled network system
+# extension is sandboxed, and Tailscale's build gate refuses to run the SSH
+# server inside it ("The Tailscale SSH server does not run in sandboxed Tailscale
+# GUI builds") even though that extension already runs as root. The open-source
+# tailscaled is the only way to get Tailscale SSH on macOS.
+#
+# Idempotent: an already-registered daemon short-circuits, which also makes this
+# safe to re-fire if the script's content ever changes (run_once keys on the
+# script's SHA). Gated on the productivity module; macOS-only.
+set -euo pipefail
+
+{{ if and .modules.productivity (eq .chezmoi.os "darwin") -}}
+PLIST="/Library/LaunchDaemons/com.tailscale.tailscaled.plist"
+
+# A fresh (non-login) apply hasn't sourced the profile that puts Homebrew on
+# PATH, and `tailscaled` is sbin-only -- look it up explicitly.
+TAILSCALED=""
+for candidate in /opt/homebrew/bin/tailscaled /usr/local/bin/tailscaled; do
+  if [ -x "$candidate" ]; then
+    TAILSCALED="$candidate"
+    break
+  fi
+done
+
+# Daemon already registered -> nothing to do.
+if [ -f "$PLIST" ]; then
+  echo "==> [tailscale] system daemon already installed ($PLIST); skipping"
+  exit 0
+fi
+
+# brew bundle hasn't run yet, or the formula failed to install.
+if [ -z "$TAILSCALED" ]; then
+  echo "==> [tailscale] tailscaled not found; skipping (is the formula installed?)" >&2
+  exit 0
+fi
+
+cat <<EOF
+
+==> [tailscale] the CLI is installed, but the daemon is not registered yet.
+    Finish the setup by running these two commands (they need sudo, so this
+    script will not run them for you):
+
+      sudo $TAILSCALED install-system-daemon
+      sudo tailscale up --ssh
+
+    Note: --ssh enables the SSH *server* but grants nothing on its own. The
+    tailnet policy at login.tailscale.com/admin/acls also needs a matching
+    "ssh" rule, otherwise incoming connections are refused.
+
+EOF
+{{ else -}}
+exit 0
+{{ end -}}
