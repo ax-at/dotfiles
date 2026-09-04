@@ -971,7 +971,7 @@ desc = "Desktop orchestrator running multiple agents in parallel worktrees"
 cost = "freemium"
 license = "proprietary"
 repo = ""
-enabled = false
+enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "superset" }
 
@@ -1314,11 +1314,11 @@ macos = { method = "cask", pkg = "cleanshot" }
 [[packages]]
 name = "Figma"
 module = "productivity"
-desc = "Design tool (kept in registry, not installed)"
+desc = "Collaborative interface design tool"
 cost = "freemium"
 license = "proprietary"
 repo = ""
-enabled = false
+enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "figma" }
 

@@ -122,7 +122,7 @@
 | ⬜ | **Codex Desktop** | OpenAI Codex desktop app | freemium | proprietary | — |
 | ⬜ | **Antigravity** | Agent orchestration platform | free | proprietary | — |
 | ⬜ | **opencode-desktop** | SST opencode desktop app (beta) | free | MIT | [repo](https://github.com/sst/opencode) |
-| ⬜ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
+| ✅ | **Superset** | Desktop orchestrator running multiple agents in parallel worktrees | freemium | proprietary | — |
 | ⬜ | **cmux** | Ghostty-based terminal with vertical tabs for running AI coding agents | free | GPL-3.0 | [repo](https://github.com/manaflow-ai/cmux) |
 | ⬜ | **Pencil Desktop** | Design-to-code canvas desktop app (Pencil.dev) — GUI, not the CLI | freemium | proprietary | — |
 
@@ -174,7 +174,7 @@
 | ✅ | **Shottr** | Free screenshots + annotation + scrolling capture | free | proprietary | — |
 | ✅ | **Kap** | Free open-source screen recorder (video/GIF) | free | MIT | [repo](https://github.com/wulkano/Kap) |
 | ⬜ | **CleanShot X** | Paid all-in-one screenshot + screencast + annotation upgrade | paid | proprietary | — |
-| ⬜ | **Figma** | Design tool (kept in registry, not installed) | freemium | proprietary | — |
+| ✅ | **Figma** | Collaborative interface design tool | freemium | proprietary | — |
 | ⬜ | **dockutil** | Script the macOS Dock contents (nicety, off by default) | free | Apache-2.0 | [repo](https://github.com/kcrawford/dockutil) |
 | ⬜ | **Syntax Highlight (QuickLook)** | Source-code preview in Finder QuickLook (nicety, off by default) | free | GPL-3.0 | [repo](https://github.com/sbarex/SourceCodeSyntaxHighlight) |
 | ⬜ | **QLMarkdown (QuickLook)** | Markdown preview in Finder QuickLook (nicety, off by default) | free | GPL-3.0 | [repo](https://github.com/sbarex/QLMarkdown) |

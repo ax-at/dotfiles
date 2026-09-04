@@ -29,11 +29,13 @@ setup_brew() {
   assert_success
   # deno is disabled but cross-platform, so it is a removal candidate everywhere.
   assert_line "brew|deno"
-  # figma (cask) and applesimutils (tap formula) are macos-only: a removal
+  # cleanshot (cask) and applesimutils (tap formula) are macos-only: a removal
   # candidate only where it has an install table. removal_rows renders against
   # the native OS, so these appear on darwin and are absent on linux.
+  # cleanshot is the cask anchor because `cost = "paid"` keeps it disabled by the
+  # registry's own free-first rule — pick another and enabling it breaks this test.
   if [ "$(uname)" = "Darwin" ]; then
-    assert_line "cask|figma"
+    assert_line "cask|cleanshot"
     assert_line "brew|wix/brew/applesimutils"
   fi
   # The footgun: enabled tap formulae must NEVER be removal candidates.
