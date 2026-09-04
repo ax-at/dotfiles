@@ -8,6 +8,7 @@ pnpm = "latest"   # pnpm via mise (Corepack was removed from Node 25+)
 ruby = "latest"   # for CocoaPods etc.
 java = "zulu-17"  # Azul Zulu 17 — Expo/Android recommended JDK
 python = "latest" # a real, writable python3 + pip (Homebrew's is PEP-668 locked)
+pinact = "latest" # pin GitHub Actions to commit SHAs
 
 [settings]
 # Don't auto-install on cd; provisioning + explicit `mise install` only.
