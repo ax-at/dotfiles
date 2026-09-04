@@ -39,6 +39,7 @@ editors = true
 web = true
 databases = true
 cloud = true
+media = true
 react-native = true
 ai-tools = true
 ai-assistants = true
@@ -74,6 +75,18 @@ platforms = ["macos", "linux"]
 # Lives in a custom tap; the full tap/formula path in a Brewfile auto-taps.
 macos = { method = "brew", pkg = "modem-dev/tap/hunk" }
 linux = { method = "brew", pkg = "modem-dev/tap/hunk" }
+
+[[packages]]
+name = "codiff"
+module = "core"
+desc = "Fast local visual diff viewer for Git changes"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/nkzw-tech/codiff"
+enabled = true
+platforms = ["macos"]
+# Custom tap; the full tap/cask path auto-taps.
+macos = { method = "cask", pkg = "nkzw-tech/tap/codiff" }
 
 [[packages]]
 name = "gh"
@@ -196,6 +209,18 @@ macos = { method = "brew", pkg = "bat" }
 linux = { method = "brew", pkg = "bat" }
 
 [[packages]]
+name = "glow"
+module = "core"
+desc = "Render markdown on the CLI"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/charmbracelet/glow"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "glow" }
+linux = { method = "brew", pkg = "glow" }
+
+[[packages]]
 name = "eza"
 module = "core"
 desc = "Modern ls replacement with icons"
@@ -302,6 +327,18 @@ enabled = true
 platforms = ["macos", "linux"]
 macos = { method = "brew", pkg = "pre-commit" }
 linux = { method = "brew", pkg = "pre-commit" }
+
+[[packages]]
+name = "bash"
+module = "core"
+desc = "GNU Bash 5.x (macOS ships the 2007-era 3.2)"
+cost = "free"
+license = "GPL-3.0-or-later"
+repo = "https://git.savannah.gnu.org/cgit/bash.git"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "bash" }
+linux = { method = "brew", pkg = "bash" }
 
 [[packages]]
 name = "shellcheck"
@@ -424,6 +461,18 @@ platforms = ["macos", "linux"]
 start_at_login = { bundle = "Ghostty.app", hidden = false }
 macos = { method = "cask", pkg = "ghostty" }
 linux = { method = "brew", pkg = "ghostty" }
+
+[[packages]]
+name = "age"
+module = "core"
+desc = "Simple, modern, secure file encryption"
+cost = "free"
+license = "BSD-3-Clause"
+repo = "https://github.com/FiloSottile/age"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "age" }
+linux = { method = "brew", pkg = "age" }
 
 [[packages]]
 name = "pass-cli"
@@ -557,6 +606,30 @@ macos = { method = "brew", pkg = "oven-sh/bun/bun" }
 linux = { method = "brew", pkg = "oven-sh/bun/bun" }
 
 [[packages]]
+name = "mkcert"
+module = "web"
+desc = "Locally trusted development certificates"
+cost = "free"
+license = "BSD-3-Clause"
+repo = "https://github.com/FiloSottile/mkcert"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "mkcert" }
+linux = { method = "brew", pkg = "mkcert" }
+
+[[packages]]
+name = "k6"
+module = "web"
+desc = "Modern load-testing tool (Go + JavaScript)"
+cost = "free"
+license = "AGPL-3.0-or-later"
+repo = "https://github.com/grafana/k6"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "k6" }
+linux = { method = "brew", pkg = "k6" }
+
+[[packages]]
 name = "deno"
 module = "web"
 desc = "Secure runtime for JavaScript and TypeScript"
@@ -593,6 +666,19 @@ platforms = ["macos", "linux"]
 macos = { method = "brew", pkg = "libpq" }
 linux = { method = "brew", pkg = "libpq" }
 
+[[packages]]
+name = "pscale"
+module = "databases"
+desc = "PlanetScale CLI"
+cost = "freemium"
+license = "Apache-2.0"
+repo = "https://github.com/planetscale/cli"
+enabled = true
+platforms = ["macos", "linux"]
+# Vendor tap; the full tap/formula path auto-taps.
+macos = { method = "brew", pkg = "planetscale/tap/pscale" }
+linux = { method = "brew", pkg = "planetscale/tap/pscale" }
+
 # ---------------------------------------------------------------- cloud ----
 [[packages]]
 name = "awscli"
@@ -605,6 +691,33 @@ enabled = true
 platforms = ["macos", "linux"]
 macos = { method = "brew", pkg = "awscli" }
 linux = { method = "brew", pkg = "awscli" }
+
+# ---------------------------------------------------------------- media ----
+# Its own module because these two are large, optional, and unwanted on a lean or
+# work machine: toggling `media = false` drops them without touching core.
+[[packages]]
+name = "ffmpeg"
+module = "media"
+desc = "Play, record, convert, and stream audio and video"
+cost = "free"
+license = "GPL-3.0-or-later"
+repo = "https://github.com/FFmpeg/FFmpeg"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "ffmpeg" }
+linux = { method = "brew", pkg = "ffmpeg" }
+
+[[packages]]
+name = "yt-dlp"
+module = "media"
+desc = "Feature-rich command-line audio/video downloader"
+cost = "free"
+license = "Unlicense"
+repo = "https://github.com/yt-dlp/yt-dlp"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "yt-dlp" }
+linux = { method = "brew", pkg = "yt-dlp" }
 
 # --------------------------------------------------------- react-native ----
 [[packages]]
@@ -629,6 +742,18 @@ repo = "https://github.com/CocoaPods/CocoaPods"
 enabled = true
 platforms = ["macos"]
 macos = { method = "brew", pkg = "cocoapods" }
+
+[[packages]]
+name = "fastlane"
+module = "react-native"
+desc = "iOS/Android build and release automation"
+cost = "free"
+license = "MIT"
+repo = "https://github.com/fastlane/fastlane"
+enabled = true
+platforms = ["macos", "linux"]
+macos = { method = "brew", pkg = "fastlane" }
+linux = { method = "brew", pkg = "fastlane" }
 
 [[packages]]
 name = "Android Studio"
@@ -711,6 +836,27 @@ enabled = false
 platforms = ["macos", "linux"]
 macos = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash", uninstall_cmd = "rm -rf ~/.opencode/bin" }
 linux = { method = "script", pkg = "opencode", check = "opencode --version", cmd = "curl -fsSL https://opencode.ai/install | bash", uninstall_cmd = "rm -rf ~/.opencode/bin" }
+
+[[packages]]
+name = "plannotator"
+module = "ai-tools"
+desc = "Plan and diff annotation reviewer for agent workflows (review UI, skills, agent hooks)"
+cost = "freemium"
+license = "Apache-2.0"
+repo = "https://github.com/backnotprop/plannotator"
+enabled = true
+platforms = ["macos", "linux"]
+# --non-interactive (alias --yes) is what makes the installer skip its guided
+# wizard and take flags-then-defaults -- the same role CODEX_NON_INTERACTIVE=true
+# plays for the Codex entry above.
+# `plannotator uninstall` is the vendor's own uninstaller (the installer prints
+# "To uninstall later: plannotator uninstall") and removes artifacts only.
+# `plannotator uninstall --purge` also deletes local Plannotator DATA, which the
+# artifacts-only uninstall_cmd contract at the top of this file forbids, so it is
+# deliberately not used. `</dev/null` denies the reconcile loop a TTY, so a prompt
+# can never block an apply.
+macos = { method = "script", pkg = "plannotator", check = "plannotator --version", cmd = "curl -fsSL https://plannotator.ai/install.sh | bash -s -- --non-interactive", uninstall_cmd = "plannotator uninstall </dev/null" }
+linux = { method = "script", pkg = "plannotator", check = "plannotator --version", cmd = "curl -fsSL https://plannotator.ai/install.sh | bash -s -- --non-interactive", uninstall_cmd = "plannotator uninstall </dev/null" }
 
 [[packages]]
 name = "herdr"
@@ -1118,6 +1264,17 @@ repo = "https://github.com/videolan/vlc"
 enabled = true
 platforms = ["macos"]
 macos = { method = "cask", pkg = "vlc" }
+
+[[packages]]
+name = "Radix"
+module = "productivity"
+desc = "Disk space analyzer"
+cost = "freemium"
+license = "proprietary"
+repo = ""
+enabled = true
+platforms = ["macos"]
+macos = { method = "cask", pkg = "radix" }
 
 [[packages]]
 name = "Shottr"
