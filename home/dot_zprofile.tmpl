@@ -20,15 +20,9 @@ fi
 # installed" even though it is. $HOME resolves at runtime — nothing hardcoded.
 export PATH="$HOME/.local/bin:$PATH"
 
-# Registry CLIs are mise-owned and do not need this. What does is an ad-hoc
-# `npm i -g` typed by the user or an agent: left alone, npm resolves its global
-# prefix to whichever mise node dir is active
-# (~/.local/share/mise/installs/node/<version>), and mise pins `node = "lts"`, a
-# floating alias, so the next node upgrade strands that install in the old
-# version's tree, installed and invisible. The pin gives those one stable home
-# outside any node version. 30-mise sweeps this same prefix for the names the
-# registry owns, so an ad-hoc install of one of those does not linger here.
-export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+# Registry CLIs are mise-owned and do not need this; an ad-hoc `npm i -g` does.
+# .chezmoidata/paths.toml explains the pin and is the only place it is written.
+export NPM_CONFIG_PREFIX="{{ .npm_global_prefix }}"
 # Puts those installs on PATH at all, ahead of ~/Library/pnpm/bin (pnpm's
 # installer adds that) so an npm global beats a pnpm one of the same name.
 export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"

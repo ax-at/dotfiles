@@ -1,0 +1,11 @@
+# Paths that more than one rendered file has to agree on. A literal duplicated
+# across templates drifts silently; sourced from here it cannot.
+#
+# npm_global_prefix pins npm's global prefix outside any node version. Left alone
+# npm resolves it to whichever mise node dir is active, and mise pins `node = "lts"`,
+# a floating alias, so the next node upgrade strands the install in the old version's
+# tree. Registry CLIs no longer land here (mise's npm backend owns those); an ad-hoc
+# `npm i -g` does, and 30-mise sweeps this prefix for the names the registry owns.
+# Consumed by dot_zprofile.tmpl (PATH) and 30-mise (the sweep root). $HOME stays
+# unexpanded on purpose: both consumers are shell, and it resolves at runtime.
+npm_global_prefix = "$HOME/.local/share/npm-global"

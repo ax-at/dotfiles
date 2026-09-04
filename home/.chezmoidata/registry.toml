@@ -23,16 +23,17 @@
 #   platforms     subset of ["macos","linux"]
 #   <os>          per-OS install table: { method, pkg | cmd | id, check?, uninstall_cmd? }
 #                 method = brew | cask | mas | npm | script | apt | dnf
+#                 check  REQUIRED for method = script, which has no package manager
+#                   to ask; it is the presence predicate 40-ai-tools evals. Every
+#                   other method proves presence through its own manager, so they
+#                   carry no check.
 #                 npm  installs through mise's npm backend, not `npm install -g`:
-#                   the desired entries render into
+#                   desired entries render into
 #                   ~/.config/mise/conf.d/10-registry-npm.toml as "npm:<pkg>" rows,
 #                   so each CLI is versioned and shimmed independently of node.
-#                   check is therefore NOT the install predicate any more; 30-mise
-#                   uses its binary to report when a foreign copy shadows ours on
-#                   PATH. The pnpm global store (~/Library/pnpm/bin) is explicitly
-#                   unmanaged: nothing here installs into it, its binaries can still
-#                   shadow registry-owned CLIs, and 30-mise reports that rather than
-#                   resolving it.
+#                   The pnpm global store (~/Library/pnpm/bin) is unmanaged:
+#                   nothing here installs into it, and its binaries can shadow a
+#                   registry CLI in a shell that has not put mise's shims first.
 #                 uninstall_cmd  REQUIRED for method = script (brew/npm/cask
 #                   uninstall generically). Single-line shell, eval'd to remove
 #                   the tool. Artifacts-only: delete the binary/install dir, leave
@@ -575,8 +576,8 @@ license = "MIT"
 repo = "https://github.com/expo/eas-cli"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "eas-cli", check = "eas --version" }
-linux = { method = "npm", pkg = "eas-cli", check = "eas --version" }
+macos = { method = "npm", pkg = "eas-cli" }
+linux = { method = "npm", pkg = "eas-cli" }
 
 [[packages]]
 name = "vercel"
@@ -587,8 +588,8 @@ license = "Apache-2.0"
 repo = "https://github.com/vercel/vercel"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "vercel", check = "vercel --version" }
-linux = { method = "npm", pkg = "vercel", check = "vercel --version" }
+macos = { method = "npm", pkg = "vercel" }
+linux = { method = "npm", pkg = "vercel" }
 
 [[packages]]
 name = "cloudflared"
@@ -889,8 +890,8 @@ license = "MIT"
 repo = "https://github.com/upstash/context7"
 enabled = false
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "ctx7", check = "ctx7 --version" }
-linux = { method = "npm", pkg = "ctx7", check = "ctx7 --version" }
+macos = { method = "npm", pkg = "ctx7" }
+linux = { method = "npm", pkg = "ctx7" }
 
 [[packages]]
 name = "Context Hub CLI"
@@ -901,8 +902,8 @@ license = "MIT"
 repo = "https://github.com/andrewyng/context-hub"
 enabled = false
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "@aisuite/chub", check = "chub --version" }
-linux = { method = "npm", pkg = "@aisuite/chub", check = "chub --version" }
+macos = { method = "npm", pkg = "@aisuite/chub" }
+linux = { method = "npm", pkg = "@aisuite/chub" }
 
 [[packages]]
 name = "Pencil CLI"
@@ -913,8 +914,8 @@ license = "proprietary"
 repo = ""
 enabled = false
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "@pencil.dev/cli", check = "pencil --version" }
-linux = { method = "npm", pkg = "@pencil.dev/cli", check = "pencil --version" }
+macos = { method = "npm", pkg = "@pencil.dev/cli" }
+linux = { method = "npm", pkg = "@pencil.dev/cli" }
 
 # ------------------------------------------------ ai-tools (desktop) -------
 [[packages]]
@@ -1045,8 +1046,8 @@ platforms = ["macos", "linux"]
 # It wraps openclaw (installs/manages the Gateway itself), so openclaw is no longer a
 # registry entry of its own; deleting that entry makes 40-ai-tools uninstall it from
 # the script manifest, preserving ~/.openclaw state.
-macos = { method = "npm", pkg = "@chrysb/alphaclaw", check = "alphaclaw version" }
-linux = { method = "npm", pkg = "@chrysb/alphaclaw", check = "alphaclaw version" }
+macos = { method = "npm", pkg = "@chrysb/alphaclaw" }
+linux = { method = "npm", pkg = "@chrysb/alphaclaw" }
 
 # -------------------------------------------------------- ai-assistants ----
 [[packages]]
@@ -1058,8 +1059,8 @@ license = "proprietary"
 repo = "https://github.com/screenpipe/screenpipe"
 enabled = true
 platforms = ["macos", "linux"]
-macos = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
-linux = { method = "npm", pkg = "screenpipe", check = "screenpipe --version" }
+macos = { method = "npm", pkg = "screenpipe" }
+linux = { method = "npm", pkg = "screenpipe" }
 
 [[packages]]
 name = "Dayflow"
