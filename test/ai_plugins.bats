@@ -37,8 +37,8 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   assert_line "codex|vercel|vercel||openai-curated"
   # supabase is claude-only (no codex-installable package upstream).
   assert_line "claude|supabase|supabase||"
-  # herdr-annotate is herdr-only; its id is the GitHub owner/repo spec, which
-  # herdr's install AND uninstall both accept, so source/marketplace stay empty.
+  # herdr-annotate is herdr-only, and its owner/repo id needs no marketplace or
+  # source, hence the two trailing empties.
   assert_line "herdr|herdr-annotate|plannotator/herdr-annotate||"
 }
 
@@ -263,9 +263,8 @@ JSON
   assert_failure
 }
 
-# herdr's key name is taken from its published API schema, not from an observed
-# store (no herdr plugin was installed when the fingerprint was written), so this
-# locks the grep against the documented `"plugin_id": "..."` shape.
+# herdr's key name is schema-derived rather than observed, so this locks the grep
+# against the documented `"plugin_id": "..."` shape.
 @test "66 drift heal: deleting a herdr plugin flips the store fingerprint" {
   HOME="$BATS_TEST_TMPDIR/herdr-home"
   mkdir -p "$HOME/.config/herdr"

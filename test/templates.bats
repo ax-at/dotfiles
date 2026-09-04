@@ -254,13 +254,9 @@ setup() {
   assert_output --partial 'export PATH="$HOME/.local/bin:$PATH"'
 }
 
-# The npm global prefix is written as a literal in TWO files that never see each
-# other: .zprofile (the user's shell) and 30-mise (which installs, lists, and
-# uninstalls the globals). chezmoi scripts don't source .zprofile, so nothing at
-# runtime forces them to agree — and if they drift, 30-mise installs into one dir
-# while the shell looks in another, which is the same invisible-CLI failure the
-# version-scoped default prefix caused. Extract both and compare, so neither
-# literal can be edited alone.
+# The npm global prefix is a literal in two files that never see each other, and
+# nothing at runtime forces them to agree. Extract both and compare, so neither
+# can be edited alone.
 @test "npm prefix: zprofile and 30-mise pin the same NPM_CONFIG_PREFIX" {
   render_to_file "$SRC_DIR/dot_zprofile.tmpl" "$BATS_TEST_TMPDIR/zprofile" full.toml
   render_to_file "$MISE" "$BATS_TEST_TMPDIR/mise.sh" full.toml
