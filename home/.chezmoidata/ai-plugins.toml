@@ -20,6 +20,8 @@
 #                                       (resolves from claude's official marketplace)
 #     codex   { marketplace, slug }  -> codex plugin marketplace add <marketplace>;
 #                                       codex plugin add <slug>@<resolved-marketplace>
+#     herdr   { slug }               -> herdr plugin install <owner/repo> --yes
+#                                       (slug is the GitHub spec, not a plugin id)
 #     cursor  { slug, url, enabled } -> MANUAL. Cursor has no headless plugin CLI.
 #                                       DEFAULT-OFF (`enabled = false`): Cursor
 #                                       auto-imports Claude-installed plugins (shows
@@ -125,3 +127,18 @@ repo = "https://github.com/supabase-community/supabase-plugin"
 claude = { slug = "supabase" }
 # Cursor OFF: it auto-imports the Claude install (appears as "imported").
 cursor = { slug = "supabase", url = "https://cursor.com/marketplace", enabled = false }
+
+# ----------------------------------------------------- herdr-annotate ----
+# `slug` is the GitHub owner/repo spec. herdr's own `plugin install` and `plugin
+# uninstall` both accept that spec (its uninstall arg is
+# <plugin_id|owner/repo[/subdir...]>), so one identifier covers the whole
+# lifecycle -- no plugin_id to resolve, unlike codex.
+# Needs the `plannotator` binary from registry.toml: this plugin is the Herdr
+# front-end for it. Script 40 installs plannotator and runs before 66, so the
+# ordering already holds.
+[[plugins]]
+name = "herdr-annotate"
+enabled = true
+desc = "Plannotator inside Herdr — review and annotate agent plans and diffs from a Herdr pane"
+repo = "https://github.com/plannotator/herdr-annotate"
+herdr = { slug = "plannotator/herdr-annotate" }

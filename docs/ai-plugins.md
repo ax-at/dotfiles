@@ -12,7 +12,7 @@ verbs; the data file owns only identifiers. **Adding a new plugin is data-only.*
 
 ### Native per-client CLIs — [`run_onchange_after_66-ai-plugins`](../home/.chezmoiscripts/run_onchange_after_66-ai-plugins.sh.tmpl)
 
-A per-client sub-table (`claude` / `codex` / `cursor`) installed by
+A per-client sub-table (`claude` / `codex` / `cursor` / `herdr`) installed by
 that client's own plugin CLI. Adding a new _client_ is one new backend `case`.
 
 | Client      | Install (automated)                                          | Detected via                      | Auth  |
@@ -20,6 +20,7 @@ that client's own plugin CLI. Adding a new _client_ is one new backend `case`.
 | Claude Code | `claude plugin install <slug>`                               | `claude plugin list --json` `.id` | OAuth |
 | Codex       | `codex plugin marketplace add <repo>` + `codex plugin add …` | `codex plugin list --json`        | OAuth |
 | Cursor      | **manual**, and **off by default** (see below)               | `~/.cursor/plugins` probe         | OAuth |
+| Herdr       | `herdr plugin install <owner/repo> --yes`                    | `herdr plugin list --json` source | none  |
 
 ### Open plugins (`npx plugins`) — [`run_onchange_after_67-open-plugins`](../home/.chezmoiscripts/run_onchange_after_67-open-plugins.sh.tmpl)
 
@@ -50,7 +51,8 @@ Each script is `run_onchange`, keyed on a hash of its data file **plus** a
 render-time **store fingerprint**: a digest of the installed plugin/skill
 identities read straight from each backend's own record — Claude's
 `installed_plugins.json` keys, Codex's `config.toml [plugins."…"]` sections,
-skills' `~/.agents/skills` names. So a
+Herdr's `~/.config/herdr/plugins.json` `plugin_id` values, skills'
+`~/.agents/skills` names. So a
 plugin deleted **out-of-band** (a CLI upgrade, a manual uninstall, a corrupted
 store) — with the toml untouched — flips that fingerprint, and the **next
 `chezmoi apply` re-runs the reconcile and reinstalls it**. No toml edit needed.
@@ -149,6 +151,30 @@ verb reaches the same place without the node + bun prerequisite.
 
 - **Auth:** run `claude`, then `/mcp`, select `plugin:supabase:supabase`, and
   follow the browser prompt to log into Supabase.
+
+## What ships (Herdr only): herdr-annotate
+
+[herdr-annotate](https://github.com/plannotator/herdr-annotate) puts
+[Plannotator](https://github.com/backnotprop/plannotator) inside
+[Herdr](https://github.com/herdrdev/herdr): review and annotate an agent's plans
+and diffs in a Herdr pane, and send the feedback back to the agent.
+
+| Client | Backend         | How                                                     |
+| ------ | --------------- | ------------------------------------------------------- |
+| Herdr  | **native (66)** | `herdr plugin install plannotator/herdr-annotate --yes` |
+
+Herdr's `slug` is the GitHub `owner/repo` spec rather than a resolved plugin id.
+Its `plugin uninstall` takes `<plugin_id|owner/repo[/subdir...]>`, so the one
+identifier in the toml covers install, verify, and uninstall — there is no
+`pluginId` round-trip like Codex's. Verification reads
+`herdr plugin list --json` and rebuilds each entry's spec from
+`source.owner`/`repo`/`subdir` (all nullable, and `subdir` is absent for a
+repo-root plugin) rather than guessing the id Herdr derived from the manifest.
+
+- **Prerequisites:** the `plannotator` binary, which the plugin drives. It is a
+  `script`-method [`registry.toml`](../home/.chezmoidata/registry.toml) entry
+  installed by script 40, which runs before 66.
+- **Auth:** none. Plannotator authenticates itself; the plugin adds no OAuth step.
 
 ### Cursor (off by default — auto-imported)
 
