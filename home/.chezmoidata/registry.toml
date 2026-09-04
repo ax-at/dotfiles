@@ -85,7 +85,6 @@ license = "MIT"
 repo = "https://github.com/nkzw-tech/codiff"
 enabled = true
 platforms = ["macos"]
-# Custom tap; the full tap/cask path auto-taps.
 macos = { method = "cask", pkg = "nkzw-tech/tap/codiff" }
 
 [[packages]]
@@ -675,7 +674,6 @@ license = "Apache-2.0"
 repo = "https://github.com/planetscale/cli"
 enabled = true
 platforms = ["macos", "linux"]
-# Vendor tap; the full tap/formula path auto-taps.
 macos = { method = "brew", pkg = "planetscale/tap/pscale" }
 linux = { method = "brew", pkg = "planetscale/tap/pscale" }
 
@@ -693,8 +691,8 @@ macos = { method = "brew", pkg = "awscli" }
 linux = { method = "brew", pkg = "awscli" }
 
 # ---------------------------------------------------------------- media ----
-# Its own module because these two are large, optional, and unwanted on a lean or
-# work machine: toggling `media = false` drops them without touching core.
+# Its own module because these are large and optional: a lean or work machine
+# wants neither.
 [[packages]]
 name = "ffmpeg"
 module = "media"

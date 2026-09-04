@@ -44,10 +44,10 @@
 # config.toml [plugins."..."] sections, and herdr's plugins.json plugin_id values
 # (cursor excluded; it is manual/auto-imported, nothing to auto-heal) -- computed
 # at render time.
-# The herdr key name comes from herdr's published API schema
-# (InstalledPluginInfo.plugin_id); no herdr plugin was installed when this was
-# written, so if upstream renames it the grep simply matches nothing. That
-# degrades to "no drift heal for herdr", never to a broken apply.
+# The herdr key name is schema-derived (InstalledPluginInfo.plugin_id from
+# `herdr api schema`), never verified against a live store, so if upstream renames
+# it the grep simply matches nothing. That degrades to "no drift heal for herdr",
+# never to a broken apply.
 # Identity-only (no timestamps) so plugin auto-updates don't churn it. A deleted
 # identity flips the hash -> reconcile re-runs. `2>/dev/null ...; :` keeps missing
 # records (fresh machine) from a non-zero exit that would abort the whole apply.
@@ -101,9 +101,9 @@ pm_is_installed() {
       ;;
     herdr)
       # Match on the SOURCE spec, not plugin_id: the id we hold is the GitHub
-      # owner/repo, and herdr derives its own plugin_id from the manifest. Rebuild
-      # the spec from source.owner/repo/subdir, dropping nulls and empties (every
-      # source field is nullable, and subdir is absent for a repo-root plugin).
+      # owner/repo, and herdr derives its own plugin_id from the manifest. Every
+      # source field is nullable and subdir is absent for a repo-root plugin,
+      # hence the select.
       herdr plugin list --json </dev/null 2>/dev/null \
         | jq -e --arg s "$id" 'any(.result.plugins[]?; ([.source.owner, .source.repo, .source.subdir] | map(select(. != null and . != "")) | join("/")) == $s)' >/dev/null 2>&1
       ;;
@@ -212,9 +212,10 @@ reconcile() {
     else
       echo "  -> installing ${name} into ${kind}"
       if pm_install "$kind" "$id" "$source" "$marketplace"; then
-        # cursor and herdr have no pm_auth_note; collecting them would print the
+        # Ask pm_auth_note whether this kind has a reminder rather than listing
+        # the ones that don't; a note-less kind would otherwise print the
         # "one-time authentication" header with nothing under it.
-        case "$kind" in cursor | herdr) : ;; *) auth_kinds="${auth_kinds}${kind}"$'\n' ;; esac
+        [ -z "$(pm_auth_note "$kind")" ] || auth_kinds="${auth_kinds}${kind}"$'\n'
       else
         echo "  !! FAILED install: ${name}/${kind}" >&2
         failures=$((failures + 1))
