@@ -12,6 +12,7 @@ setup() {
   AI="$(script_tmpl 40-ai-tools)"
   ED="$(script_tmpl 50-editor-extensions)"
   MACOS="$(script_tmpl 70-macos-defaults)"
+  NPM_CONF="$SRC_DIR/dot_config/mise/conf.d/10-registry-npm.toml.tmpl"
   OS="$([ "$(uname)" = "Darwin" ] && echo darwin || echo linux)"
   CODE_SETTINGS="$SRC_DIR/Library/Application Support/Code/User/settings.json.tmpl"
   CURSOR_SETTINGS="$SRC_DIR/Library/Application Support/Cursor/User/settings.json.tmpl"
@@ -122,10 +123,127 @@ setup() {
   fi
 }
 
-@test "mise: npm CLIs render as npm_install_if_missing calls" {
+@test "mise conf.d: desired npm CLIs render as mise npm-backend rows" {
+  run render "$NPM_CONF" full.toml
+  assert_success
+  assert_output --partial '"npm:eas-cli" = "latest"'
+  assert_output --partial '"npm:vercel" = "latest"'
+  assert_output --partial '"npm:screenpipe" = "latest"'
+  assert_output --partial '"npm:@chrysb/alphaclaw" = "latest"'
+}
+
+@test "mise conf.d: no row for a disabled entry or a module-off one" {
+  run render "$NPM_CONF" full.toml
+  assert_success
+  assert_output --partial '"npm:eas-cli" = "latest"'
+  refute_output --partial '"npm:ctx7"'
+  refute_output --partial '"npm:@aisuite/chub"'
+  refute_output --partial '"npm:@pencil.dev/cli"'
+  # screenpipe's module is ai-assistants, so the module gate needs its own fixture.
+  run render "$NPM_CONF" ai-assistants-off.toml
+  assert_success
+  refute_output --partial '"npm:screenpipe"'
+  assert_output --partial '"npm:eas-cli" = "latest"'
+}
+
+# mise resolves a tool by the exact id it was declared under and never canonicalizes.
+# vercel is a real short name in mise's own registry, so declaring it bare here would
+# install under installs/vercel/ while 30-mise queried npm:vercel, found nothing, and
+# silently no-opped every removal path. Lock the key form.
+@test "mise conf.d: tools are declared by backend id, never a bare short name" {
+  run render "$NPM_CONF" full.toml
+  assert_success
+  # Both spellings: dropping the prefix alone leaves the key quoted.
+  refute_output --partial '"vercel" ='
+  refute_output --partial '"eas-cli" ='
+  refute_line --regexp '^[[:space:]]*vercel[[:space:]]*='
+  refute_line --regexp '^[[:space:]]*eas-cli[[:space:]]*='
+}
+
+# taplo.toml excludes **/*.tmpl, so the fragment has no lint coverage at all; a stray
+# unquoted key or a broken range would only surface as a mise parse error on apply.
+@test "mise conf.d: the rendered fragment parses as TOML" {
+  command -v taplo >/dev/null 2>&1 || skip "taplo not installed"
+  # Not one pipeline: bats leaves pipefail off, and empty input is valid TOML, so a
+  # failed render would sail through.
+  run render "$NPM_CONF" full.toml
+  assert_success
+  echo "$output" | taplo check -
+}
+
+@test "mise: npm removal goes through mise's backend, not npm" {
   run render "$MISE" full.toml
   assert_success
-  assert_output --partial 'npm_install_if_missing '
+  assert_output --partial 'mise uninstall --all "npm:$1"'
+  # Both would be the PATH-probe install predicate coming back.
+  refute_output --partial 'npm install -g'
+  refute_output --partial 'npm_install_if_missing'
+}
+
+# `mise ls --installed <tool>` exits 0 whether or not the tool is there, so a
+# status-based predicate reports everything as installed and silently disables the
+# whole removal path. Drive the real function against both shapes of output.
+@test "mise: npm presence is read from output, never the exit status" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/pred.sh" full.toml
+  source "$BATS_TEST_TMPDIR/pred.sh"
+
+  mise() { return 0; }
+  run npm_installed eas-cli
+  assert_failure
+  mise() { echo "npm:eas-cli  23.2.0  ~/.config/mise/conf.d/10-registry-npm.toml  latest"; }
+  run npm_installed eas-cli
+  assert_success
+}
+
+@test "mise sweep: clears registry-owned names from a legacy root, nothing else" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/sweep.sh" full.toml
+  source "$BATS_TEST_TMPDIR/sweep.sh"
+
+  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/vercel" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/@old/cli" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/@openai/codex"
+  MANIFEST="$BATS_TEST_TMPDIR/manifest"
+  # The second row has no tab. Plain `cut -f2` prints such a line whole, which would
+  # hand the sweep a name nothing in the registry or the manifest ever claimed.
+  printf 'Old\t@old/cli\nfallow\n' >"$MANIFEST"
+  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/fallow"
+  : >"$BATS_TEST_TMPDIR/calls"
+  # The stubs spell the paths out rather than closing over a variable: bash scopes
+  # dynamically, so a name the caller also declares `local` resolves to the caller's
+  # empty one and the sweep silently visits nothing.
+  npm_registry_pkgs() { printf '%s\n' "vercel" "ctx7"; }
+  npm_legacy_roots() { printf '%s\n' "$BATS_TEST_TMPDIR/root"; }
+  npm_remove_from() { printf '%s\n' "$2" >>"$BATS_TEST_TMPDIR/calls"; }
+
+  run sweep_legacy_npm
+  assert_success
+  run cat "$BATS_TEST_TMPDIR/calls"
+  assert_line "vercel"        # registry-owned and present
+  assert_line "@old/cli"      # orphan of a deleted entry, reachable via the manifest
+  refute_line "ctx7"          # registry-owned but not in this root
+  refute_line "@openai/codex" # hand-installed: outside the union, unreachable
+  refute_line "fallow"        # a malformed manifest row must not widen the union
+}
+
+# An unpinned `npm i -g` lands in whichever node tree was active, so missing one tree
+# means the sweep silently leaves a shadowing copy behind. The prefix literal itself is
+# locked by the zprofile agreement test below; main() is what assigns it in a real run.
+@test "mise sweep: legacy roots are the pinned prefix plus every mise node tree" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/roots.sh" full.toml
+  source "$BATS_TEST_TMPDIR/roots.sh"
+
+  HOME="$BATS_TEST_TMPDIR/home"
+  NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+  local installs="$HOME/.local/share/mise/installs/node"
+  mkdir -p "$installs/22.22.2/lib/node_modules" "$installs/24.19.0/lib/node_modules" \
+    "$installs/20.10.0"
+
+  run npm_legacy_roots
+  assert_success
+  assert_line "$NPM_CONFIG_PREFIX"
+  assert_line "$installs/22.22.2"
+  assert_line "$installs/24.19.0"
+  refute_line "$installs/20.10.0" # never held a global install
 }
 
 # Regression guard for the "agents can't run python" class of bug: Homebrew's

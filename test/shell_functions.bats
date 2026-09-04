@@ -10,13 +10,10 @@ load 'lib/isolate'
 
 setup() {
   isolate
-  # Render the 3 sourceable scripts and source them.
   render_to_file "$(script_tmpl 40-ai-tools)" "$BATS_TEST_TMPDIR/ai.sh" full.toml
   render_to_file "$(script_tmpl 50-editor-extensions)" "$BATS_TEST_TMPDIR/ed.sh" full.toml
-  render_to_file "$(script_tmpl 30-mise)" "$BATS_TEST_TMPDIR/mise.sh" full.toml
   source "$BATS_TEST_TMPDIR/ai.sh"
   source "$BATS_TEST_TMPDIR/ed.sh"
-  source "$BATS_TEST_TMPDIR/mise.sh"
 }
 
 # ---- install_one (40-ai-tools) --------------------------------------------
@@ -61,24 +58,4 @@ setup() {
   assert_success
   assert_output --partial 'not on PATH'
   [ ! -s "$CALLS_LOG" ] || ! grep -q 'code --install-extension' "$CALLS_LOG"
-}
-
-# ---- npm_install_if_missing (30-mise) -------------------------------------
-
-@test "npm_install_if_missing: installs when check fails" {
-  # isolate() only PREPENDS $MOCKBIN, so a real globally-installed `vercel`
-  # (e.g. mise's ~/.local/share/mise/installs/node/.../bin/vercel) still resolves
-  # and would make the check SUCCEED, skipping the install. Narrow PATH so the
-  # CLI is genuinely absent; $MOCKBIN stays first so the `mise` stub still records.
-  local saved_path="$PATH"
-  PATH="$MOCKBIN:/usr/bin:/bin"
-  npm_install_if_missing "vercel" "vercel --version"   # vercel absent -> check fails
-  PATH="$saved_path"
-  grep -q 'mise exec node -- npm install -g vercel' "$CALLS_LOG"
-}
-
-@test "npm_install_if_missing: skips when check succeeds" {
-  make_stub vercel   # now 'vercel --version' succeeds
-  npm_install_if_missing "vercel" "vercel --version"
-  ! grep -q 'npm install -g vercel' "$CALLS_LOG"
 }
