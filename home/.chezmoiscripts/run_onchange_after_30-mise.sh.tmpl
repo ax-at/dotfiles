@@ -49,9 +49,10 @@ npm_rows() {
 NPM_ROWS_EOF
 }
 
-# awk, not `grep | cut`: these run under `set -euo pipefail` and a no-match grep
-# exits 1, which a profile with no desired npm entries would trip. $NF rather than
-# $3 keeps the flag anchored if a name ever contains the separator.
+# awk, not `grep | cut`: a no-match grep exits 1, so an empty projection would trip
+# pipefail the moment one of these is read into a variable rather than a here-doc.
+# Every current call site swallows the status; this keeps the next one safe.
+# check-crossrefs rejects `|` in name and pkg, so the columns are unambiguous.
 npm_desired_rows() { npm_rows | awk -F'|' '$NF == 1 { print $1 "|" $2 }'; }
 npm_removal_rows() { npm_rows | awk -F'|' '$NF == 0 { print $2 }'; }
 npm_registry_names() { npm_rows | cut -d'|' -f1; }
@@ -79,7 +80,7 @@ npm_remove() { mise uninstall --all "npm:$1"; }
 # Tests override this.
 npm_legacy_roots() {
   local d
-  printf '%s\n' "$NPM_CONFIG_PREFIX"
+  printf '%s\n' "{{ .npm_global_prefix }}"
   for d in "$HOME/.local/share/mise/installs/node"/*; do
     # mise keeps alias links (20, 24, latest, lts) beside the real trees and [ -d ]
     # follows them. Left in, a tree is swept once per alias pointing at it and the log
@@ -103,6 +104,11 @@ npm_remove_from() { mise exec node -- npm uninstall -g --prefix "$1" "$2"; }
 # row, so a copy the sweep could not clear, or never reached, has to keep that row.
 npm_legacy_copy() {
   local root
+  [ -n "$1" ] || return 1
+  # Same exclusion as the sweep. node ships these inside its own tree, so without it
+  # `npm`/`corepack` read as a surviving copy the sweep is forbidden to clear, and the
+  # row would be kept forever on a retry that can never run.
+  case "$1" in npm | corepack) return 1 ;; esac
   while IFS= read -r root; do
     [ -d "$root/lib/node_modules/$1" ] && return 0
   done <<EOF
@@ -199,7 +205,10 @@ EOF
 
   # DELETE-path: a tracked package whose registry entry is gone from the registry.
   while IFS="$TAB" read -r name pkg; do
-    [ -n "$name" ] || continue
+    # Both columns: a tab-less row parses as name-only, and an empty pkg matches
+    # nothing safely but would keep the row forever. sweep_legacy_npm applies the
+    # same discipline through `cut -s`.
+    [ -n "$name" ] && [ -n "$pkg" ] || continue
     if printf '%s\n' "$registry_names" | grep -qxF "$name"; then continue; fi
     keep=0
     if npm_installed "$pkg"; then
@@ -211,9 +220,9 @@ EOF
       fi
     fi
     # npm_registry_pkgs no longer names a deleted entry, so this row is the only handle
-    # left on a legacy copy. Drop it while one survives and that copy is stranded.
-    ! npm_legacy_copy "$pkg" || keep=1
-    [ "$keep" -eq 0 ] || printf '%s\t%s\n' "$name" "$pkg" >>"$MANIFEST.tmp"
+    # left on a legacy copy. Keep the row while one survives; drop it once none does.
+    if npm_legacy_copy "$pkg"; then keep=1; fi
+    if [ "$keep" -eq 1 ]; then printf '%s\t%s\n' "$name" "$pkg" >>"$MANIFEST.tmp"; fi
   done <<EOF
 $manifest_prev
 EOF
@@ -235,11 +244,6 @@ main() {
   elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)";
   fi
   command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
-
-  # Not an npm setting any more: the one npm call left passes --prefix explicitly. This
-  # is the sweep root, the same path .zprofile puts on the user's PATH, from the one
-  # place either is written (.chezmoidata/paths.toml).
-  NPM_CONFIG_PREFIX="{{ .npm_global_prefix }}"
 
   # mise config hashes (force a re-run on change):
   # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/config.toml") | sha256sum }}

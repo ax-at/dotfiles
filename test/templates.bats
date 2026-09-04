@@ -8,11 +8,9 @@ load 'lib/helpers'
 
 setup() {
   PKGS="$(script_tmpl 20-packages)"
-  MISE="$(script_tmpl 30-mise)"
   AI="$(script_tmpl 40-ai-tools)"
   ED="$(script_tmpl 50-editor-extensions)"
   MACOS="$(script_tmpl 70-macos-defaults)"
-  NPM_CONF="$SRC_DIR/dot_config/mise/conf.d/10-registry-npm.toml.tmpl"
   OS="$([ "$(uname)" = "Darwin" ] && echo darwin || echo linux)"
   CODE_SETTINGS="$SRC_DIR/Library/Application Support/Code/User/settings.json.tmpl"
   CURSOR_SETTINGS="$SRC_DIR/Library/Application Support/Cursor/User/settings.json.tmpl"

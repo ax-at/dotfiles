@@ -31,9 +31,14 @@
 #                   desired entries render into
 #                   ~/.config/mise/conf.d/10-registry-npm.toml as "npm:<pkg>" rows,
 #                   so each CLI is versioned and shimmed independently of node.
-#                   The pnpm global store (~/Library/pnpm/bin) is unmanaged:
-#                   nothing here installs into it, and its binaries can shadow a
-#                   registry CLI in a shell that has not put mise's shims first.
+#                   The pnpm global store (~/Library/pnpm/bin) is unmanaged and
+#                   UNREPORTED. Nothing here installs into it or removes from it, and
+#                   a pnpm copy still wins whenever its PATH entry is prepended after
+#                   `mise activate` has run, which is what pnpm's own installer does
+#                   (.zshrc sources .zshrc.local well after activate). Re-activating
+#                   does not demote it: mise splices its dirs in ahead of the PATH it
+#                   saved at first activation, not ahead of later prepends. Detecting
+#                   that is a deliberate gap, not a solved problem.
 #                 uninstall_cmd  REQUIRED for method = script (brew/npm/cask
 #                   uninstall generically). Single-line shell, eval'd to remove
 #                   the tool. Artifacts-only: delete the binary/install dir, leave
@@ -1041,7 +1046,6 @@ platforms = ["macos", "linux"]
 # npm-global via mise (run_onchange_after_30-mise), like screenpipe/ctx7. Needs node
 # >= 22.22.3 / 24.15.0 / 25.9.0 — mise's `node = "lts"` satisfies this. `pkg` is the
 # scoped PACKAGE name (npm_installed keys on it); the binary is `alphaclaw`.
-# check uses `alphaclaw version` — the CLI's own subcommand; there is no `--version`.
 # No uninstall_cmd: npm entries uninstall generically (`mise uninstall --all npm:$pkg`).
 # It wraps openclaw (installs/manages the Gateway itself), so openclaw is no longer a
 # registry entry of its own; deleting that entry makes 40-ai-tools uninstall it from

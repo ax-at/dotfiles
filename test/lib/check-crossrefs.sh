@@ -6,6 +6,7 @@
 #   2. every declared platform has a matching [os] table with a `method`
 #   3. script method has `check` + `cmd` + `uninstall_cmd` (no manager to ask)
 #   4. no duplicate package `name`
+#   5. no "|" in `name` or `pkg` (every script renders pipe-delimited rows)
 # Prints one line per violation and exits non-zero if any are found.
 # Deps: chezmoi + jq only.
 set -euo pipefail
@@ -35,6 +36,14 @@ errors="$(printf '%s' "$data" | jq -r '
               then "\($p.name)/\($os): method script requires a cmd"
             elif ($t.method == "script" and ($t.uninstall_cmd | type) != "string")
               then "\($p.name)/\($os): method script requires an uninstall_cmd"
+            else empty end ),
+        ( if ($p.name | test("\\|"))
+            then "\($p.name): name must not contain a pipe"
+          else empty end ),
+        ( $p.platforms[] as $os
+          | ($p[$os].pkg // "")
+          | if test("\\|")
+              then "\($p.name)/\($os): pkg must not contain a pipe"
             else empty end )
     ]
   + ( [ .packages[].name ] | group_by(.) | map(select(length > 1))
