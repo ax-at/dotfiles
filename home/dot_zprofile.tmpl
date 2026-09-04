@@ -19,3 +19,16 @@ fi
 # it a fresh shell can't find pass-cli and `proton-pass-doctor` reports it "not
 # installed" even though it is. $HOME resolves at runtime — nothing hardcoded.
 export PATH="$HOME/.local/bin:$PATH"
+
+# npm's global prefix, pinned to a node-version-independent dir. Left alone, npm
+# resolves the prefix to whichever mise node dir is active
+# (~/.local/share/mise/installs/node/<version>). mise pins `node = "lts"`, a
+# floating alias, so every node upgrade moves that prefix and strands every
+# registry-managed global CLI in the old version's tree — installed, invisible,
+# and unfindable by `npm ls -g`, which is what 30-mise reconciles against.
+# Deliberately ahead of ~/Library/pnpm/bin (pnpm's own installer puts that on
+# PATH), so a registry-managed CLI wins over a stray pnpm global of the same name.
+# run_onchange_after_30-mise.sh.tmpl sets the identical pair for its own install/
+# list/uninstall; test/templates.bats asserts the two paths stay equal.
+export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"

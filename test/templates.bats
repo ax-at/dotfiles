@@ -254,6 +254,26 @@ setup() {
   assert_output --partial 'export PATH="$HOME/.local/bin:$PATH"'
 }
 
+# The npm global prefix is written as a literal in TWO files that never see each
+# other: .zprofile (the user's shell) and 30-mise (which installs, lists, and
+# uninstalls the globals). chezmoi scripts don't source .zprofile, so nothing at
+# runtime forces them to agree — and if they drift, 30-mise installs into one dir
+# while the shell looks in another, which is the same invisible-CLI failure the
+# version-scoped default prefix caused. Extract both and compare, so neither
+# literal can be edited alone.
+@test "npm prefix: zprofile and 30-mise pin the same NPM_CONFIG_PREFIX" {
+  render_to_file "$SRC_DIR/dot_zprofile.tmpl" "$BATS_TEST_TMPDIR/zprofile" full.toml
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/mise.sh" full.toml
+  npm_prefix_of() { sed -n 's/.*NPM_CONFIG_PREFIX="\([^"]*\)".*/\1/p' "$1" | head -1; }
+
+  local from_shell from_script
+  from_shell="$(npm_prefix_of "$BATS_TEST_TMPDIR/zprofile")"
+  from_script="$(npm_prefix_of "$BATS_TEST_TMPDIR/mise.sh")"
+  # Non-empty, or two missing exports would compare equal and pass vacuously.
+  [ -n "$from_shell" ]
+  assert_equal "$from_shell" "$from_script"
+}
+
 # ---- editor settings: shared partial renders valid JSON -------------------
 # Code + Cursor are one-line wrappers around the .chezmoitemplates partial, so
 # a broken partial (bad include, trailing comma) would ship to both editors

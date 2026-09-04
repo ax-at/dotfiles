@@ -154,6 +154,15 @@ main() {
   fi
   command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
 
+  # Same npm global prefix dot_zprofile.tmpl exports, and it has to be repeated
+  # here: chezmoi scripts do not source .zprofile, so without this the install,
+  # `npm ls -g`, and uninstall below would all target npm's default prefix — the
+  # version-scoped mise node dir — while the user's shell looked somewhere else.
+  # test/templates.bats asserts the two files name the same path.
+  export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+  export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+  mkdir -p "$NPM_CONFIG_PREFIX/bin"
+
   # mise config hash (forces re-run on change):
   # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/config.toml") | sha256sum }}
   echo "==> [mise] installing runtimes (node, pnpm, ruby, java, python)"
