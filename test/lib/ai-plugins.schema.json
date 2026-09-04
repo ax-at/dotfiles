@@ -33,6 +33,14 @@
               "slug": { "type": "string", "minLength": 1 }
             }
           },
+          "herdr": {
+            "type": "object",
+            "required": ["slug"],
+            "additionalProperties": false,
+            "properties": {
+              "slug": { "type": "string", "minLength": 1 }
+            }
+          },
           "cursor": {
             "type": "object",
             "required": ["slug"],

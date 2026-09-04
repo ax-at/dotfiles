@@ -37,6 +37,9 @@ SCHEMA="$REPO_ROOT/test/lib/ai-plugins.schema.json"
   assert_line "codex|vercel|vercel||openai-curated"
   # supabase is claude-only (no codex-installable package upstream).
   assert_line "claude|supabase|supabase||"
+  # herdr-annotate is herdr-only; its id is the GitHub owner/repo spec, which
+  # herdr's install AND uninstall both accept, so source/marketplace stay empty.
+  assert_line "herdr|herdr-annotate|plannotator/herdr-annotate||"
 }
 
 @test "desired_rows omits a cursor sub-table with enabled = false" {
@@ -99,6 +102,25 @@ setup() {
   run cat "$MANIFEST"
   assert_line "claude${TAB}posthog${TAB}posthog"
   assert_line "codex${TAB}posthog${TAB}posthog"
+}
+
+@test "reconcile: the herdr kind flows through the driver (install + track by slug)" {
+  desired_rows() {
+    printf '%s\n' \
+      "claude|posthog|posthog||" \
+      "herdr|herdr-annotate|plannotator/herdr-annotate||"
+  }
+  printf 'claude\tposthog\n' >"$WORLD" # claude already installed
+
+  run reconcile
+  assert_success
+  grep -qxF "install herdr plannotator/herdr-annotate" "$CALLS"
+  ! grep -q "install claude" "$CALLS"
+
+  # The slug is what lands in the manifest, so a later removal uninstalls with
+  # the same identifier the install used.
+  run cat "$MANIFEST"
+  assert_line "herdr${TAB}herdr-annotate${TAB}plannotator/herdr-annotate"
 }
 
 @test "reconcile: a client whose CLI is absent is skipped (not installed, not tracked)" {
@@ -219,7 +241,8 @@ setup() {
 
 # ---- store-fingerprint (out-of-band deletion self-heal) -------------------
 # The rendered script embeds a hash of installed plugin IDENTITIES (claude's
-# installed_plugins.json keys, codex config sections) so
+# installed_plugins.json keys, codex config sections, herdr's plugins.json
+# plugin_id values) so
 # `run_onchange` re-runs when a plugin is deleted out-of-band. These render with a
 # fabricated HOME to drive the render-time `output` digest; claude's record-file
 # is the representative shape (a JSON key vanishing must flip the hash).
@@ -237,6 +260,24 @@ JSON
   run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/without.sh" full.toml
   assert_success
   run diff "$BATS_TEST_TMPDIR/with.sh" "$BATS_TEST_TMPDIR/without.sh"
+  assert_failure
+}
+
+# herdr's key name is taken from its published API schema, not from an observed
+# store (no herdr plugin was installed when the fingerprint was written), so this
+# locks the grep against the documented `"plugin_id": "..."` shape.
+@test "66 drift heal: deleting a herdr plugin flips the store fingerprint" {
+  HOME="$BATS_TEST_TMPDIR/herdr-home"
+  mkdir -p "$HOME/.config/herdr"
+  cat >"$HOME/.config/herdr/plugins.json" <<'JSON'
+{ "plugins": [ { "plugin_id": "herdr-annotate", "enabled": true } ] }
+JSON
+  run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/h-with.sh" full.toml
+  assert_success
+  printf '%s\n' '{ "plugins": [] }' >"$HOME/.config/herdr/plugins.json"
+  run render_to_file "$(script_tmpl 66-ai-plugins)" "$BATS_TEST_TMPDIR/h-without.sh" full.toml
+  assert_success
+  run diff "$BATS_TEST_TMPDIR/h-with.sh" "$BATS_TEST_TMPDIR/h-without.sh"
   assert_failure
 }
 

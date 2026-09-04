@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run_onchange_after_66-ai-plugins.sh
 # Installs AI-client plugins from .chezmoidata/ai-plugins.toml INTO the agent
-# CLIs (Claude Code, Codex, Cursor) and keeps them RECONCILED
+# CLIs (Claude Code, Codex, Cursor, Herdr) and keeps them RECONCILED
 # against on-disk reality. Runs AFTER 40-ai-tools (the CLIs exist) and after
 # 60-ssh-github / 65-agent-skills (git/gh ready) -- plugin installs only need
 # public repos, so no token is required.
@@ -16,6 +16,10 @@
 #   claude    claude plugin install <slug>         plugin list --json .id    plugin uninstall
 #   codex     plugin marketplace add + plugin add  plugin list --json        plugin remove
 #   cursor    MANUAL (prints in-app step)          ~/.cursor/plugins probe   MANUAL (prints step)
+#   herdr     herdr plugin install <owner/repo>    plugin list --json source plugin uninstall
+#
+# herdr itself is an ai-tools registry entry and this whole script is already
+# gated on that module, so the herdr backend needs no gate of its own.
 #
 # Reconcile model (mirrors 65-agent-skills):
 #   desired  = (kind,name,id) rows from ai-plugins.toml (enabled plugins x their
@@ -36,13 +40,18 @@
 # {{ include (joinPath .chezmoi.sourceDir ".chezmoidata/ai-plugins.toml") | sha256sum }}
 # store fingerprint (forces re-run when a plugin is deleted out-of-band -- drift
 # heal). Hashes installed plugin IDENTITIES from the same records each backend's
-# pm_is_installed reads -- claude's installed_plugins.json keys and codex's
-# config.toml [plugins."..."] sections (cursor excluded; it is manual/auto-
-# imported, nothing to auto-heal) -- computed at render time.
+# pm_is_installed reads -- claude's installed_plugins.json keys, codex's
+# config.toml [plugins."..."] sections, and herdr's plugins.json plugin_id values
+# (cursor excluded; it is manual/auto-imported, nothing to auto-heal) -- computed
+# at render time.
+# The herdr key name comes from herdr's published API schema
+# (InstalledPluginInfo.plugin_id); no herdr plugin was installed when this was
+# written, so if upstream renames it the grep simply matches nothing. That
+# degrades to "no drift heal for herdr", never to a broken apply.
 # Identity-only (no timestamps) so plugin auto-updates don't churn it. A deleted
 # identity flips the hash -> reconcile re-runs. `2>/dev/null ...; :` keeps missing
 # records (fresh machine) from a non-zero exit that would abort the whole apply.
-# {{ output "bash" "-c" "{ cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"'; grep -oE '^\\[plugins\\.\"[^\"]+\"\\]' ~/.codex/config.toml 2>/dev/null; } | sort -u; :" | sha256sum }}
+# {{ output "bash" "-c" "{ cat ~/.claude/plugins/installed_plugins.json 2>/dev/null | grep -oE '\"[a-z0-9._-]+@[a-z0-9._-]+\"'; grep -oE '^\\[plugins\\.\"[^\"]+\"\\]' ~/.codex/config.toml 2>/dev/null; grep -oE '\"plugin_id\"[[:space:]]*:[[:space:]]*\"[^\"]+\"' ~/.config/herdr/plugins.json 2>/dev/null; } | sort -u; :" | sha256sum }}
 
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/ai-plugins.applied"
 
@@ -58,7 +67,8 @@ desired_rows() {
 {{ if hasKey $p "claude" }}claude|{{ $p.name }}|{{ $p.claude.slug }}||
 {{ end }}{{ if hasKey $p "codex" }}codex|{{ $p.name }}|{{ $p.codex.slug }}||{{ $p.codex.marketplace }}
 {{ end }}{{ if hasKey $p "cursor" }}{{ if or (not (hasKey $p.cursor "enabled")) $p.cursor.enabled }}cursor|{{ $p.name }}|{{ $p.cursor.slug }}|{{ $p.cursor.url }}|
-{{ end }}{{ end }}{{- end }}{{ end -}}
+{{ end }}{{ end }}{{ if hasKey $p "herdr" }}herdr|{{ $p.name }}|{{ $p.herdr.slug }}||
+{{ end }}{{- end }}{{ end -}}
 DESIRED
 }
 
@@ -68,7 +78,7 @@ DESIRED
 # pm_cli_present KIND -- 0 if that client's CLI is usable on this machine.
 pm_cli_present() {
   case "$1" in
-    claude | codex | cursor) command -v "$1" >/dev/null 2>&1 ;;
+    claude | codex | cursor | herdr) command -v "$1" >/dev/null 2>&1 ;;
     *) return 1 ;;
   esac
 }
@@ -88,6 +98,14 @@ pm_is_installed() {
     cursor)
       # No CLI to query; probe the on-disk plugin store as a best-effort check.
       find "$HOME/.cursor/plugins" -maxdepth 3 -iname "*${id}*" 2>/dev/null | grep -q .
+      ;;
+    herdr)
+      # Match on the SOURCE spec, not plugin_id: the id we hold is the GitHub
+      # owner/repo, and herdr derives its own plugin_id from the manifest. Rebuild
+      # the spec from source.owner/repo/subdir, dropping nulls and empties (every
+      # source field is nullable, and subdir is absent for a repo-root plugin).
+      herdr plugin list --json </dev/null 2>/dev/null \
+        | jq -e --arg s "$id" 'any(.result.plugins[]?; ([.source.owner, .source.repo, .source.subdir] | map(select(. != null and . != "")) | join("/")) == $s)' >/dev/null 2>&1
       ;;
     *) return 1 ;;
   esac
@@ -113,6 +131,9 @@ pm_install() {
     cursor)
       pm_cursor_manual add "$id" "$source"
       ;;
+    herdr)
+      herdr plugin install "$id" --yes </dev/null
+      ;;
     *) return 1 ;;
   esac
 }
@@ -129,6 +150,7 @@ pm_uninstall() {
       codex plugin remove "$pid" </dev/null
       ;;
     cursor) pm_cursor_manual remove "$id" "" ;;
+    herdr) herdr plugin uninstall "$id" </dev/null ;;
     *) return 1 ;;
   esac
 }
@@ -190,7 +212,9 @@ reconcile() {
     else
       echo "  -> installing ${name} into ${kind}"
       if pm_install "$kind" "$id" "$source" "$marketplace"; then
-        case "$kind" in cursor) : ;; *) auth_kinds="${auth_kinds}${kind}"$'\n' ;; esac
+        # cursor and herdr have no pm_auth_note; collecting them would print the
+        # "one-time authentication" header with nothing under it.
+        case "$kind" in cursor | herdr) : ;; *) auth_kinds="${auth_kinds}${kind}"$'\n' ;; esac
       else
         echo "  !! FAILED install: ${name}/${kind}" >&2
         failures=$((failures + 1))
