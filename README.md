@@ -216,6 +216,7 @@ dotfiles/
     ├── .chezmoiscripts/             # ordered provisioning steps
     ├── dot_zshrc.tmpl  dot_zsh_plugins.txt  dot_gitconfig.tmpl  dot_nanorc
     └── dot_config/{starship,ghostty,linearmouse,mise}/
+        └── mise/conf.d/10-registry-npm.toml.tmpl # GENERATED npm: rows from registry.toml
 ```
 
 ### Provisioning order (`.chezmoiscripts/`)
@@ -224,7 +225,7 @@ dotfiles/
 | ----------------------------------------- | ----------------------------------------------- |
 | `run_once_before_10-prerequisites`        | Rosetta + Homebrew (+ CLT)                      |
 | `run_onchange_after_20-packages`          | generate Brewfile from registry → `brew bundle` |
-| `run_onchange_after_30-mise`              | runtimes + npm-global CLIs                      |
+| `run_onchange_after_30-mise`              | runtimes + registry npm CLIs, via mise          |
 | `run_onchange_after_40-ai-tools`          | official `script` installers                    |
 | `run_onchange_after_50-editor-extensions` | VS Code + Cursor extensions                     |
 | `run_once_after_60-ssh-github`            | SSH key + `gh` auth + signing key               |

@@ -27,7 +27,7 @@ isolate() {
 
   # Default recording stubs for every real binary the tested functions call.
   make_stub npm
-  make_stub mise # records e.g. "mise exec node -- npm install -g X"
+  make_stub mise # records e.g. "mise uninstall --all npm:X"
   make_editor_stub code
   make_editor_stub cursor
 

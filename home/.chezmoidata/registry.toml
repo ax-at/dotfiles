@@ -1041,7 +1041,7 @@ platforms = ["macos", "linux"]
 # >= 22.22.3 / 24.15.0 / 25.9.0 — mise's `node = "lts"` satisfies this. `pkg` is the
 # scoped PACKAGE name (npm_installed keys on it); the binary is `alphaclaw`.
 # check uses `alphaclaw version` — the CLI's own subcommand; there is no `--version`.
-# No uninstall_cmd: npm entries uninstall generically (`npm uninstall -g $pkg`).
+# No uninstall_cmd: npm entries uninstall generically (`mise uninstall --all npm:$pkg`).
 # It wraps openclaw (installs/manages the Gateway itself), so openclaw is no longer a
 # registry entry of its own; deleting that entry makes 40-ai-tools uninstall it from
 # the script manifest, preserving ~/.openclaw state.

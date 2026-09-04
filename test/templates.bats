@@ -193,6 +193,14 @@ setup() {
   mise() { echo "npm:eas-cli  23.2.0  ~/.config/mise/conf.d/10-registry-npm.toml  latest"; }
   run npm_installed eas-cli
   assert_success
+
+  # mise keys a tool by the exact id it was declared under, so the predicate has to ask
+  # for the same "npm:" id the conf.d fragment writes. Drop the prefix and mise answers
+  # for nothing, every removal path silently no-ops, and only this assertion notices.
+  mise() { printf '%s\n' "$*" >"$BATS_TEST_TMPDIR/args"; }
+  npm_installed eas-cli || true
+  run cat "$BATS_TEST_TMPDIR/args"
+  assert_output --partial "npm:eas-cli"
 }
 
 @test "mise sweep: clears registry-owned names from a legacy root, nothing else" {
@@ -281,41 +289,35 @@ setup() {
   refute_output --partial "@pencil.dev/cli|"
 }
 
-# The report is the whole of what `check` is still for, and the one thing that turns a
-# foreign copy winning on PATH from silent into visible. Drive it against a real binary
-# on a real PATH, with mise stubbed to each of the three answers it can give.
-@test "mise: the ownership report names the shadowing copy, and stays quiet when ours wins" {
+# The report is the whole of what `check` is still for. It asks whether the winner on
+# PATH lives under mise's data dir, so it cannot be fooled by shim-vs-install-dir, and
+# unlike an equality test against `mise which` it is not a tautology once main() has
+# activated mise. Drive it against a real binary on a real PATH.
+@test "mise: the ownership report names a copy mise does not own, and stays quiet when ours wins" {
   render_to_file "$MISE" "$BATS_TEST_TMPDIR/report.sh" full.toml
   source "$BATS_TEST_TMPDIR/report.sh"
 
-  local ours="$BATS_TEST_TMPDIR/ours"
-  mkdir -p "$ours"
-  printf '#!/usr/bin/env bash\nexit 0\n' >"$ours/faketool"
-  chmod +x "$ours/faketool"
-  PATH="$ours:$PATH"
+  MISE_DATA_DIR="$BATS_TEST_TMPDIR/mise"
+  local shims="$MISE_DATA_DIR/shims" foreign="$BATS_TEST_TMPDIR/pnpm/bin"
+  mkdir -p "$shims" "$foreign"
+  printf '#!/usr/bin/env bash\nexit 0\n' >"$shims/faketool"
+  printf '#!/usr/bin/env bash\nexit 0\n' >"$foreign/faketool"
+  chmod +x "$shims/faketool" "$foreign/faketool"
   npm_check_rows() { printf '%s\n' "fake-cli|faketool --version"; }
 
-  # Shell functions shadow the binary, so no stub file is needed. They dispatch on the
-  # subcommand, because a stub answering every subcommand alike would let the
-  # which -> where swap the code warns about slip through this test: `where` returns
-  # the concrete version DIRECTORY, which never equals what `command -v` resolves.
-  mise() { case "$1" in which) printf '%s\n' "$ours/faketool" ;; where) printf '%s\n' "$ours" ;; esac; }
-  run report_npm_ownership
+  PATH="$shims:$foreign:$BATS_TEST_TMPDIR/nothing" run report_npm_ownership
   assert_success
   refute_output --partial "fake-cli"
 
-  mise() { case "$1" in which) printf '%s\n' /elsewhere/faketool ;; where) printf '%s\n' /elsewhere ;; esac; }
-  run report_npm_ownership
+  # Same binary name, same everything, only the winner changes.
+  PATH="$foreign:$shims:$BATS_TEST_TMPDIR/nothing" run report_npm_ownership
   assert_success
   assert_output --partial "fake-cli"
-  assert_output --partial "$ours/faketool"
+  assert_output --partial "$foreign/faketool"
 
-  # `mise which` fails for a tool installed but not declared, which reads the same as
-  # shadowed: either way the copy that answers is not one mise owns.
-  mise() { return 1; }
-  run report_npm_ownership
+  PATH="$BATS_TEST_TMPDIR/nothing" run report_npm_ownership
   assert_success
-  assert_output --partial "fake-cli"
+  assert_output --partial "is not on PATH"
 }
 
 # mise keeps alias links (20, 24, latest, lts) beside the real trees. [ -d ] follows
@@ -412,10 +414,19 @@ DRIVE
 source "$1"
 MANIFEST="$2"
 HOME="$3"
-mise() { case "$1" in activate) echo ":" ;; which) return 1 ;; esac; }
+mise() { case "$1" in activate) echo ":" ;; esac; }
 npm_installed() { return 1; }
 npm_remove_from() { return 0; }
+# The sweep reads the manifest that reconcile rebuilds, so the order is load bearing:
+# reversed, every deleted entry's orphan is dropped from the candidate set unswept.
+# The comment saying so is not enforcement; this is.
+ORDER=""
+_sweep=$(declare -f sweep_legacy_npm); _rec=$(declare -f reconcile_npm_manifest)
+eval "orig_sweep${_sweep#sweep_legacy_npm}"; eval "orig_rec${_rec#reconcile_npm_manifest}"
+sweep_legacy_npm() { ORDER="$ORDER sweep"; orig_sweep "$@"; }
+reconcile_npm_manifest() { ORDER="$ORDER reconcile"; orig_rec "$@"; }
 main
+[ "$ORDER" = " sweep reconcile" ] || { echo "BAD ORDER:$ORDER" >&2; exit 1; }
 DRIVE
   mkdir -p "$BATS_TEST_TMPDIR/ehome"
   run bash "$BATS_TEST_TMPDIR/drive.sh" "$BATS_TEST_TMPDIR/m.sh" \
@@ -548,6 +559,25 @@ DRIVE
   run render "$SRC_DIR/dot_zprofile.tmpl" full.toml
   assert_success
   assert_output --partial 'export PATH="$HOME/.local/bin:$PATH"'
+}
+
+# Registry npm CLIs live under mise now, and `mise activate` runs from .zshrc, which
+# zsh sources for INTERACTIVE shells only. Without the shims dir here, `zsh -lc`,
+# LaunchAgents and cron get no mise paths at all (verified: 0 of them) and the CLIs
+# this repo owns are simply not found.
+@test "zprofile: mise shims are on PATH for non-interactive login shells, ahead of the npm prefix" {
+  render_to_file "$SRC_DIR/dot_zprofile.tmpl" "$BATS_TEST_TMPDIR/zp" full.toml
+  run cat "$BATS_TEST_TMPDIR/zp"
+  assert_success
+  assert_output --partial 'export PATH="$HOME/.local/share/mise/shims:$PATH"'
+
+  # Each line prepends, so the LAST one wins the front of PATH. mise must be it:
+  # these CLIs are mise's to answer for, not the ad-hoc npm prefix's.
+  local shims npmpre
+  shims="$(grep -n 'mise/shims:\$PATH' "$BATS_TEST_TMPDIR/zp" | cut -d: -f1)"
+  npmpre="$(grep -n 'NPM_CONFIG_PREFIX/bin:\$PATH' "$BATS_TEST_TMPDIR/zp" | cut -d: -f1)"
+  [ -n "$shims" ] && [ -n "$npmpre" ]
+  [ "$shims" -gt "$npmpre" ]
 }
 
 # The npm global prefix is a literal in two files that never see each other, and

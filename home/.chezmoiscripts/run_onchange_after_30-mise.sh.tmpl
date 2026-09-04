@@ -271,22 +271,28 @@ EOF
 }
 
 # report_npm_ownership -- which copy of each registry CLI actually answers. `check`'s
-# first word is the binary. Compared against `mise which`, never `mise where`: which
-# resolves through the alias dir (node/24/bin/node) exactly as PATH does, where returns
-# the concrete version dir (node/24.19.0), so a report built on it would call every
-# correctly installed tool shadowed. Prints only. The sweep owns the one shadow this
-# repo can clear; the rest (~/Library/pnpm/bin) is the user's PATH and the user's call.
+# first word is the binary. Asks whether the winner lives anywhere under mise's data
+# dir, NOT whether it equals `mise which`: main() activates mise a few lines up, and
+# the rows here are exactly the tools that activation just put on PATH, so an equality
+# test compares a string against itself and can only fire when mise itself errors. The
+# prefix test is also indifferent to whether the winner is a shim (how .zprofile
+# reaches these in a non-interactive login shell) or an install dir (how `mise
+# activate` reaches them), which an equality test is not. Prints only: the sweep owns
+# the one shadow this repo can clear, the rest is the user's PATH and the user's call.
 report_npm_ownership() {
-  local pkg check bin on_path from_mise
+  local pkg check bin on_path mise_root
+  mise_root="${MISE_DATA_DIR:-$HOME/.local/share/mise}"
   while IFS='|' read -r pkg check; do
     [ -n "$pkg" ] || continue
     bin="${check%% *}"
     on_path="$(command -v "$bin" 2>/dev/null || true)"
-    from_mise="$(mise which "$bin" 2>/dev/null || true)"
     if [ -z "$on_path" ]; then
       echo "  ⚠ $pkg: $bin is not on PATH" >&2
-    elif [ "$on_path" != "$from_mise" ]; then
-      echo "  ⚠ $pkg: $bin resolves to $on_path, not the mise-owned copy" >&2
+    else
+      case "$on_path" in
+        "$mise_root"/*) ;;
+        *) echo "  ⚠ $pkg: $bin resolves to $on_path, which mise does not own" >&2 ;;
+      esac
     fi
   done <<EOF
 $(npm_check_rows)
