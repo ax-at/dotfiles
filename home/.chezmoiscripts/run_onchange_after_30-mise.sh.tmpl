@@ -130,6 +130,10 @@ npm_legacy_roots() {
   local d
   printf '%s\n' "$NPM_CONFIG_PREFIX"
   for d in "$HOME/.local/share/mise/installs/node"/*; do
+    # mise keeps alias links (20, 24, latest, lts) beside the real trees, 13 to 5 on
+    # this machine, and [ -d ] follows them. Left in, every tree is swept up to four
+    # times over and the log names a version the user never installed.
+    [ -L "$d" ] && continue
     [ -d "$d/lib/node_modules" ] || continue
     printf '%s\n' "$d"
   done
@@ -151,16 +155,24 @@ npm_remove_from() { mise exec node -- npm uninstall -g --prefix "$1" "$2"; }
 # malformed manifest row would put an arbitrary name into the candidate set. Reads the
 # manifest, so it must run before reconcile_npm_manifest rebuilds it. Soft-fails: a
 # failed uninstall warns and the run still exits 0. Publishes the removal count in
-# NPM_SWEPT because only main() can decide what to do about dangling shims.
+# NPM_SWEPT because only main() can decide what to do about dangling shims, and the
+# names it could not delete in NPM_SWEEP_FAILED, which reconcile_npm_manifest needs to
+# keep a deleted entry's row alive for the retry.
 sweep_legacy_npm() {
   local owned root pkg failures=0
   NPM_SWEPT=0
+  NPM_SWEEP_FAILED=""
   owned="$( { npm_registry_pkgs; cut -s -f2 "$MANIFEST" 2>/dev/null || true; } | grep -v '^$' | sort -u || true)"
 
   while IFS= read -r root; do
     [ -d "$root/lib/node_modules" ] || continue
     while IFS= read -r pkg; do
       [ -n "$pkg" ] || continue
+      # node ships these inside its own tree. `pkg = "npm"` is a plausible way to try
+      # to pin npm from the registry, and it would make this loop uninstall npm from
+      # the running node. Nothing else here is version-manager-owned, so a name list
+      # is enough and a path check would only restate it.
+      case "$pkg" in npm | corepack) continue ;; esac
       [ -d "$root/lib/node_modules/$pkg" ] || continue
       echo "  -> removing $pkg from $root"
       if npm_remove_from "$root" "$pkg"; then
@@ -168,6 +180,8 @@ sweep_legacy_npm() {
       else
         echo "  !! FAILED remove: $pkg from $root" >&2
         failures=$((failures + 1))
+        NPM_SWEEP_FAILED="$NPM_SWEEP_FAILED$pkg
+"
       fi
     done <<INNER_EOF
 $owned
@@ -227,6 +241,14 @@ EOF
   while IFS="$TAB" read -r name pkg; do
     [ -n "$name" ] || continue
     if printf '%s\n' "$registry_names" | grep -qxF "$name"; then continue; fi
+    # A deleted entry is reachable ONLY through this row: npm_registry_pkgs no longer
+    # names it, so dropping the row now would leave a legacy copy the sweep just failed
+    # to delete stranded forever, unowned and unwarned. Keep it for the same reason the
+    # uninstall below keeps its own, and the next run retries.
+    if printf '%s\n' "${NPM_SWEEP_FAILED:-}" | grep -qxF "$pkg"; then
+      printf '%s\t%s\n' "$name" "$pkg" >>"$MANIFEST.tmp"
+      continue
+    fi
     if npm_installed "$pkg"; then
       echo "  -> removing $pkg (deleted from registry)"
       if ! npm_remove "$pkg"; then
