@@ -9,6 +9,7 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **git** | Distributed version control system | free | GPL-2.0 | [repo](https://github.com/git/git) |
 | ✅ | **hunk** | Interactive TUI diff/review viewer (git diff replacement) | free | MIT | [repo](https://github.com/modem-dev/hunk) |
+| ✅ | **codiff** | Fast local visual diff viewer for Git changes | free | MIT | [repo](https://github.com/nkzw-tech/codiff) |
 | ✅ | **gh** | GitHub CLI | free | MIT | [repo](https://github.com/cli/cli) |
 | ✅ | **chezmoi** | Dotfiles manager that orchestrates this whole setup | free | MIT | [repo](https://github.com/twpayne/chezmoi) |
 | ✅ | **mise** | Polyglot runtime manager (node, ruby, java, pnpm, ...) | free | MIT | [repo](https://github.com/jdx/mise) |
@@ -19,6 +20,7 @@
 | ✅ | **ripgrep** | Fast recursive grep (rg) | free | MIT | [repo](https://github.com/BurntSushi/ripgrep) |
 | ✅ | **fd** | Fast, user-friendly alternative to find | free | MIT | [repo](https://github.com/sharkdp/fd) |
 | ✅ | **bat** | cat clone with syntax highlighting | free | MIT | [repo](https://github.com/sharkdp/bat) |
+| ✅ | **glow** | Render markdown on the CLI | free | MIT | [repo](https://github.com/charmbracelet/glow) |
 | ✅ | **eza** | Modern ls replacement with icons | free | MIT | [repo](https://github.com/eza-community/eza) |
 | ✅ | **jq** | Command-line JSON processor | free | MIT | [repo](https://github.com/jqlang/jq) |
 | ✅ | **yq** | Command-line YAML/JSON/XML processor | free | MIT | [repo](https://github.com/mikefarah/yq) |
@@ -28,6 +30,7 @@
 | ✅ | **tealdeer** | Fast tldr client (simplified man pages) | free | MIT | [repo](https://github.com/tealdeer-rs/tealdeer) |
 | ✅ | **pv** | Pipe viewer: progress of data through a pipeline | free | Artistic-2.0 | [repo](https://github.com/a-j-wood/pv) |
 | ✅ | **pre-commit** | Framework for managing git pre-commit hooks (used by Ultracite) | free | MIT | [repo](https://github.com/pre-commit/pre-commit) |
+| ✅ | **bash** | GNU Bash 5.x (macOS ships the 2007-era 3.2) | free | GPL-3.0-or-later | [repo](https://git.savannah.gnu.org/cgit/bash.git) |
 | ✅ | **shellcheck** | Static analysis linter for shell scripts (used by the test suite) | free | GPL-3.0 | [repo](https://github.com/koalaman/shellcheck) |
 | ✅ | **shfmt** | Shell script formatter (used by make lint) | free | BSD-3-Clause | [repo](https://github.com/mvdan/sh) |
 | ✅ | **oxfmt** | Formatter for JS/JSON/YAML/HTML/CSS/Markdown (used by make lint; TOML is taplo's) | free | MIT | [repo](https://github.com/oxc-project/oxc) |
@@ -38,6 +41,7 @@
 | ✅ | **neovim** | Hyperextensible Vim-based text editor (minimal config) | free | Apache-2.0 | [repo](https://github.com/neovim/neovim) |
 | ✅ | **tmux** | Terminal multiplexer | free | ISC | [repo](https://github.com/tmux/tmux) |
 | ✅ | **ghostty** | Fast, native, GPU-accelerated terminal emulator | free | MIT | [repo](https://github.com/ghostty-org/ghostty) |
+| ✅ | **age** | Simple, modern, secure file encryption | free | BSD-3-Clause | [repo](https://github.com/FiloSottile/age) |
 | ✅ | **pass-cli** | Proton Pass CLI (chezmoi pulls secrets via this) | free | GPL-3.0 | [repo](https://github.com/protonpass/pass-cli) |
 | ⬜ | **findutils** | GNU find/xargs/locate (BSD xargs ships with macOS already) | free | GPL-3.0 | — |
 
@@ -64,6 +68,8 @@
 | ✅ | **vercel** | Vercel CLI | free | Apache-2.0 | [repo](https://github.com/vercel/vercel) |
 | ✅ | **cloudflared** | Cloudflare Tunnel client | free | Apache-2.0 | [repo](https://github.com/cloudflare/cloudflared) |
 | ✅ | **bun** | All-in-one JS runtime & toolkit | free | MIT | [repo](https://github.com/oven-sh/bun) |
+| ✅ | **mkcert** | Locally trusted development certificates | free | BSD-3-Clause | [repo](https://github.com/FiloSottile/mkcert) |
+| ✅ | **k6** | Modern load-testing tool (Go + JavaScript) | free | AGPL-3.0-or-later | [repo](https://github.com/grafana/k6) |
 | ⬜ | **deno** | Secure runtime for JavaScript and TypeScript | free | MIT | [repo](https://github.com/denoland/deno) |
 
 ## databases
@@ -72,6 +78,7 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **mysql-client** | MySQL client tools (no server) | free | GPL-2.0 | [repo](https://github.com/mysql/mysql-server) |
 | ✅ | **libpq** | PostgreSQL client library + psql | free | PostgreSQL | [repo](https://github.com/postgres/postgres) |
+| ✅ | **pscale** | PlanetScale CLI | freemium | Apache-2.0 | [repo](https://github.com/planetscale/cli) |
 
 ## cloud
 
@@ -79,12 +86,20 @@
 |---|------|-------------|------|---------|--------|
 | ✅ | **awscli** | AWS Command Line Interface v2 | free | Apache-2.0 | [repo](https://github.com/aws/aws-cli) |
 
+## media
+
+| | Tool | Description | Cost | License | Source |
+|---|------|-------------|------|---------|--------|
+| ✅ | **ffmpeg** | Play, record, convert, and stream audio and video | free | GPL-3.0-or-later | [repo](https://github.com/FFmpeg/FFmpeg) |
+| ✅ | **yt-dlp** | Feature-rich command-line audio/video downloader | free | Unlicense | [repo](https://github.com/yt-dlp/yt-dlp) |
+
 ## react-native
 
 | | Tool | Description | Cost | License | Source |
 |---|------|-------------|------|---------|--------|
 | ✅ | **watchman** | File-watching service (legacy; required only for Expo SDK <= 55) | free | MIT | [repo](https://github.com/facebook/watchman) |
 | ✅ | **cocoapods** | iOS dependency manager (prebuild runs pod install for you) | free | MIT | [repo](https://github.com/CocoaPods/CocoaPods) |
+| ✅ | **fastlane** | iOS/Android build and release automation | free | MIT | [repo](https://github.com/fastlane/fastlane) |
 | ✅ | **Android Studio** | Android IDE + SDK + emulator manager | free | Apache-2.0 | — |
 | ✅ | **Expo Orbit** | Menu-bar app to manage simulators/emulators/devices and builds | free | MIT | [repo](https://github.com/expo/orbit) |
 | ⬜ | **applesimutils** | Apple simulator utilities (used by Detox/RN tooling) | free | MIT | [repo](https://github.com/wix/AppleSimulatorUtils) |
@@ -97,6 +112,7 @@
 | ⬜ | **Codex CLI** | OpenAI Codex agentic coding CLI | freemium | Apache-2.0 | [repo](https://github.com/openai/codex) |
 | ⬜ | **Antigravity CLI** | Google Antigravity agentic coding CLI | free | Apache-2.0 | [repo](https://github.com/google-antigravity/antigravity-cli) |
 | ⬜ | **opencode** | SST's open-source terminal AI agent | free | MIT | [repo](https://github.com/sst/opencode) |
+| ✅ | **plannotator** | Plan and diff annotation reviewer for agent workflows (review UI, skills, agent hooks) | freemium | Apache-2.0 | [repo](https://github.com/backnotprop/plannotator) |
 | ✅ | **herdr** | Persistent background runtime/multiplexer for coding agents | free | Apache-2.0 | [repo](https://github.com/herdrdev/herdr) |
 | ⬜ | **Context7 CLI** | Fetches up-to-date library docs (Upstash Context7) | freemium | MIT | [repo](https://github.com/upstash/context7) |
 | ⬜ | **Context Hub CLI** | Semantic code/context search CLI (Andrew Ng) | free | MIT | [repo](https://github.com/andrewyng/context-hub) |
@@ -154,6 +170,7 @@
 | ✅ | **Rectangle** | Keyboard-driven window snapping (Linux-like) | free | MIT | [repo](https://github.com/rxhanson/Rectangle) |
 | ✅ | **Stats** | Menu-bar system monitor | free | MIT | [repo](https://github.com/exelban/stats) |
 | ✅ | **VLC** | Media player | free | GPL-2.0 | [repo](https://github.com/videolan/vlc) |
+| ✅ | **Radix** | Disk space analyzer | freemium | proprietary | — |
 | ✅ | **Shottr** | Free screenshots + annotation + scrolling capture | free | proprietary | — |
 | ✅ | **Kap** | Free open-source screen recorder (video/GIF) | free | MIT | [repo](https://github.com/wulkano/Kap) |
 | ⬜ | **CleanShot X** | Paid all-in-one screenshot + screencast + annotation upgrade | paid | proprietary | — |
