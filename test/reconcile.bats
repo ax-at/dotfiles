@@ -286,6 +286,12 @@ setup_npm_manifest() {
   TAB="$(printf '\t')"
   npm_installed() { grep -qxF "$1" "$WORLD"; } # reality keyed on scoped package name
   npm_remove() { echo "remove $1" >>"$CALLS"; }
+  # The delete-path also asks whether npm's own copy survives in a legacy root, which
+  # reads the real filesystem. Unstubbed, these tests would pass or fail on whatever
+  # the developer happens to have under ~/.local/share/mise/installs/node/*: a stray
+  # tree for the package a test names is enough to flip the result. Reality here is
+  # $WORLD and nothing else.
+  npm_legacy_roots() { :; }
 }
 
 @test "npm: RECORD adopts desired packages that are installed, by scoped name" {

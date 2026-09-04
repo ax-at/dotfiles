@@ -124,8 +124,8 @@ setup() {
 }
 
 # An unpinned `npm i -g` lands in whichever node tree was active, so missing one tree
-# means the sweep silently leaves a shadowing copy behind. The prefix literal itself is
-# locked by the zprofile agreement test below; main() is what assigns it in a real run.
+# means the sweep silently leaves a shadowing copy behind. The prefix comes from
+# .chezmoidata/paths.toml, which .zprofile renders from too, so the two cannot drift.
 @test "mise sweep: legacy roots are the pinned prefix plus every mise node tree" {
   render_to_file "$MISE" "$BATS_TEST_TMPDIR/roots.sh" full.toml
   source "$BATS_TEST_TMPDIR/roots.sh"
@@ -212,29 +212,34 @@ setup() {
   refute_line "corepack"
 }
 
-# A deleted entry's orphan is reachable only through its manifest row. Drop the row on
-# the run whose sweep failed and the copy is stranded forever, unowned and unwarned.
-@test "mise sweep: a failed legacy removal keeps the deleted entry's row for retry" {
-  render_to_file "$MISE" "$BATS_TEST_TMPDIR/retry.sh" full.toml
-  source "$BATS_TEST_TMPDIR/retry.sh"
+# The mise-side half of the keep-rule: its own uninstall failing is what keeps the row,
+# independently of any legacy copy. npm_legacy_copy is stubbed false so this cannot
+# pass for the filesystem's reasons instead.
+@test "mise: a deleted entry whose mise uninstall FAILS keeps its row for retry" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/fail.sh" full.toml
+  source "$BATS_TEST_TMPDIR/fail.sh"
 
   MANIFEST="$BATS_TEST_TMPDIR/manifest"
   TAB="$(printf '\t')"
   printf 'Context7 CLI\tctx7\n' >"$MANIFEST"
-  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/ctx7"
-  npm_registry_pkgs() { :; }                             # entry deleted from the registry
-  npm_registry_names() { :; }
+  npm_registry_names() { :; }        # entry deleted from the registry
   npm_desired_rows() { :; }
-  npm_legacy_roots() { printf '%s\n' "$BATS_TEST_TMPDIR/root"; }
-  npm_remove_from() { return 1; }                        # the uninstall fails
-  npm_installed() { return 1; }                          # mise never owned this copy
+  npm_legacy_copy() { return 1; }    # nothing on disk; only the exit code can keep it
+  npm_installed() { return 0; }
+  npm_remove() { return 1; }         # the uninstall fails
 
-  # Called directly, not through `run`: bats runs its argument in a subshell, so the
-  # NPM_SWEEP_FAILED the sweep publishes would die with it and never reach reconcile.
-  sweep_legacy_npm >/dev/null 2>&1
-  reconcile_npm_manifest >/dev/null
+  run reconcile_npm_manifest
+  assert_success                     # soft-fails, the apply continues
+  assert_output --partial "FAILED remove: ctx7"
   run cat "$MANIFEST"
   assert_line "Context7 CLI${TAB}ctx7"
+
+  # Same row, uninstall succeeds: nothing is left to reach, so the row goes.
+  printf 'Context7 CLI\tctx7\n' >"$MANIFEST"
+  npm_remove() { return 0; }
+  run reconcile_npm_manifest
+  assert_success
+  [ ! -s "$MANIFEST" ]
 }
 
 @test "mise sweep: set -e safe on a total no-op" {
@@ -374,4 +379,55 @@ DRIVE
   run reconcile_npm_manifest
   assert_success
   [ ! -s "$MANIFEST" ]
+}
+
+# npm_legacy_copy answers "is there still something to remove", so anything it says yes
+# to keeps a manifest row alive. Two names must always be no: an empty pkg (a tab-less
+# manifest row parses to one, and lib/node_modules/ itself always exists, so the row
+# would be immortal), and node's bundled packages, which sweep_legacy_npm is forbidden
+# to remove — a yes there is a retry that can never succeed.
+@test "mise: npm_legacy_copy says no to an empty pkg and to node's bundled packages" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/copy.sh" full.toml
+  source "$BATS_TEST_TMPDIR/copy.sh"
+
+  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/npm" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/corepack" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/vercel"
+  npm_legacy_roots() { printf '%s\n' "$BATS_TEST_TMPDIR/root"; }
+
+  run npm_legacy_copy "vercel"
+  assert_success
+  run npm_legacy_copy ""
+  assert_failure
+  run npm_legacy_copy "npm"
+  assert_failure
+  run npm_legacy_copy "corepack"
+  assert_failure
+}
+
+# A manifest row with no tab parses as name-only. Without a pkg guard the delete-path
+# re-emits it every run, so a malformed row never leaves the manifest. sweep_legacy_npm
+# already refuses such a row through `cut -s`; reconcile has to agree.
+@test "mise: a malformed manifest row is dropped, not carried forever" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/bad.sh" full.toml
+  source "$BATS_TEST_TMPDIR/bad.sh"
+
+  MANIFEST="$BATS_TEST_TMPDIR/manifest"
+  printf 'fallow\n' >"$MANIFEST"
+  npm_registry_names() { :; }
+  npm_desired_rows() { :; }
+  npm_legacy_roots() { :; }
+  # Reality says yes to everything, so an unguarded empty pkg reaches the uninstall.
+  npm_installed() { printf 'installed:%s\n' "$1" >>"$BATS_TEST_TMPDIR/calls"; return 0; }
+  npm_remove() { printf 'remove:%s\n' "$1" >>"$BATS_TEST_TMPDIR/calls"; return 0; }
+  : >"$BATS_TEST_TMPDIR/calls"
+
+  run reconcile_npm_manifest
+  assert_success
+  [ ! -s "$MANIFEST" ]
+  # `mise uninstall --all "npm:"` is a real command with an empty tool id. The row must
+  # never get that far.
+  run cat "$BATS_TEST_TMPDIR/calls"
+  refute_output --partial "remove:"
+  refute_output --partial "installed:"
 }

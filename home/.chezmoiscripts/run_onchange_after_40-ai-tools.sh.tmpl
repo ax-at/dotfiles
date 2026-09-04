@@ -27,7 +27,8 @@
 #
 # Rows below are pipe-delimited; the install `cmd` (which contains a '|' from the
 # curl pipe) is NOT carried in a row — it is emitted quoted into the install loop.
-# check/uninstall_cmd/name must not contain '|'.
+# check/uninstall_cmd/name must not contain '|'; check-crossrefs enforces it for
+# name and pkg, and the script rows here follow the same format.
 
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
 
