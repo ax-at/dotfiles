@@ -246,6 +246,184 @@ setup() {
   refute_line "$installs/20.10.0" # never held a global install
 }
 
+# The sweep's candidate set is (these rows) union the manifest's pkg column, and every
+# test above stubs this function by hand. Render the real one, or a template edit that
+# drops the hasKey gate (leaking a linux-only entry onto macOS) or adds an .enabled gate
+# (hiding a disabled entry's orphan from the sweep) would pass the whole suite.
+@test "mise: registry pkgs for the sweep span every npm entry, enabled or not" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/pkgs.sh" full.toml
+  source "$BATS_TEST_TMPDIR/pkgs.sh"
+  run npm_registry_pkgs
+  assert_success
+  assert_line "eas-cli"
+  assert_line "vercel"
+  assert_line "screenpipe"
+  # Disabled entries stay in the set: their orphans are exactly what the sweep exists
+  # to reach, so narrowing this to the desired set would strand them forever.
+  assert_line "ctx7"
+  assert_line "@aisuite/chub"
+  assert_line "@pencil.dev/cli"
+  # Nothing from another method may widen it. git is brew, and a brew formula name
+  # landing here would let the sweep delete from a node tree on a name npm never owned.
+  refute_line "git"
+  refute_line "chezmoi"
+}
+
+@test "mise: check rows carry pkg|check for the desired entries only" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/checks.sh" full.toml
+  source "$BATS_TEST_TMPDIR/checks.sh"
+  run npm_check_rows
+  assert_success
+  assert_line "eas-cli|eas --version"
+  assert_line "vercel|vercel --version"
+  # Disabled entries have nothing to report on; they are not installed.
+  refute_output --partial "ctx7|"
+  refute_output --partial "@pencil.dev/cli|"
+}
+
+# The report is the whole of what `check` is still for, and the one thing that turns a
+# foreign copy winning on PATH from silent into visible. Drive it against a real binary
+# on a real PATH, with mise stubbed to each of the three answers it can give.
+@test "mise: the ownership report names the shadowing copy, and stays quiet when ours wins" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/report.sh" full.toml
+  source "$BATS_TEST_TMPDIR/report.sh"
+
+  local ours="$BATS_TEST_TMPDIR/ours"
+  mkdir -p "$ours"
+  printf '#!/usr/bin/env bash\nexit 0\n' >"$ours/faketool"
+  chmod +x "$ours/faketool"
+  PATH="$ours:$PATH"
+  npm_check_rows() { printf '%s\n' "fake-cli|faketool --version"; }
+
+  # Shell functions shadow the binary, so no stub file is needed. They dispatch on the
+  # subcommand, because a stub answering every subcommand alike would let the
+  # which -> where swap the code warns about slip through this test: `where` returns
+  # the concrete version DIRECTORY, which never equals what `command -v` resolves.
+  mise() { case "$1" in which) printf '%s\n' "$ours/faketool" ;; where) printf '%s\n' "$ours" ;; esac; }
+  run report_npm_ownership
+  assert_success
+  refute_output --partial "fake-cli"
+
+  mise() { case "$1" in which) printf '%s\n' /elsewhere/faketool ;; where) printf '%s\n' /elsewhere ;; esac; }
+  run report_npm_ownership
+  assert_success
+  assert_output --partial "fake-cli"
+  assert_output --partial "$ours/faketool"
+
+  # `mise which` fails for a tool installed but not declared, which reads the same as
+  # shadowed: either way the copy that answers is not one mise owns.
+  mise() { return 1; }
+  run report_npm_ownership
+  assert_success
+  assert_output --partial "fake-cli"
+}
+
+# mise keeps alias links (20, 24, latest, lts) beside the real trees. [ -d ] follows
+# them, so without the -L guard every real tree is swept up to four times and the log
+# names versions that were never installed.
+@test "mise sweep: alias symlinks beside the node trees are not roots of their own" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/alias.sh" full.toml
+  source "$BATS_TEST_TMPDIR/alias.sh"
+
+  HOME="$BATS_TEST_TMPDIR/home"
+  NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+  local installs="$HOME/.local/share/mise/installs/node"
+  mkdir -p "$installs/24.19.0/lib/node_modules"
+  ln -s "$installs/24.19.0" "$installs/24"
+  ln -s "$installs/24.19.0" "$installs/latest"
+
+  run npm_legacy_roots
+  assert_success
+  assert_line "$installs/24.19.0"
+  refute_line "$installs/24"
+  refute_line "$installs/latest"
+}
+
+# `pkg = "npm"` is a plausible way to try to pin npm from the registry, and the sweep
+# would then uninstall npm from the running node.
+@test "mise sweep: node's own npm and corepack are never removal candidates" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/bundled.sh" full.toml
+  source "$BATS_TEST_TMPDIR/bundled.sh"
+
+  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/npm" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/corepack" \
+    "$BATS_TEST_TMPDIR/root/lib/node_modules/vercel"
+  MANIFEST="$BATS_TEST_TMPDIR/manifest"
+  : >"$MANIFEST"
+  : >"$BATS_TEST_TMPDIR/calls"
+  npm_registry_pkgs() { printf '%s\n' "npm" "corepack" "vercel"; }
+  npm_legacy_roots() { printf '%s\n' "$BATS_TEST_TMPDIR/root"; }
+  npm_remove_from() { printf '%s\n' "$2" >>"$BATS_TEST_TMPDIR/calls"; }
+
+  run sweep_legacy_npm
+  assert_success
+  run cat "$BATS_TEST_TMPDIR/calls"
+  assert_line "vercel"
+  refute_line "npm"
+  refute_line "corepack"
+}
+
+# A deleted entry's orphan is reachable only through its manifest row. Drop the row on
+# the run whose sweep failed and the copy is stranded forever, unowned and unwarned.
+@test "mise sweep: a failed legacy removal keeps the deleted entry's row for retry" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/retry.sh" full.toml
+  source "$BATS_TEST_TMPDIR/retry.sh"
+
+  MANIFEST="$BATS_TEST_TMPDIR/manifest"
+  TAB="$(printf '\t')"
+  printf 'Context7 CLI\tctx7\n' >"$MANIFEST"
+  mkdir -p "$BATS_TEST_TMPDIR/root/lib/node_modules/ctx7"
+  npm_registry_pkgs() { :; }                             # entry deleted from the registry
+  npm_registry_names() { :; }
+  npm_desired_rows() { :; }
+  npm_legacy_roots() { printf '%s\n' "$BATS_TEST_TMPDIR/root"; }
+  npm_remove_from() { return 1; }                        # the uninstall fails
+  npm_installed() { return 1; }                          # mise never owned this copy
+
+  # Called directly, not through `run`: bats runs its argument in a subshell, so the
+  # NPM_SWEEP_FAILED the sweep publishes would die with it and never reach reconcile.
+  sweep_legacy_npm >/dev/null 2>&1
+  reconcile_npm_manifest >/dev/null
+  run cat "$MANIFEST"
+  assert_line "Context7 CLI${TAB}ctx7"
+}
+
+@test "mise sweep: set -e safe on a total no-op" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/noop.sh" full.toml
+  cat >"$BATS_TEST_TMPDIR/drive.sh" <<'DRIVE'
+set -euo pipefail
+source "$1"
+MANIFEST="$2"
+npm_registry_pkgs() { :; }
+npm_legacy_roots() { :; }
+npm_remove_from() { return 0; }
+sweep_legacy_npm
+[ "$NPM_SWEPT" -eq 0 ]
+DRIVE
+  run bash "$BATS_TEST_TMPDIR/drive.sh" "$BATS_TEST_TMPDIR/noop.sh" "$BATS_TEST_TMPDIR/manifest"
+  assert_success
+}
+
+# The sibling reconciler has this for 20-packages. Nothing else runs 30-mise's own
+# main(), so an unbound NPM_SWEPT or a sweep that trips set -e would ship green.
+@test "mise: main() runs end-to-end under set -euo pipefail" {
+  render_to_file "$MISE" "$BATS_TEST_TMPDIR/m.sh" full.toml
+  cat >"$BATS_TEST_TMPDIR/drive.sh" <<'DRIVE'
+source "$1"
+MANIFEST="$2"
+HOME="$3"
+mise() { case "$1" in activate) echo ":" ;; which) return 1 ;; esac; }
+npm_installed() { return 1; }
+npm_remove_from() { return 0; }
+main
+DRIVE
+  mkdir -p "$BATS_TEST_TMPDIR/ehome"
+  run bash "$BATS_TEST_TMPDIR/drive.sh" "$BATS_TEST_TMPDIR/m.sh" \
+    "$BATS_TEST_TMPDIR/manifest" "$BATS_TEST_TMPDIR/ehome"
+  assert_success
+  assert_output --partial "[mise] done"
+}
+
 # Regression guard for the "agents can't run python" class of bug: Homebrew's
 # python3 is PEP-668 locked, so a mise-managed python is what keeps `python3` +
 # `pip install` working for ad-hoc scripts (e.g. throwaway validators). Dropping
