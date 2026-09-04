@@ -1,0 +1,27 @@
+# Generated from .chezmoidata/registry.toml. Do not edit by hand.
+#
+# mise auto-loads and merges every ~/.config/mise/conf.d/*.toml into [tools], which is
+# why the registry's npm CLIs are declared here and not in the hand-authored
+# config.toml: that file stays plain TOML with full `taplo` coverage, and a bug in this
+# template can only corrupt the npm rows instead of every runtime pin.
+#
+# Each key must stay the full `npm:` backend id. mise resolves a tool by the exact
+# string it was declared under and never canonicalizes, so a bare `vercel` here (a real
+# short name in mise's own registry) would install under installs/vercel/ while 30-mise
+# queried npm:vercel, saw nothing, and silently no-opped every removal path.
+#
+# Rows are deliberately plain, with no `allow_builds`. mise skips npm lifecycle scripts
+# by default and WARNs, on the run that installs or upgrades screenpipe, that it skipped
+# that package's postinstall. The warning is expected and must not be silenced:
+# screenpipe's binary ships through optionalDependencies and runs fine without the
+# script, and the script itself reports the machine's hostname home.
+{{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
+
+[tools]
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}"npm:{{ $p.pkg }}" = "latest"
+{{ end -}}
+{{- end -}}
+{{- end -}}

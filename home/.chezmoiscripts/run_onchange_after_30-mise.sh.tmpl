@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 # run_onchange_after_30-mise.sh
-# Installs language runtimes via mise, then npm-global CLIs from the registry,
-# then UNINSTALLS npm CLIs no longer wanted (disabled / module-off / deleted).
-# Re-runs when mise config or the npm install/removal lists below change. The
-# disable-path is registry-driven (npm itself proves presence); a state manifest
-# (packages-npm.applied) additionally uninstalls a package whose entry was DELETED
-# from the registry, if it was recorded on a prior apply. Scoped npm names
-# (@scope/name) are stable across ls/uninstall, so there is no tap-name footgun and
-# no collision guard is needed. Only registry-named packages are ever touched.
+# Installs language runtimes and the registry's npm-global CLIs via mise, sweeps
+# npm's own copies of those CLIs out of the prefixes npm writes to, UNINSTALLS npm
+# CLIs no longer wanted (disabled / module-off / deleted), then reports which copy
+# of each one actually answers on PATH. Re-runs when the mise configs or the
+# rendered lists below change.
+#
+# Installs are declaration-driven now: dot_config/mise/conf.d/10-registry-npm.toml.tmpl
+# renders every desired entry as an "npm:<pkg>" row and `mise install -y` makes it so.
+# That deletes the old install predicate, which eval'd the registry's `check` string:
+# `check` is a PATH probe, so any foreign binary of the same name satisfied it and
+# suppressed the install forever (eas and vercel, shadowed by ~/Library/pnpm/bin, were
+# never installed by this repo at all). It also moves installs off npm's global prefix,
+# which is scoped to the active node version and so kept moving out from under them.
+#
+# Rows below carry the registry's bare pkg name; the `npm:` prefix lives only in the
+# npm_installed / npm_remove backends, so the state manifest (packages-npm.applied)
+# keeps the registry's own vocabulary. The sweep is ongoing enforcement rather than a
+# one-time migration, because $NPM_CONFIG_PREFIX/bin stays on PATH from .zprofile and a
+# stray `npm i -g vercel` typed later would shadow the mise-owned copy again. The rest
+# of the contract is unchanged: the disable-path is registry-driven (mise proves
+# presence), the manifest additionally uninstalls a package whose entry was DELETED
+# from the registry if it was recorded on a prior apply, scoped npm names are stable
+# across ls/uninstall, and only registry-named packages are ever touched.
 #
 # Logic lives in functions + main() so the rendered script can be sourced by
 # the test suite without executing side effects (see the BASH_SOURCE guard at
@@ -16,16 +31,6 @@
 {{- $os := "macos" }}{{ if eq .chezmoi.os "linux" }}{{ $os = "linux" }}{{ end }}
 
 MANIFEST="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/packages-npm.applied"
-
-# npm_install_if_missing PKG CHECK-CMD
-# Installs a global npm CLI only when CHECK-CMD fails (i.e. it isn't present).
-npm_install_if_missing() {
-  local pkg="$1" check="$2"
-  if ! eval "$check" >/dev/null 2>&1; then
-    echo "  -> $pkg"
-    mise exec node -- npm install -g "$pkg"
-  fi
-}
 
 # npm_removal_rows -- global npm packages no longer wanted (the exact negation of
 # the install predicate) that still have a this-OS table. Keyed on the PACKAGE
@@ -56,6 +61,21 @@ npm_desired_rows() {
 NPM_DESIRED_EOF
 }
 
+# npm_check_rows -- "pkg|check" for every DESIRED npm entry, the same predicate as
+# npm_desired_rows. `check` no longer gates installs, so report_npm_ownership is its
+# only consumer. Tests override this.
+npm_check_rows() {
+  cat <<'NPM_CHECK_EOF'
+{{ range .packages -}}
+{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}{{ $p.pkg }}|{{ $p.check }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NPM_CHECK_EOF
+}
+
 # npm_registry_names -- every npm entry's name that still exists in the registry
 # (enabled or not). A manifest name absent from this set is a deleted entry. Tests
 # override this.
@@ -71,9 +91,92 @@ npm_registry_names() {
 NPM_NAMES_EOF
 }
 
-# npm_installed PKG / npm_remove PKG -- backends (stubbed by tests).
-npm_installed() { mise exec node -- npm ls -g "$1" >/dev/null 2>&1; }
-npm_remove() { mise exec node -- npm uninstall -g "$1"; }
+# npm_registry_pkgs -- the same set keyed on the PACKAGE name, which is what an npm
+# global install is filed under on disk. Tests override this.
+npm_registry_pkgs() {
+  cat <<'NPM_PKGS_EOF'
+{{ range .packages -}}
+{{- if hasKey . $os -}}
+{{- $p := index . $os -}}
+{{- if eq $p.method "npm" }}{{ $p.pkg }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+NPM_PKGS_EOF
+}
+
+# npm_installed PKG / npm_remove PKG -- backends (stubbed by tests). mise resolves a
+# tool by the exact id it was declared under and never canonicalizes: this machine's
+# config.toml declares the short name `nub`, and mise answers for `nub` while
+# `npm:@nubjs/nub` returns nothing at exit 0. So the id built here has to stay byte
+# identical to the conf.d fragment's key. `vercel` is the live trap, since mise's own
+# registry carries it as a short name for npm:vercel too.
+#
+# `mise ls --installed` exits 0 whether or not the tool is there, so presence is read
+# off the output, and never through a pipeline: `grep -q` exits at the first match, and
+# under pipefail a SIGPIPE'd mise would fail the predicate for an INSTALLED tool.
+# Use `--all` on the uninstall, or an older version survives and keeps shadowing.
+npm_installed() { [ -n "$(mise ls --installed --no-header "npm:$1" 2>/dev/null)" ]; }
+npm_remove() { mise uninstall --all "npm:$1"; }
+
+# npm_legacy_roots -- every prefix an ad-hoc `npm i -g` can have written to: the pin
+# .zprofile puts on PATH, plus each mise node tree, since an unpinned npm resolves its
+# global prefix to whichever node is active. Sweeping the ACTIVE tree is safe because
+# mise's npm backend installs under installs/npm-<pkg>/, keyed by the package's own
+# version, never under installs/node/<v>/lib/node_modules; installs/nub on this machine
+# is the live proof that a non-core backend files itself under its own declared id.
+# Tests override this.
+npm_legacy_roots() {
+  local d
+  printf '%s\n' "$NPM_CONFIG_PREFIX"
+  for d in "$HOME/.local/share/mise/installs/node"/*; do
+    [ -d "$d/lib/node_modules" ] || continue
+    printf '%s\n' "$d"
+  done
+  return 0
+}
+
+# npm_remove_from ROOT PKG -- backend (stubbed by tests). --prefix on the command line
+# outranks both the ambient NPM_CONFIG_PREFIX and npm's own default, so one npm clears
+# every root. npm rather than `rm -rf` because it also unlinks ROOT/bin, and a link
+# left dangling there is what mise reshims back into a dead shim.
+npm_remove_from() { mise exec node -- npm uninstall -g --prefix "$1" "$2"; }
+
+# sweep_legacy_npm -- delete npm's own global copies of the names the registry owns,
+# from every root npm could have used. Candidates are the registry's npm packages union
+# the manifest's pkg column, so an orphan left by an entry DELETED from the registry is
+# still reachable; a name outside that union is unreachable by construction, which is
+# what keeps @openai, @google, agent-browser and fallow untouched. `cut -s` is load
+# bearing there: plain `cut -f2` prints a line that holds no tab in full, so one
+# malformed manifest row would put an arbitrary name into the candidate set. Reads the
+# manifest, so it must run before reconcile_npm_manifest rebuilds it. Soft-fails: a
+# failed uninstall warns and the run still exits 0. Publishes the removal count in
+# NPM_SWEPT because only main() can decide what to do about dangling shims.
+sweep_legacy_npm() {
+  local owned root pkg failures=0
+  NPM_SWEPT=0
+  owned="$( { npm_registry_pkgs; cut -s -f2 "$MANIFEST" 2>/dev/null || true; } | grep -v '^$' | sort -u || true)"
+
+  while IFS= read -r root; do
+    [ -d "$root/lib/node_modules" ] || continue
+    while IFS= read -r pkg; do
+      [ -n "$pkg" ] || continue
+      [ -d "$root/lib/node_modules/$pkg" ] || continue
+      echo "  -> removing $pkg from $root"
+      if npm_remove_from "$root" "$pkg"; then
+        NPM_SWEPT=$((NPM_SWEPT + 1))
+      else
+        echo "  !! FAILED remove: $pkg from $root" >&2
+        failures=$((failures + 1))
+      fi
+    done <<INNER_EOF
+$owned
+INNER_EOF
+  done <<EOF
+$(npm_legacy_roots)
+EOF
+  [ "$failures" -eq 0 ] || echo "==> [mise] ${failures} legacy npm removal(s) FAILED; continuing" >&2
+}
 
 # remove_stale_npm -- uninstall every removal candidate that is currently present.
 # Soft-fails: a failed uninstall warns and the run still exits 0.
@@ -145,6 +248,29 @@ EOF
   echo "==> [mise] npm manifest: ${n_tracked} tracked; ${failures} delete removal(s) FAILED"
 }
 
+# report_npm_ownership -- which copy of each registry CLI actually answers. `check`'s
+# first word is the binary. Compared against `mise which`, never `mise where`: which
+# resolves through the alias dir (node/24/bin/node) exactly as PATH does, where returns
+# the concrete version dir (node/24.19.0), so a report built on it would call every
+# correctly installed tool shadowed. Prints only. The sweep owns the one shadow this
+# repo can clear; the rest (~/Library/pnpm/bin) is the user's PATH and the user's call.
+report_npm_ownership() {
+  local pkg check bin on_path from_mise
+  while IFS='|' read -r pkg check; do
+    [ -n "$pkg" ] || continue
+    bin="${check%% *}"
+    on_path="$(command -v "$bin" 2>/dev/null || true)"
+    from_mise="$(mise which "$bin" 2>/dev/null || true)"
+    if [ -z "$on_path" ]; then
+      echo "  ⚠ $pkg: $bin is not on PATH" >&2
+    elif [ "$on_path" != "$from_mise" ]; then
+      echo "  ⚠ $pkg: $bin resolves to $on_path, not the mise-owned copy" >&2
+    fi
+  done <<EOF
+$(npm_check_rows)
+EOF
+}
+
 main() {
   set -euo pipefail
 
@@ -154,32 +280,31 @@ main() {
   fi
   command -v mise >/dev/null 2>&1 || { echo "mise not found; ensure core packages installed" >&2; exit 1; }
 
-  # Repeats dot_zprofile.tmpl (which explains the pin) because chezmoi scripts do
-  # not source .zprofile: without this the install, `npm ls -g`, and uninstall
-  # below would target a different prefix than the user's shell.
-  export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
-  export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
-  mkdir -p "$NPM_CONFIG_PREFIX/bin"
+  # Not an npm setting any more: the one npm call left passes --prefix explicitly. This
+  # is the sweep root, the same path dot_zprofile.tmpl (which explains the pin) puts on
+  # the user's PATH. A test renders both files and fails if the two literals ever drift.
+  NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
 
-  # mise config hash (forces re-run on change):
+  # mise config hashes (force a re-run on change):
   # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/config.toml") | sha256sum }}
-  echo "==> [mise] installing runtimes (node, pnpm, ruby, java, python)"
+  # {{ include (joinPath .chezmoi.sourceDir "dot_config/mise/conf.d/10-registry-npm.toml.tmpl") | sha256sum }}
+  echo "==> [mise] installing runtimes (node, pnpm, ruby, java, python) + registry npm CLIs"
   mise install -y
   eval "$(mise activate bash)"
 
-  echo "==> [mise] installing npm-global CLIs"
-{{ range .packages -}}
-{{- if and .enabled (index $.modules .module) (has $os .platforms) -}}
-{{- $p := index . $os -}}
-{{- if eq $p.method "npm" }}
-  npm_install_if_missing "{{ $p.pkg }}" "{{ $p.check }}"
-{{ end -}}
-{{- end -}}
-{{- end }}
+  echo "==> [mise] sweeping npm-installed copies of registry-owned CLIs"
+  sweep_legacy_npm
+  # --force deletes every shim before rebuilding, so it only earns its risk on a run
+  # that actually removed a binary and left its shim behind; `mise install` above
+  # already reshimmed everything it installed.
+  [ "$NPM_SWEPT" -eq 0 ] || mise reshim --force || echo "  !! reshim failed; dead shims may remain" >&2
+
   echo "==> [mise] reconciling npm removals (disabled / module-off entries)"
   remove_stale_npm
   echo "==> [mise] recording state + removing deleted npm entries"
   reconcile_npm_manifest
+  echo "==> [mise] checking which copy of each CLI answers on PATH"
+  report_npm_ownership
   echo "==> [mise] done"
 }
 

@@ -23,6 +23,16 @@
 #   platforms     subset of ["macos","linux"]
 #   <os>          per-OS install table: { method, pkg | cmd | id, check?, uninstall_cmd? }
 #                 method = brew | cask | mas | npm | script | apt | dnf
+#                 npm  installs through mise's npm backend, not `npm install -g`:
+#                   the desired entries render into
+#                   ~/.config/mise/conf.d/10-registry-npm.toml as "npm:<pkg>" rows,
+#                   so each CLI is versioned and shimmed independently of node.
+#                   check is therefore NOT the install predicate any more; 30-mise
+#                   uses its binary to report when a foreign copy shadows ours on
+#                   PATH. The pnpm global store (~/Library/pnpm/bin) is explicitly
+#                   unmanaged: nothing here installs into it, its binaries can still
+#                   shadow registry-owned CLIs, and 30-mise reports that rather than
+#                   resolving it.
 #                 uninstall_cmd  REQUIRED for method = script (brew/npm/cask
 #                   uninstall generically). Single-line shell, eval'd to remove
 #                   the tool. Artifacts-only: delete the binary/install dir, leave
