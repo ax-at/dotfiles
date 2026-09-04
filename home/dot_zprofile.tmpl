@@ -31,5 +31,12 @@ export PATH="$HOME/.local/bin:$PATH"
 export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
 # Puts those installs on PATH at all, ahead of ~/Library/pnpm/bin (pnpm's
 # installer adds that) so an npm global beats a pnpm one of the same name.
-# Registry CLIs are not in this race: mise activates later, from .zshrc.
 export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+
+# Registry CLIs live under mise now, and `mise activate` runs from .zshrc, which
+# zsh sources for INTERACTIVE shells only. Without this a `zsh -lc`, a LaunchAgent
+# or a cron job would not find eas/vercel/screenpipe at all, and would fall through
+# to whatever stray copy is left on PATH. Shims need no activation; activate simply
+# wins over them when it does run. Last, so mise beats the npm prefix above: these
+# CLIs are mise's to answer for.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
