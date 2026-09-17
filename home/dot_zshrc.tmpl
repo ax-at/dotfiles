@@ -26,6 +26,20 @@ if [ -f "$ANTIDOTE_DIR" ]; then
   antidote load "${ZDOTDIR:-$HOME}/.zsh_plugins.txt"
 fi
 
+# pnpm completions. Oh-My-Zsh ships an `npm` plugin, which .zsh_plugins.txt
+# loads, but upstream has NO `pnpm` plugin -- so there is nothing to add to the
+# bundle and we eval pnpm's own completion script instead. This is why `npm
+# <TAB>` worked while `pnpm <TAB>` silently did nothing.
+#
+# MUST stay after the compinit above: the script calls `compdef` at load and
+# no-ops without it, exactly like the OMZ plugins the comment there describes.
+#
+# Costs ~110ms per shell, because pnpm is a Node process. The cheaper route --
+# writing it once to $ZSH_CACHE_DIR/completions/_pnpm, as the gh plugin does --
+# needs that directory on $fpath, and it is NOT there: we never source OMZ's
+# framework, which is what would have added it.
+command -v pnpm >/dev/null 2>&1 && eval "$(pnpm completion zsh)"
+
 # ---- Keybindings -----------------------------------------------------------
 # history-substring-search: up/down arrows filter history by the typed prefix.
 # Guarded on the widget existing (plugin loaded) so we never clobber the

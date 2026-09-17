@@ -155,6 +155,21 @@ setup() {
   refute_output --partial "alias gdcw='hunk"
 }
 
+@test "zshrc: pnpm completions are eval'd after compinit" {
+  run render "$SRC_DIR/dot_zshrc.tmpl" full.toml
+  assert_success
+  # Guarded, so a machine without pnpm doesn't error at startup.
+  assert_output --partial 'command -v pnpm >/dev/null 2>&1 && eval "$(pnpm completion zsh)"'
+  # The script calls compdef at load, so it no-ops if it runs before compinit.
+  local rendered compinit_line pnpm_line
+  rendered="$(render "$SRC_DIR/dot_zshrc.tmpl" full.toml)"
+  compinit_line="$(printf '%s\n' "$rendered" | grep -n 'autoload -Uz compinit' | head -1 | cut -d: -f1)"
+  pnpm_line="$(printf '%s\n' "$rendered" | grep -n 'pnpm completion zsh' | head -1 | cut -d: -f1)"
+  [ -n "$compinit_line" ]
+  [ -n "$pnpm_line" ]
+  [ "$pnpm_line" -gt "$compinit_line" ]
+}
+
 # ---- OS-conditional non-script templates ----------------------------------
 
 @test "chezmoiignore: Library/** ignored on linux only" {
